@@ -1,52 +1,62 @@
 
-
-# Adresy klienta w drawerze zlecen
+# Wielodniowe zlecenia - DateRange picker jak w N2Wash
 
 ## Podsumowanie
 
-Dodajemy mozliwosc wyboru klienta z bazy i jego adresu serwisowego w drawerze zlecen (`AddCalendarItemDialog`). Po wyborze klienta, jego dane (imie, telefon, email) uzupelnia sie automatycznie, a lista adresow pojawia sie jako dropdown.
+Zamieniamy pole daty (prosty `<input type="date">`) na komponent z radio "Jednodniowa / Wielodniowa" i kalendarzem (Popover + Calendar), identycznie jak w `ReservationDateTimeSection` z N2Wash. Baza danych juz posiada kolumne `end_date` w `calendar_items`, wiec nie potrzeba migracji.
 
 ---
 
-## 1. Migracja bazy danych
+## Zmiany w `AddCalendarItemDialog.tsx`
 
-Dodajemy dwie nowe kolumny do tabeli `calendar_items`:
-- `customer_id` (uuid, nullable, FK -> customers ON DELETE SET NULL)
-- `customer_address_id` (uuid, nullable, FK -> customer_addresses ON DELETE SET NULL)
+### Nowe stany
+- `reservationType`: `'single' | 'multi'` (domyslnie `'single'`)
+- `dateRange`: `DateRange | undefined` (obiekt `{ from: Date, to: Date }` z `react-day-picker`)
+- `dateRangeOpen`: `boolean` (kontroluje popover kalendarza)
 
-Uzycie SET NULL zamiast CASCADE -- jesli klient/adres zostanie usuniety, zlecenie pozostaje ale traci referencje.
+### Usuwamy
+- Stan `itemDate` (string) -- zastapiony przez `dateRange`
+
+### Inicjalizacja formularza (useEffect)
+- Tryb edycji: jesli `editingItem.end_date` istnieje i rozni sie od `item_date`, ustawiamy `reservationType = 'multi'`, `dateRange = { from, to }`; inaczej `'single'` z `{ from, to: from }`
+- Nowe zlecenie: `dateRange = { from: initialDate || today, to: initialDate || today }`, `reservationType = 'single'`
+
+### UI - sekcja daty
+Zamieniamy `<Input type="date">` na:
+
+1. **RadioGroup** z dwoma opcjami:
+   - "Jednodniowa" (`single`)
+   - "Wielodniowa" (`multi`)
+   - Przelaczenie na `single` synchronizuje `to = from`
+
+2. **Popover z Calendar**:
+   - Tryb `single`: `<Calendar mode="single">` -- klikniecie ustawia date i zamyka popover
+   - Tryb `multi`: `<Calendar mode="range">` -- wybor zakresu dat, 2 miesiace na desktopie, 1 na mobile
+   - Przycisk wyswietla sformatowana date: "Poniedzialek, 24 lut 2026" lub "24 lut - 28 lut 2026"
+   - Locale: `pl`
+
+### Submit
+- `item_date` = `format(dateRange.from, 'yyyy-MM-dd')`
+- `end_date` = `dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : null`
+
+### Walidacja
+- Sprawdzamy czy `dateRange?.from` istnieje przed zapisem
 
 ---
 
-## 2. Modyfikacja `AddCalendarItemDialog.tsx`
-
-Dodajemy nastepujace elementy:
-
-### Wyszukiwanie klienta
-- Pole tekstowe z autocomplete/combobox -- wpisujemy imie/telefon/firme, lista podpowiada klientow z bazy (`customers` table, filtrowane po `instance_id`)
-- Po wyborze klienta: auto-wypelnienie `customerName`, `customerPhone`, `customerEmail`, ustawienie `customerId`
-- Mozliwosc recznego wpisania danych klienta (bez wyboru z bazy)
-
-### Wybor adresu
-- Po wyborze klienta: fetch adresow z `customer_addresses` dla tego klienta
-- Dropdown/Select z listą adresow (wyswietlanie: nazwa + ulica + miasto)
-- Wybrany adres zapisuje sie jako `customer_address_id` w zleceniu
-- Jesli klient nie ma adresow, sekcja jest ukryta
-
-### Zapis
-- Przy zapisie zlecenia dodajemy `customer_id` i `customer_address_id` do danych
+## Nowe importy
+- `DateRange` z `react-day-picker`
+- `Calendar` z `@/components/ui/calendar`
+- `RadioGroup, RadioGroupItem` z `@/components/ui/radio-group`
+- `CalendarIcon` z `lucide-react`
+- `isSameDay, isBefore, startOfDay` z `date-fns`
+- `cn` z `@/lib/utils`
 
 ---
 
-## 3. Aktualizacja `EditingCalendarItem` interface
+## Brak migracji
 
-Dodajemy pola `customer_id` i `customer_address_id` do interfejsu, zeby edycja tez odczytywala te dane.
-
----
-
-## 4. Aktualizacja `CalendarItemDetailsDrawer.tsx`
-
-Jesli zlecenie ma `customer_address_id`, wyswietlamy adres serwisowy w sekcji klienta (nazwa lokalizacji, ulica, miasto).
+Kolumna `end_date` juz istnieje w tabeli `calendar_items`. Kalendarz (`AdminCalendar.tsx`) juz obsluguje wielodniowe zlecenia (filtrowanie po zakresie dat, rozne godziny wyswietlania dla pierwszego/ostatniego dnia).
 
 ---
 
@@ -54,17 +64,6 @@ Jesli zlecenie ma `customer_address_id`, wyswietlamy adres serwisowy w sekcji kl
 
 | Plik | Akcja |
 |------|-------|
-| Migracja SQL | Nowy -- customer_id + customer_address_id na calendar_items |
-| `AddCalendarItemDialog.tsx` | Modyfikacja -- combobox klienta, dropdown adresow |
-| `CalendarItemDetailsDrawer.tsx` | Modyfikacja -- wyswietlanie adresu |
+| `AddCalendarItemDialog.tsx` | Modyfikacja -- zamiana input date na RadioGroup + Calendar popover z obsluga DateRange |
 
----
-
-## Detale techniczne
-
-- Wyszukiwanie klientow: query do `customers` z `ilike` na name, phone, company, ograniczone do 10 wynikow, debounced (300ms)
-- Adresy fetchowane jednorazowo po wyborze klienta (nie przy kazdym renderze)
-- `customer_id` i `customer_address_id` sa nullable -- mozna tworzyc zlecenia bez klienta z bazy (reczne dane)
-- Komponent combobox uzyje `cmdk` (juz zainstalowany) przez shadcn Command component
-- FK z ON DELETE SET NULL -- bezpieczne usuwanie klientow/adresow bez utraty zlecen
-
+Zaden inny plik nie wymaga zmian.
