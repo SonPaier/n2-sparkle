@@ -41,7 +41,10 @@ const RoleBasedRedirect = () => {
 
   // Admin/employee -> dashboard
   if (hasStudioAccess) {
-    return <Navigate to="/" replace />;
+    // Use /admin for dev mode, / for subdomain mode
+    const hostname = window.location.hostname;
+    const isSubdomain = hostname.endsWith('.n2service.com');
+    return <Navigate to={isSubdomain ? "/" : "/admin"} replace />;
   }
 
   return <Navigate to="/login" replace />;
