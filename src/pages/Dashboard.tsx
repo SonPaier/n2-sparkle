@@ -11,6 +11,7 @@ import AdminCalendar from '@/components/admin/AdminCalendar';
 import AddCalendarItemDialog from '@/components/admin/AddCalendarItemDialog';
 import CalendarItemDetailsDrawer from '@/components/admin/CalendarItemDetailsDrawer';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
+import CalendarMapPanel from '@/components/admin/CalendarMapPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
@@ -20,6 +21,8 @@ import ProtocolsView from '@/components/protocols/ProtocolsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import { MessageSquare } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
 
 const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'powiadomienia-sms', 'ustawienia'];
 
@@ -37,6 +40,7 @@ const Dashboard = () => {
   const { view } = useParams<{ view?: string }>();
   const navigate = useNavigate();
   const { roles } = useAuth();
+  const isMobile = useIsMobile();
 
   const currentView: ViewType = view && validViews.includes(view as ViewType) ? (view as ViewType) : 'kalendarz';
 
@@ -61,6 +65,7 @@ const Dashboard = () => {
   const [newItemData, setNewItemData] = useState({ columnId: '', date: '', time: '' });
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+  const [mapOpen, setMapOpen] = useState(false);
 
   // Protocol form state
   const [protocolFormOpen, setProtocolFormOpen] = useState(false);
@@ -90,7 +95,7 @@ const Dashboard = () => {
   const fetchItems = useCallback(async () => {
     if (!instanceId) return;
     const rangeStart = format(subDays(currentCalendarDate, 7), 'yyyy-MM-dd');
-    const rangeEnd = format(addDays(currentCalendarDate, 14), 'yyyy-MM-dd');
+    const rangeEnd = format(addDays(currentCalendarDate, mapOpen ? 30 : 14), 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('calendar_items')
       .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price')
@@ -106,14 +111,18 @@ const Dashboard = () => {
     if (addressIds.length > 0) {
       const { data: addresses } = await supabase
         .from('customer_addresses')
-        .select('id, name')
+        .select('id, name, lat, lng, city')
         .in('id', addressIds);
       
       if (addresses) {
-        const addressMap = new Map(addresses.map(a => [a.id, a.name]));
+        const addressMap = new Map(addresses.map(a => [a.id, { name: a.name, lat: a.lat, lng: a.lng, city: a.city }]));
         items.forEach(item => {
           if (item.customer_address_id) {
-            (item as any).address_name = addressMap.get(item.customer_address_id) || null;
+            const addr = addressMap.get(item.customer_address_id);
+            (item as any).address_name = addr?.name || null;
+            (item as any).address_lat = addr?.lat || null;
+            (item as any).address_lng = addr?.lng || null;
+            (item as any).address_city = addr?.city || null;
           }
         });
       }
@@ -140,7 +149,7 @@ const Dashboard = () => {
     }
     
     setCalendarItems(items as CalendarItem[]);
-  }, [instanceId, currentCalendarDate]);
+  }, [instanceId, currentCalendarDate, mapOpen]);
 
   // Fetch breaks
   const fetchBreaks = useCallback(async () => {
@@ -308,8 +317,8 @@ const Dashboard = () => {
     }
 
     if (currentView === 'kalendarz' && instanceId) {
-      return (
-        <div className="flex-1 min-h-[600px] h-full relative">
+      const calendarContent = (
+        <>
           <AdminCalendar
             columns={calendarColumns}
             items={calendarItems}
@@ -321,6 +330,8 @@ const Dashboard = () => {
             onItemMove={handleItemMove}
             onDateChange={handleDateChange}
             selectedItemId={selectedItem?.id}
+            onToggleMap={() => setMapOpen(prev => !prev)}
+            mapOpen={mapOpen}
           />
 
           <AddCalendarItemDialog
@@ -368,6 +379,50 @@ const Dashboard = () => {
             initialData={newBreakData}
             onBreakAdded={() => fetchBreaks()}
           />
+        </>
+      );
+
+      const mapPanel = mapOpen ? (
+        <CalendarMapPanel
+          items={calendarItems}
+          columns={calendarColumns}
+          onItemClick={handleItemClick}
+          onClose={() => setMapOpen(false)}
+        />
+      ) : null;
+
+      // Mobile: map in drawer
+      if (isMobile && mapOpen) {
+        return (
+          <div className="flex-1 min-h-[600px] h-full relative">
+            {calendarContent}
+            <Drawer open={mapOpen} onOpenChange={setMapOpen}>
+              <DrawerContent className="h-[90vh]">
+                {mapPanel}
+              </DrawerContent>
+            </Drawer>
+          </div>
+        );
+      }
+
+      // Desktop with map: 50/50 layout
+      if (mapOpen) {
+        return (
+          <div className="flex flex-1 min-h-[600px] h-full">
+            <div className="w-1/2 min-w-0 relative">
+              {calendarContent}
+            </div>
+            <div className="w-1/2 min-w-0">
+              {mapPanel}
+            </div>
+          </div>
+        );
+      }
+
+      // Default: calendar only
+      return (
+        <div className="flex-1 min-h-[600px] h-full relative">
+          {calendarContent}
         </div>
       );
     }
