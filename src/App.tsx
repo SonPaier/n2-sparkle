@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import PublicProtocolView from "./pages/PublicProtocolView";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedRedirect from "./components/RoleBasedRedirect";
+import EmployeeCalendarPage from "./pages/EmployeeCalendarPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,6 +90,14 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
     <Route path="/login" element={<Login subdomainSlug={subdomain} />} />
     <Route path="/dashboard" element={<RoleBasedRedirect />} />
     <Route
+      path="/employee-calendars/:configId"
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <EmployeeCalendarPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/:view?"
       element={
         <ProtectedRoute requiredRole="admin">
@@ -141,6 +150,15 @@ const DevRoutes = () => (
       element={
         <ProtectedRoute requiredRole="admin">
           <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    {/* Employee calendar view */}
+    <Route
+      path="/employee-calendars/:configId"
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <EmployeeCalendarPage />
         </ProtectedRoute>
       }
     />
