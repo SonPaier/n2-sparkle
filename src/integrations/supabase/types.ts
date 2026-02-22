@@ -516,6 +516,7 @@ export type Database = {
           name: string
           phone: string | null
           primary_color: string | null
+          protocol_email_template: string | null
           slug: string
           updated_at: string
           website: string | null
@@ -532,6 +533,7 @@ export type Database = {
           name: string
           phone?: string | null
           primary_color?: string | null
+          protocol_email_template?: string | null
           slug: string
           updated_at?: string
           website?: string | null
@@ -548,6 +550,7 @@ export type Database = {
           name?: string
           phone?: string | null
           primary_color?: string | null
+          protocol_email_template?: string | null
           slug?: string
           updated_at?: string
           website?: string | null
@@ -592,6 +595,94 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocols: {
+        Row: {
+          created_at: string
+          customer_address_id: string | null
+          customer_email: string | null
+          customer_id: string | null
+          customer_name: string
+          customer_nip: string | null
+          customer_phone: string | null
+          customer_signature: string | null
+          id: string
+          instance_id: string
+          notes: string | null
+          photo_urls: Json | null
+          prepared_by: string | null
+          protocol_date: string
+          protocol_time: string | null
+          protocol_type: string
+          public_token: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_address_id?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name: string
+          customer_nip?: string | null
+          customer_phone?: string | null
+          customer_signature?: string | null
+          id?: string
+          instance_id: string
+          notes?: string | null
+          photo_urls?: Json | null
+          prepared_by?: string | null
+          protocol_date: string
+          protocol_time?: string | null
+          protocol_type?: string
+          public_token?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_address_id?: string | null
+          customer_email?: string | null
+          customer_id?: string | null
+          customer_name?: string
+          customer_nip?: string | null
+          customer_phone?: string | null
+          customer_signature?: string | null
+          id?: string
+          instance_id?: string
+          notes?: string | null
+          photo_urls?: Json | null
+          prepared_by?: string | null
+          protocol_date?: string
+          protocol_time?: string | null
+          protocol_type?: string
+          public_token?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocols_customer_address_id_fkey"
+            columns: ["customer_address_id"]
+            isOneToOne: false
+            referencedRelation: "customer_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocols_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "protocols_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
