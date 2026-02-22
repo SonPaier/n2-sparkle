@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      breaks: {
+        Row: {
+          break_date: string
+          column_id: string
+          created_at: string
+          end_time: string
+          id: string
+          instance_id: string
+          note: string | null
+          start_time: string
+        }
+        Insert: {
+          break_date: string
+          column_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          instance_id: string
+          note?: string | null
+          start_time: string
+        }
+        Update: {
+          break_date?: string
+          column_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          instance_id?: string
+          note?: string | null
+          start_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "breaks_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "breaks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_columns: {
         Row: {
           active: boolean
@@ -48,6 +96,84 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "calendar_columns_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_items: {
+        Row: {
+          admin_notes: string | null
+          assigned_employee_ids: string[] | null
+          column_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          end_date: string | null
+          end_time: string
+          id: string
+          instance_id: string
+          item_date: string
+          price: number | null
+          start_time: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          assigned_employee_ids?: string[] | null
+          column_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          end_date?: string | null
+          end_time: string
+          id?: string
+          instance_id: string
+          item_date: string
+          price?: number | null
+          start_time: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          assigned_employee_ids?: string[] | null
+          column_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          end_date?: string | null
+          end_time?: string
+          id?: string
+          instance_id?: string
+          item_date?: string
+          price?: number | null
+          start_time?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_items_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_items_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"

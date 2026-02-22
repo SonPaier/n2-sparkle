@@ -1,8 +1,18 @@
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { format, subDays, addDays } from 'date-fns';
 import { Calendar, Users, BadgeDollarSign, Settings } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
+import AdminCalendar from '@/components/admin/AdminCalendar';
+import AddCalendarItemDialog from '@/components/admin/AddCalendarItemDialog';
+import CalendarItemDetailsDrawer from '@/components/admin/CalendarItemDetailsDrawer';
+import AddBreakDialog from '@/components/admin/AddBreakDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import type { CalendarItem, CalendarColumn, Break } from '@/components/admin/AdminCalendar';
+import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 
 const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'ustawienia'];
 
@@ -20,20 +30,246 @@ const Dashboard = () => {
 
   const currentView: ViewType = view && validViews.includes(view as ViewType) ? (view as ViewType) : 'kalendarz';
 
-  // Get instanceId from user roles
   const adminRole = roles.find(r => (r.role === 'admin' || r.role === 'employee') && r.instance_id);
   const instanceId = adminRole?.instance_id ?? null;
 
-  // Detect base path from current URL (handles both /admin/:view and /:view patterns)
   const basePath = window.location.pathname.includes('/admin') ? '/admin' : '';
 
   const handleViewChange = (newView: ViewType) => {
     navigate(newView === 'kalendarz' ? `${basePath || '/admin'}` : `${basePath || '/admin'}/${newView}`, { replace: true });
   };
 
+  // Calendar state
+  const [calendarColumns, setCalendarColumns] = useState<CalendarColumn[]>([]);
+  const [calendarItems, setCalendarItems] = useState<CalendarItem[]>([]);
+  const [calendarBreaks, setCalendarBreaks] = useState<Break[]>([]);
+  const [selectedItem, setSelectedItem] = useState<CalendarItem | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [addItemOpen, setAddItemOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<EditingCalendarItem | null>(null);
+  const [addBreakOpen, setAddBreakOpen] = useState(false);
+  const [newItemData, setNewItemData] = useState({ columnId: '', date: '', time: '' });
+  const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+
+  // Fetch columns
+  const fetchColumns = useCallback(async () => {
+    if (!instanceId) return;
+    const { data, error } = await supabase
+      .from('calendar_columns')
+      .select('id, name, color')
+      .eq('instance_id', instanceId)
+      .eq('active', true)
+      .order('sort_order');
+    if (error) { console.error('Error fetching columns:', error); return; }
+    setCalendarColumns(data || []);
+  }, [instanceId]);
+
+  // Fetch items for date range
+  const fetchItems = useCallback(async () => {
+    if (!instanceId) return;
+    const rangeStart = format(subDays(currentCalendarDate, 7), 'yyyy-MM-dd');
+    const rangeEnd = format(addDays(currentCalendarDate, 14), 'yyyy-MM-dd');
+    const { data, error } = await supabase
+      .from('calendar_items')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, item_date, end_date, start_time, end_time, status, admin_notes, price')
+      .eq('instance_id', instanceId)
+      .gte('item_date', rangeStart)
+      .lte('item_date', rangeEnd);
+    if (error) { console.error('Error fetching items:', error); return; }
+    setCalendarItems(data || []);
+  }, [instanceId, currentCalendarDate]);
+
+  // Fetch breaks
+  const fetchBreaks = useCallback(async () => {
+    if (!instanceId) return;
+    const rangeStart = format(subDays(currentCalendarDate, 7), 'yyyy-MM-dd');
+    const rangeEnd = format(addDays(currentCalendarDate, 14), 'yyyy-MM-dd');
+    const { data, error } = await supabase
+      .from('breaks')
+      .select('id, column_id, break_date, start_time, end_time, note')
+      .eq('instance_id', instanceId)
+      .gte('break_date', rangeStart)
+      .lte('break_date', rangeEnd);
+    if (error) { console.error('Error fetching breaks:', error); return; }
+    setCalendarBreaks(data || []);
+  }, [instanceId, currentCalendarDate]);
+
+  useEffect(() => {
+    if (currentView === 'kalendarz') {
+      fetchColumns();
+      fetchItems();
+      fetchBreaks();
+    }
+  }, [currentView, fetchColumns, fetchItems, fetchBreaks]);
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!instanceId || currentView !== 'kalendarz') return;
+
+    const channel = supabase
+      .channel('calendar-items-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_items', filter: `instance_id=eq.${instanceId}` }, () => {
+        fetchItems();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [instanceId, currentView, fetchItems]);
+
+  // Handlers
+  const handleItemClick = (item: CalendarItem) => {
+    setSelectedItem(item);
+    setDetailsOpen(true);
+  };
+
+  const handleAddItem = (columnId: string, date: string, time: string) => {
+    setEditingItem(null);
+    setNewItemData({ columnId, date, time });
+    setAddItemOpen(true);
+  };
+
+  const handleAddBreak = (columnId: string, date: string, time: string) => {
+    setNewBreakData({ columnId, date, time });
+    setAddBreakOpen(true);
+  };
+
+  const handleDeleteBreak = async (breakId: string) => {
+    const { error } = await supabase.from('breaks').delete().eq('id', breakId);
+    if (error) { toast.error('Błąd usuwania przerwy'); return; }
+    fetchBreaks();
+    toast.success('Przerwa usunięta');
+  };
+
+  const handleItemMove = async (itemId: string, newColumnId: string, newDate: string, newTime?: string) => {
+    const item = calendarItems.find(i => i.id === itemId);
+    if (!item) return;
+
+    const updateData: any = { column_id: newColumnId, item_date: newDate };
+    if (newTime) {
+      const originalStart = parseFloat(item.start_time.split(':')[0]) + parseFloat(item.start_time.split(':')[1]) / 60;
+      const originalEnd = parseFloat(item.end_time.split(':')[0]) + parseFloat(item.end_time.split(':')[1]) / 60;
+      const duration = originalEnd - originalStart;
+      const newStartParts = newTime.split(':').map(Number);
+      const newEndTotal = newStartParts[0] + newStartParts[1] / 60 + duration;
+      const endHour = Math.floor(newEndTotal);
+      const endMin = Math.round((newEndTotal - endHour) * 60);
+      updateData.start_time = newTime;
+      updateData.end_time = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`;
+    }
+
+    // Optimistic update
+    setCalendarItems(prev => prev.map(i => i.id === itemId ? { ...i, ...updateData } : i));
+
+    const { error } = await supabase.from('calendar_items').update(updateData).eq('id', itemId);
+    if (error) {
+      toast.error('Błąd przenoszenia');
+      fetchItems(); // rollback
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    const { error } = await supabase.from('calendar_items').delete().eq('id', itemId);
+    if (error) { toast.error('Błąd usuwania'); return; }
+    setCalendarItems(prev => prev.filter(i => i.id !== itemId));
+    toast.success('Zlecenie usunięte');
+  };
+
+  const handleStatusChange = async (itemId: string, newStatus: string) => {
+    // Optimistic update
+    setCalendarItems(prev => prev.map(i => i.id === itemId ? { ...i, status: newStatus } : i));
+    setSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
+
+    const { error } = await supabase.from('calendar_items').update({ status: newStatus }).eq('id', itemId);
+    if (error) {
+      toast.error('Błąd zmiany statusu');
+      fetchItems();
+    } else {
+      toast.success('Status zmieniony');
+    }
+  };
+
+  const handleEditItem = (item: CalendarItem) => {
+    setEditingItem({
+      id: item.id,
+      title: item.title,
+      customer_name: item.customer_name,
+      customer_phone: item.customer_phone,
+      customer_email: item.customer_email,
+      item_date: item.item_date,
+      end_date: item.end_date,
+      start_time: item.start_time,
+      end_time: item.end_time,
+      column_id: item.column_id,
+      admin_notes: item.admin_notes,
+      price: item.price,
+    });
+    setDetailsOpen(false);
+    setAddItemOpen(true);
+  };
+
+  const handleItemSuccess = () => {
+    fetchItems();
+    setEditingItem(null);
+  };
+
+  const handleDateChange = (date: Date) => {
+    setCurrentCalendarDate(date);
+  };
+
   const renderContent = () => {
     if (currentView === 'ustawienia') {
       return <SettingsView instanceId={instanceId} />;
+    }
+
+    if (currentView === 'kalendarz' && instanceId) {
+      return (
+        <div className="flex-1 min-h-[600px] h-full relative">
+          <AdminCalendar
+            columns={calendarColumns}
+            items={calendarItems}
+            breaks={calendarBreaks}
+            onItemClick={handleItemClick}
+            onAddItem={handleAddItem}
+            onAddBreak={handleAddBreak}
+            onDeleteBreak={handleDeleteBreak}
+            onItemMove={handleItemMove}
+            onDateChange={handleDateChange}
+            selectedItemId={selectedItem?.id}
+          />
+
+          <AddCalendarItemDialog
+            open={addItemOpen}
+            onClose={() => { setAddItemOpen(false); setEditingItem(null); }}
+            instanceId={instanceId}
+            columns={calendarColumns}
+            onSuccess={handleItemSuccess}
+            editingItem={editingItem}
+            initialDate={newItemData.date}
+            initialTime={newItemData.time}
+            initialColumnId={newItemData.columnId}
+          />
+
+          <CalendarItemDetailsDrawer
+            item={selectedItem}
+            open={detailsOpen}
+            onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
+            columns={calendarColumns}
+            onDelete={handleDeleteItem}
+            onEdit={handleEditItem}
+            onStatusChange={handleStatusChange}
+          />
+
+          <AddBreakDialog
+            open={addBreakOpen}
+            onOpenChange={setAddBreakOpen}
+            instanceId={instanceId}
+            columns={calendarColumns}
+            initialData={newBreakData}
+            onBreakAdded={() => fetchBreaks()}
+          />
+        </div>
+      );
     }
 
     const { label, icon: Icon, description } = viewConfig[currentView];
