@@ -1,46 +1,39 @@
 
 
-# Wyslij SMS z poziomu szczgolow zlecenia
+# Wyszukiwarka adresow - komponent i serwis
 
-## Co jest juz zrobione
-Wiekszosc logiki SMS jest juz zaimplementowana:
-- Checkbox "Wyslij SMS" w drawer tworzenia zlecenia -- dziala
-- Zapis powiadomien SMS do `customer_sms_notifications` -- dziala
-- Wyswietlanie statusu SMS w drawer szczgolow -- dziala (ale niekompletnie)
+## Zakres
+Tworzymy dwa pliki - serwis do komunikacji z Nominatim API i reuzywalny komponent UI. Nie podlaczamy nigdzie.
 
-## Co trzeba dodac
+## Nowe pliki
 
-### 1. Przycisk "Wyslij SMS" w drawer szczgolow zlecenia (CalendarItemDetailsDrawer)
-Gdy zlecenie nie ma jeszcze wyslanego SMS, ale jego uslugi maja szablon SMS (immediate), pokaz przycisk "Wyslij SMS" z podgladem tresci. Klikniecie:
-- Tworzy rekord w `customer_sms_notifications`
-- Wywoluje edge function `send-sms`
-- Aktualizuje widok
+### 1. `src/lib/addressSearch.ts` - serwis
 
-### 2. Lepsza informacja o wyslanych SMS
-Pokazac nazwe szablonu/uslugi i pelna date wyslania w sekcji SMS.
+Funkcja `searchAddress(query, abortSignal?)` ktora:
+- Odpytuje Nominatim: `https://nominatim.openstreetmap.org/search?q=${query}&format=json&addressdetails=1&countrycodes=pl&limit=5`
+- Ustawia header `User-Agent: LovableApp`
+- Parsuje wyniki do ustandaryzowanego interfejsu:
 
----
+```text
+AddressSearchResult {
+  display_name: string
+  street: string       // road + house_number
+  city: string         // city || town || village
+  postal_code: string  // postcode
+  lat: number
+  lng: number
+}
+```
 
-## Zmiany techniczne
+### 2. `src/components/admin/AddressSearchInput.tsx` - komponent
 
-### CalendarItemDetailsDrawer.tsx
+Reuzywalny komponent autocomplete oparty na istniejacych Popover + Command:
+- Props: `onSelect(result)`, `placeholder?`, `defaultValue?`, `className?`
+- Debounce 300ms + AbortController (anuluje poprzednie zapytanie)
+- Min. 3 znaki do rozpoczecia szukania
+- Dropdown z wynikami (ulica, miasto, kod pocztowy)
+- Po wybraniu wyniku: wywoluje `onSelect`, zamyka dropdown, wstawia adres w input
+- Stany: loading spinner, brak wynikow, za malo znakow
 
-**Nowy stan i logika:**
-- Dodac stan na dostepne szablony SMS (`availableSmsTemplates`) - pobierane z `calendar_item_services` -> `unified_services` -> `sms_notification_templates`
-- Dodac stan `sendingSms` na loading
-- Dodac funkcje `handleSendSms` ktora:
-  1. Tworzy rekord `customer_sms_notifications` (status: pending, calendar_item_id, itp.)
-  2. Wywoluje `send-sms` edge function
-  3. Odswiezy liste `smsNotifications`
+Wzorowany na istniejacym `CustomerSearchInput.tsx` (ten sam pattern: Popover + Command + debounce).
 
-**Nowy useEffect** - po otwarciu drawer pobierz uslugi zlecenia z `calendar_item_services` JOIN `unified_services` i sprawdz ktore maja `notification_template_id`. Jesli tak, pobierz szablon z `sms_notification_templates` i sprawdz czy ma `trigger_type: 'immediate'`. Zapisz dostepne szablony.
-
-**Nowy UI** - pod sekcja "Notatki":
-- Jesli sa powiadomienia SMS: pokaz status jak teraz, ale z nazwa uslugi
-- Jesli nie ma SMS ale sa dostepne szablony: pokaz przycisk "Wyslij SMS" z podgladem tresci i nazwa szablonu
-
-**Pobieranie `instance short_name`** - potrzebne do podmiany placeholderu `{short_name}` w podgladzie SMS. Pobrac z tabeli `instances`.
-
-| Plik | Zmiana |
-|------|--------|
-| `CalendarItemDetailsDrawer.tsx` | Nowy useEffect do pobierania szablonow SMS z uslug zlecenia, przycisk "Wyslij SMS", funkcja handleSendSms |
