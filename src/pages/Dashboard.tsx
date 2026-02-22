@@ -6,6 +6,7 @@ import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLay
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
 import ServicesView from '@/components/admin/ServicesView';
+import CustomersView from '@/components/admin/CustomersView';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import AddCalendarItemDialog from '@/components/admin/AddCalendarItemDialog';
 import CalendarItemDetailsDrawer from '@/components/admin/CalendarItemDetailsDrawer';
@@ -225,6 +226,10 @@ const Dashboard = () => {
 
     if (currentView === 'uslugi' && instanceId) {
       return <ServicesView instanceId={instanceId} />;
+    }
+
+    if (currentView === 'klienci' && instanceId) {
+      return <CustomersView instanceId={instanceId} />;
     }
 
     if (currentView === 'kalendarz' && instanceId) {
