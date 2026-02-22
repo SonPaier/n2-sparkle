@@ -772,6 +772,7 @@ export type Database = {
       }
       protocols: {
         Row: {
+          calendar_item_id: string | null
           created_at: string
           customer_address_id: string | null
           customer_email: string | null
@@ -793,6 +794,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          calendar_item_id?: string | null
           created_at?: string
           customer_address_id?: string | null
           customer_email?: string | null
@@ -814,6 +816,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          calendar_item_id?: string | null
           created_at?: string
           customer_address_id?: string | null
           customer_email?: string | null
@@ -835,6 +838,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "protocols_calendar_item_id_fkey"
+            columns: ["calendar_item_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "protocols_customer_address_id_fkey"
             columns: ["customer_address_id"]

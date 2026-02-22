@@ -78,7 +78,9 @@ const CalendarItemDetailsDrawer = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [addressLabel, setAddressLabel] = useState<string | null>(null);
+  const [addressCoords, setAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [smsNotifications, setSmsNotifications] = useState<SmsNotificationInfo[]>([]);
+  const [protocolToken, setProtocolToken] = useState<string | null>(null);
   
   // Inline notes editing
   const [editingNotes, setEditingNotes] = useState(false);
@@ -103,20 +105,35 @@ const CalendarItemDetailsDrawer = ({
 
   // Fetch address
   useEffect(() => {
-    if (!item?.customer_address_id) { setAddressLabel(null); return; }
+    if (!item?.customer_address_id) { setAddressLabel(null); setAddressCoords(null); return; }
     const fetchAddr = async () => {
       const { data } = await supabase
         .from('customer_addresses')
-        .select('name, street, city')
+        .select('name, street, city, lat, lng')
         .eq('id', item.customer_address_id!)
         .single();
       if (data) {
         const parts = [data.name, data.street, data.city].filter(Boolean);
         setAddressLabel(parts.join(', '));
+        setAddressCoords(data.lat && data.lng ? { lat: data.lat, lng: data.lng } : null);
       }
     };
     fetchAddr();
   }, [item?.customer_address_id]);
+
+  // Fetch protocol linked to this calendar item
+  useEffect(() => {
+    if (!item?.id || !open) { setProtocolToken(null); return; }
+    const fetchProtocol = async () => {
+      const { data } = await (supabase.from('protocols') as any)
+        .select('public_token')
+        .eq('calendar_item_id', item.id)
+        .limit(1)
+        .maybeSingle();
+      setProtocolToken(data?.public_token || null);
+    };
+    fetchProtocol();
+  }, [item?.id, open]);
 
   // Fetch SMS notifications
   useEffect(() => {
@@ -506,6 +523,16 @@ const CalendarItemDetailsDrawer = ({
                   <div className="flex items-center gap-2 text-sm">
                     <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
                     <span>{addressLabel}</span>
+                    {addressCoords && (
+                      <a
+                        href={`https://www.google.com/maps?q=${addressCoords.lat},${addressCoords.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-auto text-xs text-primary hover:underline"
+                      >
+                        Lokalizacja
+                      </a>
+                    )}
                   </div>
                 )}
               </div>
@@ -519,6 +546,37 @@ const CalendarItemDetailsDrawer = ({
               </div>
             )}
 
+            {/* Completed: FV + SMS buttons */}
+            {item.status === 'completed' && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => toast.info('Wkrótce dostępne')}
+                >
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Wyślij FV
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  disabled={!item.customer_phone}
+                  onClick={() => {
+                    const phone = item.customer_phone || '';
+                    let message = `Prośba o rozliczenie "${item.title}"`;
+                    if (item.price != null) message += ` w kwocie ${item.price.toFixed(2)} PLN`;
+                    message += '.';
+                    if (protocolToken) {
+                      message += ` Link do protokołu: ${window.location.origin}/protocol/${protocolToken}`;
+                    }
+                    window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
+                  }}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Wyślij SMS o rozliczeniu
+                </Button>
+              </div>
+            )}
             {/* Assigned Employees - N2Wash style pills */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">

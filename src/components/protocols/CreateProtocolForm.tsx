@@ -31,9 +31,10 @@ interface CreateProtocolFormProps {
   prefillCustomerPhone?: string;
   prefillCustomerEmail?: string;
   prefillCustomerAddressId?: string | null;
+  prefillCalendarItemId?: string | null;
 }
 
-const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId }: CreateProtocolFormProps) => {
+const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId, prefillCalendarItemId }: CreateProtocolFormProps) => {
   const isMobile = useIsMobile();
   const { fullName } = useAuth();
   const isEditMode = !!editingProtocolId;
@@ -124,7 +125,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
 
     setLoading(true);
     try {
-      const payload = {
+      const payload: any = {
         instance_id: instanceId,
         customer_id: customerId,
         customer_name: customerName.trim(),
@@ -139,6 +140,9 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
         customer_signature: customerSignature,
         photo_urls: photoUrls,
       };
+      if (!isEditMode && prefillCalendarItemId) {
+        payload.calendar_item_id = prefillCalendarItemId;
+      }
 
       if (isEditMode) {
         const { error } = await supabase.from('protocols').update(payload).eq('id', editingProtocolId!);
