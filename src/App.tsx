@@ -113,32 +113,35 @@ const InstancePublicRoutes = ({ subdomain }: { subdomain: string }) => (
   </Routes>
 );
 
-// Dev Routes - full access
+// Dev Routes - full access (same pattern as N2Wash)
 const DevRoutes = () => (
   <Routes>
-    {/* Instance-specific login */}
+    {/* Instance-specific login: /pool-prestige/login */}
     <Route path="/:slug/login" element={<Login />} />
-    {/* Default login - use demo slug for dev */}
-    <Route path="/login" element={<Login subdomainSlug="demo" />} />
+    {/* Default login without slug */}
+    <Route path="/login" element={<Login subdomainSlug="pool-prestige" />} />
     {/* Role-based redirect after login */}
     <Route path="/dashboard" element={<RoleBasedRedirect />} />
-    {/* Protected dashboard */}
+    {/* Super admin */}
     <Route
-      path="/"
+      path="/super-admin"
+      element={
+        <ProtectedRoute requiredRole="super_admin">
+          <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    {/* Admin dashboard with view param */}
+    <Route
+      path="/admin/:view?"
       element={
         <ProtectedRoute requiredRole="admin">
           <Dashboard />
         </ProtectedRoute>
       }
     />
-    <Route
-      path="/:view"
-      element={
-        <ProtectedRoute requiredRole="admin">
-          <Dashboard />
-        </ProtectedRoute>
-      }
-    />
+    {/* Root redirect to admin */}
+    <Route path="/" element={<Navigate to="/admin" replace />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

@@ -17,8 +17,11 @@ const Dashboard = () => {
 
   const currentView: ViewType = view && validViews.includes(view as ViewType) ? (view as ViewType) : 'kalendarz';
 
+  // Detect base path from current URL (handles both /admin/:view and /:view patterns)
+  const basePath = window.location.pathname.includes('/admin') ? '/admin' : '';
+
   const handleViewChange = (newView: ViewType) => {
-    navigate(newView === 'kalendarz' ? '/' : `/${newView}`, { replace: true });
+    navigate(newView === 'kalendarz' ? `${basePath || '/admin'}` : `${basePath || '/admin'}/${newView}`, { replace: true });
   };
 
   const { label, icon: Icon, description } = viewConfig[currentView];
