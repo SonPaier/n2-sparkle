@@ -1,55 +1,46 @@
 
-# Poprawki: "Dodaj protokol" i zapis uslug
 
-## Problem 1: "Dodaj protokol" nie otwiera drawera z danymi klienta
+# Wyslij SMS z poziomu szczgolow zlecenia
 
-Obecnie klikniecie "Dodaj protokol" w menu szczgolow zlecenia tylko nawiguje do `/admin/protokoly`. Powinno od razu otworzyc drawer `CreateProtocolForm` z wypelnionymi danymi klienta ze zlecenia.
+## Co jest juz zrobione
+Wiekszosc logiki SMS jest juz zaimplementowana:
+- Checkbox "Wyslij SMS" w drawer tworzenia zlecenia -- dziala
+- Zapis powiadomien SMS do `customer_sms_notifications` -- dziala
+- Wyswietlanie statusu SMS w drawer szczgolow -- dziala (ale niekompletnie)
 
-### Rozwiazanie
+## Co trzeba dodac
 
-**CreateProtocolForm** - dodac nowe propsy do pre-fillowania danych:
-- `prefillCustomerId`, `prefillCustomerName`, `prefillCustomerPhone`, `prefillCustomerEmail`, `prefillCustomerAddressId`
-- W useEffect resetu formularza (tryb nowy) - ustawic te wartosci jesli sa przekazane
+### 1. Przycisk "Wyslij SMS" w drawer szczgolow zlecenia (CalendarItemDetailsDrawer)
+Gdy zlecenie nie ma jeszcze wyslanego SMS, ale jego uslugi maja szablon SMS (immediate), pokaz przycisk "Wyslij SMS" z podgladem tresci. Klikniecie:
+- Tworzy rekord w `customer_sms_notifications`
+- Wywoluje edge function `send-sms`
+- Aktualizuje widok
 
-**Dashboard.tsx**:
-- Dodac stan `protocolFormOpen` i `protocolPrefill` (dane klienta ze zlecenia)
-- Zmienic `onAddProtocol` - zamiast nawigacji, ustawic `protocolFormOpen = true` i `protocolPrefill` z danymi zlecenia
-- Wyrenderowac `CreateProtocolForm` z pre-fillem na poziomie Dashboard (poza warunkiem `currentView === 'kalendarz'`)
-- `onSuccess` refreshuje protokoly
-
----
-
-## Problem 2: Uslugi nie sa zapisywane w zleceniu
-
-Tabela `calendar_items` nie ma kolumny/tabeli na uslugi. Lokalne stany `selectedServiceIds`, `serviceItems`, `allServices` sa resetowane przy otwarciu drawera, wiec po zapisie i ponownym otwarciu uslugi znikaja.
-
-### Rozwiazanie
-
-**Migracja DB** - dodac tabele `calendar_item_services`:
-
-```text
-calendar_item_services
-- id (uuid, PK)
-- calendar_item_id (uuid, FK -> calendar_items.id, ON DELETE CASCADE)
-- service_id (uuid, FK -> unified_services.id)
-- custom_price (numeric, nullable)
-- instance_id (uuid)
-- created_at (timestamptz)
-```
-
-Z RLS politykami jak inne tabele (admin/super_admin manage, employee select).
-
-**AddCalendarItemDialog.tsx**:
-- W `handleSubmit` - po insert/update calendar_item, zapisac uslugi do `calendar_item_services` (delete starych + insert nowych)
-- W useEffect ladowania (isEditMode) - pobrac uslugi z `calendar_item_services` JOIN `unified_services` i ustawic `selectedServiceIds`, `serviceItems`, `allServices`
+### 2. Lepsza informacja o wyslanych SMS
+Pokazac nazwe szablonu/uslugi i pelna date wyslania w sekcji SMS.
 
 ---
 
 ## Zmiany techniczne
 
+### CalendarItemDetailsDrawer.tsx
+
+**Nowy stan i logika:**
+- Dodac stan na dostepne szablony SMS (`availableSmsTemplates`) - pobierane z `calendar_item_services` -> `unified_services` -> `sms_notification_templates`
+- Dodac stan `sendingSms` na loading
+- Dodac funkcje `handleSendSms` ktora:
+  1. Tworzy rekord `customer_sms_notifications` (status: pending, calendar_item_id, itp.)
+  2. Wywoluje `send-sms` edge function
+  3. Odswiezy liste `smsNotifications`
+
+**Nowy useEffect** - po otwarciu drawer pobierz uslugi zlecenia z `calendar_item_services` JOIN `unified_services` i sprawdz ktore maja `notification_template_id`. Jesli tak, pobierz szablon z `sms_notification_templates` i sprawdz czy ma `trigger_type: 'immediate'`. Zapisz dostepne szablony.
+
+**Nowy UI** - pod sekcja "Notatki":
+- Jesli sa powiadomienia SMS: pokaz status jak teraz, ale z nazwa uslugi
+- Jesli nie ma SMS ale sa dostepne szablony: pokaz przycisk "Wyslij SMS" z podgladem tresci i nazwa szablonu
+
+**Pobieranie `instance short_name`** - potrzebne do podmiany placeholderu `{short_name}` w podgladzie SMS. Pobrac z tabeli `instances`.
+
 | Plik | Zmiana |
 |------|--------|
-| `CreateProtocolForm.tsx` | Nowe propsy prefill (customerId, name, phone, email, addressId) - ustawiane w useEffect resetu |
-| `Dashboard.tsx` | Stan `protocolFormOpen` + `protocolPrefill`, zmiana `onAddProtocol`, renderowanie `CreateProtocolForm` |
-| Migracja DB | Tabela `calendar_item_services` z FK, RLS, indeksami |
-| `AddCalendarItemDialog.tsx` | Zapis uslug do DB w handleSubmit, ladowanie uslug w useEffect edit mode |
+| `CalendarItemDetailsDrawer.tsx` | Nowy useEffect do pobierania szablonow SMS z uslug zlecenia, przycisk "Wyslij SMS", funkcja handleSendSms |
