@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Loader2, CalendarIcon } from 'lucide-react';
+import { Loader2, CalendarIcon, Pen } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -266,24 +266,29 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
                 <Input value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} placeholder="Imię i nazwisko osoby sporządzającej" />
               </div>
 
-              {/* Signature */}
+              {/* Signature - inline canvas */}
               <div className="space-y-2">
                 <Label>Podpis osoby upoważnionej do odbioru</Label>
-                {customerSignature ? (
-                  <div className="space-y-2">
-                    <div className="border border-border rounded-md p-2 bg-background">
-                      <img src={customerSignature} alt="Podpis" className="max-h-24 mx-auto" />
+                <div className="border border-border rounded-md bg-white overflow-hidden relative">
+                  {customerSignature ? (
+                    <div className="relative">
+                      <img src={customerSignature} alt="Podpis" className="w-full" style={{ height: '160px', objectFit: 'contain' }} />
+                      <div className="absolute bottom-2 right-2 flex gap-1">
+                        <Button variant="secondary" size="sm" onClick={() => { setCustomerSignature(null); setSignatureOpen(true); }}>Podpisz ponownie</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setCustomerSignature(null)}>Usuń</Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setSignatureOpen(true)}>Zmień podpis</Button>
-                      <Button variant="ghost" size="sm" onClick={() => setCustomerSignature(null)}>Usuń podpis</Button>
+                  ) : (
+                    <div
+                      className="flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors text-muted-foreground"
+                      style={{ height: '160px' }}
+                      onClick={() => setSignatureOpen(true)}
+                    >
+                      <Pen className="w-8 h-8 mb-2" />
+                      <span className="text-sm">Kliknij aby złożyć podpis</span>
                     </div>
-                  </div>
-                ) : (
-                  <Button variant="outline" onClick={() => setSignatureOpen(true)} className="w-full">
-                    Dodaj podpis
-                  </Button>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           )}
