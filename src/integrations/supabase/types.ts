@@ -103,6 +103,55 @@ export type Database = {
           },
         ]
       }
+      calendar_item_services: {
+        Row: {
+          calendar_item_id: string
+          created_at: string
+          custom_price: number | null
+          id: string
+          instance_id: string
+          service_id: string
+        }
+        Insert: {
+          calendar_item_id: string
+          created_at?: string
+          custom_price?: number | null
+          id?: string
+          instance_id: string
+          service_id: string
+        }
+        Update: {
+          calendar_item_id?: string
+          created_at?: string
+          custom_price?: number | null
+          id?: string
+          instance_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_item_services_calendar_item_id_fkey"
+            columns: ["calendar_item_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_item_services_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_item_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "unified_services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_items: {
         Row: {
           admin_notes: string | null

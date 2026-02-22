@@ -25,9 +25,14 @@ interface CreateProtocolFormProps {
   instanceId: string;
   onSuccess: () => void;
   editingProtocolId: string | null;
+  prefillCustomerId?: string | null;
+  prefillCustomerName?: string;
+  prefillCustomerPhone?: string;
+  prefillCustomerEmail?: string;
+  prefillCustomerAddressId?: string | null;
 }
 
-const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProtocolId }: CreateProtocolFormProps) => {
+const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId }: CreateProtocolFormProps) => {
   const isMobile = useIsMobile();
   const isEditMode = !!editingProtocolId;
   const [loading, setLoading] = useState(false);
@@ -76,21 +81,21 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
           setLoadingData(false);
         });
     } else {
-      // Reset form
+      // Reset form with optional prefill
       setProtocolType('completion');
-      setCustomerId(null);
-      setCustomerName('');
-      setCustomerPhone('');
-      setCustomerEmail('');
+      setCustomerId(prefillCustomerId || null);
+      setCustomerName(prefillCustomerName || '');
+      setCustomerPhone(prefillCustomerPhone || '');
+      setCustomerEmail(prefillCustomerEmail || '');
       setCustomerNip('');
-      setCustomerAddressId(null);
+      setCustomerAddressId(prefillCustomerAddressId || null);
       setPhotoUrls([]);
       setNotes('');
       setProtocolDate(new Date());
       setPreparedBy('');
       setCustomerSignature(null);
     }
-  }, [open, isEditMode, editingProtocolId]);
+  }, [open, isEditMode, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId]);
 
   const handleSelectCustomer = (customer: SelectedCustomer) => {
     setCustomerId(customer.id);
