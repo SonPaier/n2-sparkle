@@ -11,6 +11,7 @@ import PublicProtocolView from "./pages/PublicProtocolView";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import EmployeeCalendarPage from "./pages/EmployeeCalendarPage";
+import SmsNotificationTemplateEditPage from "./pages/SmsNotificationTemplateEditPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,6 +99,14 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
       }
     />
     <Route
+      path="/powiadomienia-sms/:shortId"
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <SmsNotificationTemplateEditPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
       path="/:view?"
       element={
         <ProtectedRoute requiredRole="admin">
@@ -141,6 +150,15 @@ const DevRoutes = () => (
       element={
         <ProtectedRoute requiredRole="super_admin">
           <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    {/* SMS notification template edit */}
+    <Route
+      path="/admin/powiadomienia-sms/:shortId"
+      element={
+        <ProtectedRoute requiredRole="admin">
+          <SmsNotificationTemplateEditPage />
         </ProtectedRoute>
       }
     />
