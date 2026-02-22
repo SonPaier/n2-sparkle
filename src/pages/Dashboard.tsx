@@ -17,8 +17,10 @@ import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/co
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { EmployeesView } from '@/components/admin/employees';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
+import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
+import { MessageSquare } from 'lucide-react';
 
-const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'ustawienia'];
+const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'powiadomienia-sms', 'ustawienia'];
 
 const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; description: string }> = {
   kalendarz: { label: 'Kalendarz', icon: Calendar, description: 'Zarządzaj harmonogramem i rezerwacjami' },
@@ -26,6 +28,7 @@ const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; des
   pracownicy: { label: 'Pracownicy', icon: HardHat, description: 'Zarządzaj pracownikami i czasem pracy' },
   protokoly: { label: 'Protokoły', icon: ClipboardCheck, description: 'Protokoły serwisowe zakończenia prac' },
   uslugi: { label: 'Usługi', icon: BadgeDollarSign, description: 'Konfiguruj usługi i cennik' },
+  'powiadomienia-sms': { label: 'Powiadomienia SMS', icon: MessageSquare, description: 'Szablony powiadomień SMS dla klientów' },
   ustawienia: { label: 'Ustawienia', icon: Settings, description: 'Ustawienia systemu i konfiguracja' },
 };
 
@@ -286,6 +289,10 @@ const Dashboard = () => {
 
     if (currentView === 'protokoly' && instanceId) {
       return <ProtocolsView instanceId={instanceId} />;
+    }
+
+    if (currentView === 'powiadomienia-sms') {
+      return <SmsNotificationsView instanceId={instanceId} />;
     }
 
     if (currentView === 'kalendarz' && instanceId) {

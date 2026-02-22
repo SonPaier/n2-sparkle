@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-type ViewType = 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'ustawienia';
+type ViewType = 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'powiadomienia-sms' | 'ustawienia';
 
 const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
@@ -19,6 +19,7 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'pracownicy', label: 'Pracownicy', icon: HardHat },
   { id: 'protokoly', label: 'Protokoły', icon: ClipboardCheck },
   { id: 'uslugi', label: 'Usługi', icon: BadgeDollarSign },
+  { id: 'powiadomienia-sms', label: 'Powiadomienia SMS', icon: MessageSquare },
   { id: 'ustawienia', label: 'Ustawienia', icon: Settings },
 ];
 
