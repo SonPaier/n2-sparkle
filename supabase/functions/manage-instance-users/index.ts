@@ -192,6 +192,36 @@ Deno.serve(async (req) => {
           );
         }
 
+        // Auto-create employee calendar config when creating employee
+        if (role === 'employee') {
+          // Get all active calendar columns for this instance
+          const { data: allColumns } = await supabase
+            .from('calendar_columns')
+            .select('id')
+            .eq('instance_id', instanceId)
+            .eq('active', true);
+
+          const columnIds = (allColumns || []).map((c: any) => c.id);
+
+          // Get next sort_order
+          const { count } = await supabase
+            .from('employee_calendar_configs')
+            .select('*', { count: 'exact', head: true })
+            .eq('instance_id', instanceId);
+
+          await supabase
+            .from('employee_calendar_configs')
+            .insert({
+              instance_id: instanceId,
+              user_id: newUser.user.id,
+              name: username,
+              column_ids: columnIds,
+              sort_order: (count || 0),
+              visible_fields: { customer_name: true, customer_phone: true, admin_notes: true, price: true, address: true },
+              allowed_actions: { add_item: true, edit_item: true, delete_item: true, change_time: true, change_column: true },
+            });
+        }
+
         return new Response(
           JSON.stringify({ success: true, userId: newUser.user.id, message: 'Użytkownik utworzony pomyślnie' }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
