@@ -74,7 +74,7 @@ const Dashboard = () => {
     const rangeEnd = format(addDays(currentCalendarDate, 14), 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('calendar_items')
-      .select('id, column_id, title, customer_name, customer_phone, customer_email, item_date, end_date, start_time, end_time, status, admin_notes, price')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, item_date, end_date, start_time, end_time, status, admin_notes, price')
       .eq('instance_id', instanceId)
       .gte('item_date', rangeStart)
       .lte('item_date', rangeEnd);
@@ -198,6 +198,8 @@ const Dashboard = () => {
       customer_name: item.customer_name,
       customer_phone: item.customer_phone,
       customer_email: item.customer_email,
+      customer_id: item.customer_id,
+      customer_address_id: item.customer_address_id,
       item_date: item.item_date,
       end_date: item.end_date,
       start_time: item.start_time,

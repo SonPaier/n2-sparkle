@@ -110,7 +110,9 @@ export type Database = {
           column_id: string | null
           created_at: string
           created_by: string | null
+          customer_address_id: string | null
           customer_email: string | null
+          customer_id: string | null
           customer_name: string | null
           customer_phone: string | null
           end_date: string | null
@@ -130,7 +132,9 @@ export type Database = {
           column_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_address_id?: string | null
           customer_email?: string | null
+          customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           end_date?: string | null
@@ -150,7 +154,9 @@ export type Database = {
           column_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_address_id?: string | null
           customer_email?: string | null
+          customer_id?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           end_date?: string | null
@@ -170,6 +176,20 @@ export type Database = {
             columns: ["column_id"]
             isOneToOne: false
             referencedRelation: "calendar_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_items_customer_address_id_fkey"
+            columns: ["customer_address_id"]
+            isOneToOne: false
+            referencedRelation: "customer_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_items_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {

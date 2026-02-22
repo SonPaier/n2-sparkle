@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign } from 'lucide-react';
+import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
 import type { CalendarItem, CalendarColumn } from './AdminCalendar';
 
 interface CalendarItemDetailsDrawerProps {
@@ -50,6 +51,24 @@ const CalendarItemDetailsDrawer = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
+  const [addressLabel, setAddressLabel] = useState<string | null>(null);
+
+  // Fetch address if customer_address_id is set
+  useEffect(() => {
+    if (!item?.customer_address_id) { setAddressLabel(null); return; }
+    const fetchAddr = async () => {
+      const { data } = await supabase
+        .from('customer_addresses')
+        .select('name, street, city')
+        .eq('id', item.customer_address_id!)
+        .single();
+      if (data) {
+        const parts = [data.name, data.street, data.city].filter(Boolean);
+        setAddressLabel(parts.join(', '));
+      }
+    };
+    fetchAddr();
+  }, [item?.customer_address_id]);
 
   if (!item) return null;
 
@@ -132,6 +151,12 @@ const CalendarItemDetailsDrawer = ({
                   <div className="flex items-center gap-2 text-sm">
                     <Mail className="w-4 h-4 text-muted-foreground" />
                     <a href={`mailto:${item.customer_email}`} className="text-primary hover:underline">{item.customer_email}</a>
+                  </div>
+                )}
+                {addressLabel && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                    <span>{addressLabel}</span>
                   </div>
                 )}
               </div>

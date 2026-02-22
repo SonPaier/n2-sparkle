@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, X, MapPin } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -19,12 +21,29 @@ interface CalendarColumn {
   name: string;
 }
 
+interface CustomerResult {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  company: string | null;
+}
+
+interface CustomerAddress {
+  id: string;
+  name: string;
+  street: string | null;
+  city: string | null;
+}
+
 export interface EditingCalendarItem {
   id: string;
   title: string;
   customer_name?: string | null;
   customer_phone?: string | null;
   customer_email?: string | null;
+  customer_id?: string | null;
+  customer_address_id?: string | null;
   item_date: string;
   end_date?: string | null;
   start_time: string;
@@ -78,12 +97,24 @@ const AddCalendarItemDialog = ({
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [customerAddressId, setCustomerAddressId] = useState<string | null>(null);
   const [columnId, setColumnId] = useState('');
   const [itemDate, setItemDate] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('09:00');
   const [adminNotes, setAdminNotes] = useState('');
   const [price, setPrice] = useState('');
+
+  // Customer search state
+  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+  const [customerResults, setCustomerResults] = useState<CustomerResult[]>([]);
+  const [searchingCustomers, setSearchingCustomers] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Customer addresses
+  const [customerAddresses, setCustomerAddresses] = useState<CustomerAddress[]>([]);
 
   // Service selection state
   const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
@@ -100,6 +131,8 @@ const AddCalendarItemDialog = ({
       setCustomerName(editingItem.customer_name || '');
       setCustomerPhone(editingItem.customer_phone || '');
       setCustomerEmail(editingItem.customer_email || '');
+      setCustomerId(editingItem.customer_id || null);
+      setCustomerAddressId(editingItem.customer_address_id || null);
       setColumnId(editingItem.column_id || '');
       setItemDate(editingItem.item_date || '');
       setStartTime(editingItem.start_time || '08:00');
@@ -111,6 +144,8 @@ const AddCalendarItemDialog = ({
       setCustomerName('');
       setCustomerPhone('');
       setCustomerEmail('');
+      setCustomerId(null);
+      setCustomerAddressId(null);
       setColumnId(initialColumnId || columns[0]?.id || '');
       setItemDate(initialDate || format(new Date(), 'yyyy-MM-dd'));
       setStartTime(initialTime || '08:00');
@@ -119,11 +154,72 @@ const AddCalendarItemDialog = ({
       setAdminNotes('');
       setPrice('');
     }
-    // Reset services on open
+    // Reset
     setSelectedServiceIds([]);
     setAllServices([]);
     setServiceItems([]);
+    setCustomerSearchQuery('');
+    setCustomerResults([]);
+    setCustomerAddresses([]);
   }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns]);
+
+  // Fetch addresses when customerId changes
+  useEffect(() => {
+    if (!customerId) {
+      setCustomerAddresses([]);
+      setCustomerAddressId(null);
+      return;
+    }
+    const fetchAddresses = async () => {
+      const { data } = await supabase
+        .from('customer_addresses')
+        .select('id, name, street, city')
+        .eq('customer_id', customerId)
+        .order('sort_order');
+      setCustomerAddresses(data || []);
+    };
+    fetchAddresses();
+  }, [customerId]);
+
+  // Customer search with debounce
+  const searchCustomers = useCallback(async (query: string) => {
+    if (query.length < 2) { setCustomerResults([]); return; }
+    setSearchingCustomers(true);
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, phone, email, company')
+      .eq('instance_id', instanceId)
+      .or(`name.ilike.%${query}%,phone.ilike.%${query}%,company.ilike.%${query}%`)
+      .limit(10);
+    setCustomerResults(data || []);
+    setSearchingCustomers(false);
+  }, [instanceId]);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      searchCustomers(customerSearchQuery);
+    }, 300);
+    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current); };
+  }, [customerSearchQuery, searchCustomers]);
+
+  const handleSelectCustomer = (customer: CustomerResult) => {
+    setCustomerId(customer.id);
+    setCustomerName(customer.name);
+    setCustomerPhone(customer.phone);
+    setCustomerEmail(customer.email || '');
+    setCustomerSearchOpen(false);
+    setCustomerSearchQuery('');
+  };
+
+  const handleClearCustomer = () => {
+    setCustomerId(null);
+    setCustomerAddressId(null);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerEmail('');
+    setCustomerAddresses([]);
+  };
 
   // Handle service selection confirmed
   const handleServicesConfirmed = (serviceIds: string[], totalDuration: number, services: ServiceWithCategory[]) => {
@@ -208,13 +304,15 @@ const AddCalendarItemDialog = ({
 
     setLoading(true);
     try {
-      const data = {
+      const data: any = {
         instance_id: instanceId,
         column_id: columnId,
         title: title.trim(),
         customer_name: customerName.trim() || null,
         customer_phone: customerPhone.trim() || null,
         customer_email: customerEmail.trim() || null,
+        customer_id: customerId || null,
+        customer_address_id: customerAddressId || null,
         item_date: itemDate,
         start_time: startTime,
         end_time: endTime,
@@ -276,22 +374,91 @@ const AddCalendarItemDialog = ({
               <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Np. Wymiana oleju, Przegląd..." />
             </div>
 
-            {/* Customer */}
+            {/* Customer Search */}
+            <div className="space-y-2">
+              <Label>Klient</Label>
+              {customerId ? (
+                <div className="flex items-center gap-2 p-2 rounded-md border border-input bg-muted/30">
+                  <Search className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm flex-1">{customerName}{customerPhone ? ` • ${customerPhone}` : ''}</span>
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleClearCustomer}>
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal">
+                      <Search className="w-4 h-4 mr-2" />
+                      Szukaj klienta w bazie...
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+                    <Command shouldFilter={false}>
+                      <CommandInput
+                        placeholder="Wpisz imię, telefon lub firmę..."
+                        value={customerSearchQuery}
+                        onValueChange={setCustomerSearchQuery}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          {searchingCustomers ? 'Szukam...' : customerSearchQuery.length < 2 ? 'Wpisz min. 2 znaki' : 'Brak wyników'}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {customerResults.map((c) => (
+                            <CommandItem key={c.id} onSelect={() => handleSelectCustomer(c)} className="cursor-pointer">
+                              <div>
+                                <div className="font-medium">{c.name}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {c.phone}{c.company ? ` • ${c.company}` : ''}
+                                </div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+
+            {/* Customer details (manual or from selection) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Imię klienta</Label>
-                <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Jan Kowalski" />
+                <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); if (customerId) setCustomerId(null); }} placeholder="Jan Kowalski" />
               </div>
               <div className="space-y-2">
                 <Label>Telefon</Label>
-                <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+48 ..." type="tel" />
+                <Input value={customerPhone} onChange={(e) => { setCustomerPhone(e.target.value); if (customerId) setCustomerId(null); }} placeholder="+48 ..." type="tel" />
               </div>
             </div>
 
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="jan@example.com" type="email" />
+              <Input value={customerEmail} onChange={(e) => { setCustomerEmail(e.target.value); if (customerId) setCustomerId(null); }} placeholder="jan@example.com" type="email" />
             </div>
+
+            {/* Customer Address */}
+            {customerId && customerAddresses.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5" />
+                  Adres serwisowy
+                </Label>
+                <Select value={customerAddressId || ''} onValueChange={(v) => setCustomerAddressId(v || null)}>
+                  <SelectTrigger><SelectValue placeholder="Wybierz adres..." /></SelectTrigger>
+                  <SelectContent>
+                    {customerAddresses.map((addr) => (
+                      <SelectItem key={addr.id} value={addr.id}>
+                        {addr.name}{addr.street ? `, ${addr.street}` : ''}{addr.city ? `, ${addr.city}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Column */}
             <div className="space-y-2">

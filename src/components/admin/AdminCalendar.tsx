@@ -26,6 +26,8 @@ export interface CalendarItem {
   customer_name?: string | null;
   customer_phone?: string | null;
   customer_email?: string | null;
+  customer_id?: string | null;
+  customer_address_id?: string | null;
   item_date: string;
   end_date?: string | null;
   start_time: string;
