@@ -1,71 +1,58 @@
 
+# Naprawa widoku kalendarza pracownika
 
-# Naprawa przekierowania pracownika i widoku kalendarza
+## Znalezione problemy
 
-## Problem
+### 1. Route wymaga roli `admin` - pracownik nie moze wejsc
+W `App.tsx` (linie 96 i 178), route `/employee-calendars/:configId` ma `requiredRole="admin"`. Mimo ze `ProtectedRoute` przepuszcza employee-only na sciezki `/employee-calendars/*`, to sam check roli (linia 48-50) traktuje `employee` jako uprawnienie do `admin` routes. To jest niepotrzebnie skomplikowane.
 
-Gdy pracownik (rola `employee`) loguje sie, komponent `RoleBasedRedirect` ma blad synchronizacji (race condition):
+**Rozwiazanie:** Zmienic `requiredRole` na `"employee"` dla tych routes, lub usunac wymog roli i zostawic tylko autentykacje.
 
-1. Stan `checkingConfig` startuje jako `false`
-2. `useEffect` ustawia go na `true` DOPIERO PO pierwszym renderze
-3. Ale w pierwszym renderze: `loading=false`, `checkingConfig=false` - brak spinnera
-4. `employeeConfigId` jest `null` (fetch jeszcze nie ruszyl) - pomija warunek pracownika
-5. Wpada w `hasStudioAccess` (bo rola `employee` pasuje) i przekierowuje na `/admin`
+### 2. RLS na `calendar_columns` blokuje pracownikow
+Polityka SELECT na tabeli `calendar_columns` pozwala TYLKO na `admin` i `super_admin` - **nie ma employee**! Dlatego pracownik nie widzi kolumn, a bez kolumn nie ma siatki kalendarza.
 
-Pracownik laduje na Dashboard z pelnym admin sidebar zamiast na swoj kalendarz.
-
-## Rozwiazanie
-
-**Plik: `src/components/RoleBasedRedirect.tsx`**
-
-Zmienic inicjalizacje `checkingConfig` tak, aby od razu uwzglednial czy uzytkownik jest employee-only. Dwa podejscia mozliwe - najlepsze to:
-
-- Ustawic `checkingConfig` na `true` wewnatrz warunku renderowania (nie jako stan poczatkowy)
-- Dodac warunek: jesli `isEmployeeOnly` jest `true` a `employeeConfigId` jest `null` i `checkingConfig` jest `false` - traktowac to jako "jeszcze nie sprawdzono" i pokazac loader
-
-Konkretnie: zmienic warunek loadingu z:
 ```
-if (loading || checkingConfig)
-```
-na:
-```
-if (loading || checkingConfig || (isEmployeeOnly && employeeConfigId === null && !loading))
+Policy: "Admin or super_admin can select calendar_columns"
+USING: has_instance_role(uid, 'admin', instance_id) OR has_role(uid, 'super_admin')
 ```
 
-Ewentualnie prostsza wersja - uzyc osobnego flaga `configResolved`:
+Brakuje: `has_instance_role(uid, 'employee', instance_id)`
 
-```typescript
-const [configResolved, setConfigResolved] = useState(false);
+**Rozwiazanie:** Dodac polityke SELECT dla employee na `calendar_columns`, analogicznie jak jest na `calendar_items`, `breaks`, `employees` itd.
 
-useEffect(() => {
-  if (!user || !isEmployeeOnly) {
-    setConfigResolved(true); // nie dotyczy
-    return;
-  }
-  supabase
-    .from('employee_calendar_configs')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('active', true)
-    .order('sort_order')
-    .limit(1)
-    .maybeSingle()
-    .then(({ data }) => {
-      setEmployeeConfigId(data?.id || null);
-      setConfigResolved(true);
-    });
-}, [user, isEmployeeOnly]);
+### 3. URL - UUID vs numer
+URL `/employee-calendars/c5043075-...` uzywa UUID z bazy danych. Jesli chcesz numeryczny ID (np. `/employee-calendars/1`), trzeba by dodac kolumne `short_id` lub uzyc `sort_order`. Ale UUID jest bezpieczniejszy i standardowy - proponuje zostawic UUID.
 
-if (loading || !configResolved) {
-  return <Loader2 spinner />;
-}
+---
+
+## Plan zmian
+
+### A. Migracja bazy danych (SQL)
+Dodac polityke RLS SELECT na `calendar_columns` dla roli employee:
+
+```sql
+CREATE POLICY "Employee can select calendar_columns"
+  ON public.calendar_columns
+  FOR SELECT
+  USING (
+    has_instance_role(auth.uid(), 'admin'::app_role, instance_id)
+    OR has_instance_role(auth.uid(), 'employee'::app_role, instance_id)
+    OR has_role(auth.uid(), 'super_admin'::app_role)
+  );
 ```
 
-To gwarantuje ze komponent nie podejmie decyzji o przekierowaniu dopoki nie sprawdzi konfiguracji pracownika.
+### B. `src/App.tsx`
+Zmienic `requiredRole="admin"` na `requiredRole="employee"` dla routes `/employee-calendars/:configId` w DevRoutes (linia 178) i InstanceAdminRoutes (linia 96).
 
-## Zmienione pliki
+### C. `src/components/ProtectedRoute.tsx`
+Dodac obsluge `requiredRole === 'employee'` - przepuszczac uzytkownikow z rola `employee`, `admin` lub `super_admin`.
+
+---
+
+## Pliki do zmiany
 
 | Plik | Zmiana |
 |------|--------|
-| `src/components/RoleBasedRedirect.tsx` | Naprawa race condition - czekaj na wynik fetcha konfiguracji przed przekierowaniem |
-
+| Migracja SQL | Dodac RLS SELECT policy na `calendar_columns` dla employee |
+| `src/App.tsx` | Zmienic `requiredRole` na `"employee"` dla employee-calendar routes |
+| `src/components/ProtectedRoute.tsx` | Dodac obsluge roli `employee` w logice dostepu |
