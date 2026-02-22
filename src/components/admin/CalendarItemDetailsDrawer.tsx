@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin } from 'lucide-react';
+import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -10,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
-import type { CalendarItem, CalendarColumn } from './AdminCalendar';
+import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
 
 interface CalendarItemDetailsDrawerProps {
   item: CalendarItem | null;
@@ -178,6 +179,27 @@ const CalendarItemDetailsDrawer = ({
                   Notatki
                 </div>
                 <p className="text-sm text-muted-foreground ml-6 whitespace-pre-wrap">{item.admin_notes}</p>
+              </div>
+            )}
+
+            {/* Assigned Employees */}
+            {item.assigned_employees && item.assigned_employees.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <HardHat className="w-4 h-4 text-muted-foreground" />
+                  Przypisani pracownicy
+                </div>
+                <div className="flex flex-wrap gap-1.5 ml-6">
+                  {item.assigned_employees.map(emp => (
+                    <div key={emp.id} className="flex items-center gap-1.5 bg-muted rounded-full pl-0.5 pr-2 py-0.5 border border-border">
+                      <Avatar className="w-5 h-5">
+                        {emp.photo_url && <AvatarImage src={emp.photo_url} />}
+                        <AvatarFallback className="text-[8px]">{emp.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs">{emp.name}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
