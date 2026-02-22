@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Building2, Grid2X2, Loader2, Save, Upload, Trash2, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { Building2, Grid2X2, Monitor, Loader2, Save, Upload, Trash2, Image as ImageIcon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,13 +9,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import CalendarColumnsSettings from './CalendarColumnsSettings';
+import EmployeeCalendarsListView from './employee-calendars/EmployeeCalendarsListView';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SettingsViewProps {
   instanceId: string | null;
 }
 
-type SettingsTab = 'company' | 'calendar';
+type SettingsTab = 'company' | 'calendar' | 'employee-calendars';
 
 const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const isMobile = useIsMobile();
@@ -68,6 +69,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const tabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
     { key: 'calendar', label: 'Kalendarz', icon: <Grid2X2 className="w-4 h-4" /> },
+    { key: 'employee-calendars', label: 'Kalendarze pracowników', icon: <Monitor className="w-4 h-4" /> },
   ];
 
   const handleInputChange = (field: string, value: string) => {
@@ -235,6 +237,9 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
 
       case 'calendar':
         return <CalendarColumnsSettings instanceId={instanceId} />;
+
+      case 'employee-calendars':
+        return <EmployeeCalendarsListView instanceId={instanceId} />;
 
       default:
         return null;
