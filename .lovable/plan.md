@@ -1,126 +1,117 @@
 
-# Adres na karcie kalendarza + Modul pracownikow z N2Wash
 
-## Czesc 1: Wyswietlanie adresu na karcie kalendarza
+# Protokoly serwisowe - zaktualizowany plan
 
-Na kartach zlecen w kalendarzu (renderItemTile w AdminCalendar.tsx) dodajemy nowa linie z nazwa adresu klienta. Aktualnie karta pokazuje:
-- Linia 1: Godziny + ikony
-- Linia 2: Tytul
-- Linia 3: Imie klienta
+## Zmiana vs. poprzedni plan
 
-Dodajemy:
-- Linia 4: Nazwa adresu (z ikona MapPin)
-
-Wymaga to:
-- Dodania pola `address_name` do interfejsu `CalendarItem` (fetchowanego z bazy JOIN)
-- Lub fetch adresow osobno i mapowania ich po `customer_address_id`
-
-Prostsze podejscie: w Dashboard.tsx przy fetchowaniu calendar_items, dolaczamy tez select na `customer_addresses(name)` jako relacje. Poniewaz FK juz istnieje (customer_address_id -> customer_addresses), mozna uzyc Supabase join.
-
-Alternatywnie (bezpieczniej bez FK konfiguracji w Supabase): dodajemy pole `address_name` do CalendarItem interface i fetchujemy adresy osobno w Dashboard, mapujac je na itemy.
-
-### Zmiany w plikach:
-- **`src/components/admin/AdminCalendar.tsx`**: Dodajemy `address_name?: string | null` do CalendarItem. W `renderItemTile` dodajemy linie 4 z nazwa adresu (MapPin icon + tekst, styl jak customer_name).
-- **`src/pages/Dashboard.tsx`**: Przy fetchowaniu calendar_items, po pobraniu danych fetchujemy unikalne customer_address_id, pobieramy adresy z `customer_addresses`, i mapujemy `address_name` na kazdy item.
+Zamiast tworzyc nowy `ClientSearchInput` od zera, wyodrebniamy istniejacy kod wyszukiwania klientow z `AddCalendarItemDialog.tsx` do wspoldzielonego komponentu. Analogicznie z selectem adresu klienta.
 
 ---
 
-## Czesc 2: Modul pracownikow
+## 1. Migracja bazy danych
 
-### 2a. Migracja bazy danych
+Nowa tabela `protocols` + storage bucket `protocol-photos` + kolumna `protocol_email_template` w `instances`.
 
-Tworzymy 4 nowe tabele (identyczne jak w N2Wash, bez `deleted_at` na employees bo N2Wash uzywa soft delete przez active=false):
+Tabela `protocols`:
+- id, instance_id, customer_id, customer_name, customer_email, customer_phone, customer_nip
+- customer_address_id, protocol_date, protocol_time, protocol_type (default 'completion')
+- status (default 'completed'), prepared_by, notes, customer_signature (base64)
+- photo_urls (jsonb, default '[]'), public_token (text, unique)
+- created_at, updated_at
 
-**Tabela `employees`:**
-- id (uuid, PK, default gen_random_uuid())
-- instance_id (uuid, NOT NULL, FK -> instances)
-- name (text, NOT NULL)
-- photo_url (text, nullable)
-- hourly_rate (numeric, nullable)
-- active (boolean, default true)
-- sort_order (integer, nullable)
-- created_at (timestamptz, default now())
-- updated_at (timestamptz, default now())
+RLS: Admin/super_admin ALL, Employee SELECT, publiczny SELECT po public_token.
 
-**Tabela `time_entries`:**
-- id (uuid, PK, default gen_random_uuid())
-- instance_id (uuid, NOT NULL, FK -> instances)
-- employee_id (uuid, NOT NULL, FK -> employees ON DELETE CASCADE)
-- entry_date (text, NOT NULL)
-- entry_number (integer, NOT NULL, default 1)
-- entry_type (text, NOT NULL, default 'manual')
-- start_time (timestamptz, nullable)
-- end_time (timestamptz, nullable)
-- total_minutes (integer, nullable -- computed by trigger)
-- is_auto_closed (boolean, default false)
-- created_at (timestamptz, default now())
-- updated_at (timestamptz, default now())
+Storage bucket: `protocol-photos` (public).
 
-**Tabela `employee_days_off`:**
-- id (uuid, PK, default gen_random_uuid())
-- instance_id (uuid, NOT NULL, FK -> instances)
-- employee_id (uuid, NOT NULL, FK -> employees ON DELETE CASCADE)
-- date_from (text, NOT NULL)
-- date_to (text, NOT NULL)
-- day_off_type (text, NOT NULL, default 'vacation')
-- created_at (timestamptz, default now())
+Nowa kolumna w `instances`: `protocol_email_template text nullable`.
 
-**Tabela `workers_settings`:**
-- instance_id (uuid, PK, FK -> instances)
-- start_stop_enabled (boolean, default true)
-- overtime_enabled (boolean, default false)
-- standard_hours_per_day (integer, default 8)
-- report_frequency (text, default 'monthly')
-- time_calculation_mode (text, default 'start_to_stop')
+---
 
-**RLS policies** na kazdej tabeli:
-- Admin/super_admin: ALL
-- Employee: SELECT
+## 2. Wspoldzielone komponenty (wyodrebnienie z AddCalendarItemDialog)
 
-**Trigger** na time_entries: automatycznie oblicza `total_minutes` przy INSERT/UPDATE na podstawie start_time i end_time.
+### `src/components/admin/CustomerSearchInput.tsx` (NOWY - wyodrebniony)
+Wyodrebniamy cala logike wyszukiwania klientow:
+- Popover + Command + debounced search po name/phone/company
+- Wyswietlanie wybranego klienta z przyciskiem "X" do czyszczenia
+- Props: `instanceId`, `selectedCustomer` (id/name/phone/email | null), `onSelect(customer)`, `onClear()`
+- Uzywany zarowno w `AddCalendarItemDialog` jak i `CreateProtocolForm`
 
-**Storage bucket**: `employee-photos` (public).
+### `src/components/admin/CustomerAddressSelect.tsx` (NOWY - wyodrebniony)
+Wyodrebniamy logike wyboru adresu (juz istnieje inline w AddCalendarItemDialog):
+- Fetchuje adresy po `customerId`, select z nazwami
+- Props: `instanceId`, `customerId`, `value`, `onChange(addressId)`
+- Automatycznie wybiera domyslny adres (is_default lub pierwszy)
 
-### 2b. Nowe pliki (hooks)
+### `src/components/admin/AddCalendarItemDialog.tsx` (MODYFIKACJA)
+- Usuwamy inline customer search (Popover/Command/debounce) -- zastepujemy `<CustomerSearchInput>`
+- Usuwamy inline address fetch/select -- zastepujemy `<CustomerAddressSelect>`
+- Logika formularza bez zmian, tylko UI refaktor
 
-Kopiujemy z N2Wash i adaptujemy (usuwamy useTranslation, dostosowujemy typy):
+---
 
-- **`src/hooks/useEmployees.ts`** -- bez zmian wzgledem N2Wash
-- **`src/hooks/useTimeEntries.ts`** -- bez zmian
-- **`src/hooks/useEmployeeDaysOff.ts`** -- bez zmian
-- **`src/hooks/useWorkersSettings.ts`** -- bez zmian
-- **`src/hooks/useWorkingHours.ts`** -- bez zmian (czyta z instances.working_hours)
-- **`src/lib/imageUtils.ts`** -- nowy plik, kopiujemy compressImage
+## 3. Nowe komponenty protokolow
 
-### 2c. Nowe komponenty
+### `src/components/protocols/ProtocolsView.tsx`
+Lista protokolow z wyszukiwaniem, paginacja, menu kontekstowe (edytuj, kopiuj link, usun). Bez kolumn pojazdu.
 
-Kopiujemy caly folder `src/components/admin/employees/` z N2Wash:
+### `src/components/protocols/CreateProtocolForm.tsx`
+Formularz z sekcjami:
+1. Typ protokolu (select: "Protokol zakonczenia prac")
+2. Klient (`<CustomerSearchInput>`) + pola reczne (imie, telefon, email, NIP)
+3. Adres klienta (`<CustomerAddressSelect>`)
+4. Zdjecia (`<ProtocolPhotosUploader>`)
+5. Uwagi (textarea)
+6. Data protokolu
+7. "Sporzadzil" (input)
+8. "Podpis osoby upowaznionej do odbioru" (`<SignatureDialog>`)
 
-- **`EmployeesView.tsx`** -- glowny widok z tabela pracownikow i podsumowaniem czasu pracy. Bez zmian logicznych.
-- **`EmployeesList.tsx`** -- lista pracownikow z kafelkami. Usuwamy funkcjonalnosc Start/Stop (isWorking, working status indicator, getWorkingFromTime). Kafelki bez zielonej/szarej kropki statusu. Klikniecie otwiera WorkerTimeDialog ale bez przycisku Start/Stop.
-- **`AddEditEmployeeDialog.tsx`** -- dialog dodawania/edycji pracownika. Bez zmian (usuwamy import useTranslation jesli jest).
-- **`WorkerTimeDialog.tsx`** -- dialog czasu pracy pracownika. Usuwamy przyciski Start/Stop, zostawiamy: avatar, zmiane zdjecia, grafik tygodniowy (WeeklySchedule), dzisiejsze wpisy.
-- **`WeeklySchedule.tsx`** -- grafik tygodniowy. Bez zmian.
-- **`AddEmployeeDayOffDialog.tsx`** -- dialog dodawania nieobecnosci. Bez zmian.
-- **`WorkersSettingsDrawer.tsx`** -- ustawienia czasu pracy. Usuwamy opcje "Start/Stop enabled" i "time_calculation_mode" (bo Start/Stop nie bedzie w N2Serwis).
-- **`TimeEntriesView.tsx`** -- widok wpisow czasu pracy. Bez zmian.
-- **`EmployeeDaysOffView.tsx`** -- widok nieobecnosci. Bez zmian.
-- **`index.ts`** -- eksporty
+### `src/components/protocols/ProtocolPhotosUploader.tsx`
+Upload zdjec do bucketu `protocol-photos`. Carousel z miniaturami.
 
-### 2d. Komponenty do przypisywania pracownikow do zlecen
+### `src/components/protocols/PhotoFullscreenDialog.tsx`
+Fullscreen viewer zdjec z nawigacja.
 
-- **`src/components/admin/EmployeeSelectionDrawer.tsx`** -- drawer wyboru pracownikow (multi-select z awatarami). Kopiujemy z N2Wash, usuwamy useTranslation.
-- **`src/components/admin/AssignedEmployeesChips.tsx`** -- chipsy z przypisanymi pracownikami. Kopiujemy bez zmian.
+### `src/components/protocols/SignatureDialog.tsx`
+Dialog z canvas do podpisu. Tytul: "Podpis osoby upowaznionej do odbioru". Wymaga `react-signature-canvas`.
 
-### 2e. Integracja z Dashboard
+### `src/components/protocols/SendProtocolEmailDialog.tsx`
+Dialog wysylki emaila z linkiem do publicznego protokolu.
 
-- **`src/components/layout/DashboardLayout.tsx`**: Dodajemy `'pracownicy'` do ViewType, dodajemy nawigacje (ikona HardHat/Users).
-- **`src/pages/Dashboard.tsx`**: Dodajemy `'pracownicy'` do validViews i viewConfig. Renderujemy `<EmployeesView instanceId={instanceId} />` dla widoku pracownicy.
+### `src/components/protocols/PublicProtocolCustomerView.tsx`
+Widok publiczny protokolu (bez danych pojazdu, z adresem klienta).
 
-### 2f. Przypisywanie pracownikow do zlecen (AddCalendarItemDialog)
+### `src/components/protocols/ProtocolHeader.tsx`
+Naglowek z logo firmy i tytulem "Protokol".
 
-- Dodajemy sekcje "Przypisani pracownicy" z AssignedEmployeesChips + EmployeeSelectionDrawer
-- Zapisujemy `assigned_employee_ids` (juz istnieje w tabeli calendar_items jako ARRAY)
+### `src/components/protocols/ProtocolSettingsDialog.tsx`
+Ustawienia szablonu emaila (bez zmiennych pojazdu).
+
+---
+
+## 4. Edge function
+
+### `supabase/functions/send-protocol-email/index.ts`
+Wysylka emaila z linkiem do publicznego widoku protokolu.
+
+---
+
+## 5. Integracja z Dashboard
+
+### `DashboardLayout.tsx` -- dodajemy 'protokoly' do ViewType i nawigacji (ikona ClipboardCheck)
+### `Dashboard.tsx` -- renderujemy `<ProtocolsView>` dla widoku protokoly
+
+---
+
+## 6. Routing publiczny
+
+### `src/App.tsx` -- nowa route `/protocols/:token`
+### `src/pages/PublicProtocolView.tsx` -- strona fetchujaca protokol po tokenie
+
+---
+
+## 7. Nowa zaleznosc
+
+- `react-signature-canvas` -- do rysowania podpisu
 
 ---
 
@@ -128,18 +119,23 @@ Kopiujemy caly folder `src/components/admin/employees/` z N2Wash:
 
 | Plik | Akcja |
 |------|-------|
-| Migracja SQL | Nowy -- employees, time_entries, employee_days_off, workers_settings + RLS + trigger |
-| Storage bucket | Nowy -- employee-photos (public) |
-| `src/lib/imageUtils.ts` | Nowy -- compressImage utility |
-| `src/hooks/useEmployees.ts` | Nowy -- CRUD hooks dla pracownikow |
-| `src/hooks/useTimeEntries.ts` | Nowy -- CRUD hooks dla wpisow czasu |
-| `src/hooks/useEmployeeDaysOff.ts` | Nowy -- CRUD hooks dla nieobecnosci |
-| `src/hooks/useWorkersSettings.ts` | Nowy -- hooks ustawien czasu pracy |
-| `src/hooks/useWorkingHours.ts` | Nowy -- hook godzin otwarcia |
-| `src/components/admin/employees/*` | Nowe -- 9 plikow skopiowanych z N2Wash |
-| `src/components/admin/EmployeeSelectionDrawer.tsx` | Nowy |
-| `src/components/admin/AssignedEmployeesChips.tsx` | Nowy |
-| `src/components/admin/AdminCalendar.tsx` | Modyfikacja -- address_name w CalendarItem + renderItemTile |
-| `src/components/layout/DashboardLayout.tsx` | Modyfikacja -- dodanie 'pracownicy' do ViewType i nawigacji |
-| `src/pages/Dashboard.tsx` | Modyfikacja -- widok pracownikow + fetch address_name + assigned_employee_ids |
-| `src/components/admin/AddCalendarItemDialog.tsx` | Modyfikacja -- sekcja przypisywania pracownikow |
+| Migracja SQL | Nowy -- tabela protocols, bucket protocol-photos, kolumna w instances |
+| `src/components/admin/CustomerSearchInput.tsx` | Nowy -- wyodrebniony z AddCalendarItemDialog |
+| `src/components/admin/CustomerAddressSelect.tsx` | Nowy -- wyodrebniony z AddCalendarItemDialog |
+| `src/components/admin/AddCalendarItemDialog.tsx` | Modyfikacja -- refaktor na shared components |
+| `src/components/protocols/ProtocolsView.tsx` | Nowy |
+| `src/components/protocols/CreateProtocolForm.tsx` | Nowy |
+| `src/components/protocols/ProtocolPhotosUploader.tsx` | Nowy |
+| `src/components/protocols/PhotoFullscreenDialog.tsx` | Nowy |
+| `src/components/protocols/SignatureDialog.tsx` | Nowy |
+| `src/components/protocols/SendProtocolEmailDialog.tsx` | Nowy |
+| `src/components/protocols/PublicProtocolCustomerView.tsx` | Nowy |
+| `src/components/protocols/ProtocolHeader.tsx` | Nowy |
+| `src/components/protocols/ProtocolSettingsDialog.tsx` | Nowy |
+| `supabase/functions/send-protocol-email/index.ts` | Nowy |
+| `src/pages/PublicProtocolView.tsx` | Nowy |
+| `src/components/layout/DashboardLayout.tsx` | Modyfikacja -- 'protokoly' |
+| `src/pages/Dashboard.tsx` | Modyfikacja -- widok protokoly |
+| `src/App.tsx` | Modyfikacja -- route /protocols/:token |
+| `package.json` | Modyfikacja -- react-signature-canvas |
+
