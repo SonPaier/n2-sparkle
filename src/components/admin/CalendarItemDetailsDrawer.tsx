@@ -46,6 +46,7 @@ interface CalendarItemDetailsDrawerProps {
 }
 
 const statusLabels: Record<string, string> = {
+  pending: 'Do potwierdzenia',
   confirmed: 'Potwierdzone',
   in_progress: 'W trakcie',
   completed: 'Zakończone',
@@ -54,6 +55,7 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-800 border-amber-300',
   confirmed: 'bg-emerald-100 text-emerald-800 border-emerald-300',
   in_progress: 'bg-orange-100 text-orange-800 border-orange-300',
   completed: 'bg-slate-100 text-slate-700 border-slate-300',
@@ -384,13 +386,27 @@ const CalendarItemDetailsDrawer = ({
         {editBtn}
         {moreMenu}
 
+        {item.status === 'pending' && statusDropdown(
+          'Potwierdź',
+          () => onStatusChange?.(item.id, 'confirmed'),
+          'bg-amber-500 hover:bg-amber-600 text-white',
+          [
+            { label: 'W trakcie', status: 'in_progress', icon: <Clock className="w-4 h-4 mr-2" /> },
+            { label: 'Zakończone', status: 'completed', icon: <Check className="w-4 h-4 mr-2" /> },
+            { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
+            { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
+          ]
+        )}
+
         {item.status === 'confirmed' && onStartWork && statusDropdown(
           'Rozpocznij pracę',
           () => onStartWork(item.id),
           'bg-emerald-600 hover:bg-emerald-700 text-white',
           [
+            { label: 'Do potwierdzenia', status: 'pending', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
             { label: 'Zakończone', status: 'completed', icon: <Check className="w-4 h-4 mr-2" /> },
             { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
+            { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
           ]
         )}
 
@@ -399,27 +415,41 @@ const CalendarItemDetailsDrawer = ({
           () => onEndWork(item.id),
           'bg-sky-500 hover:bg-sky-600 text-white',
           [
+            { label: 'Do potwierdzenia', status: 'pending', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
             { label: 'Potwierdzone', status: 'confirmed', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
             { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
+            { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
           ]
         )}
 
         {item.status === 'completed' && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 bg-white" disabled>
+              <Button variant="outline" className="flex-1 bg-white">
                 Zakończone
                 <ChevronDown className="w-4 h-4 ml-1" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'pending')}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Do potwierdzenia
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Cofnij do potwierdzone
+                Potwierdzone
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Cofnij do w trakcie
+                W trakcie
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'cancelled')}>
+                <X className="w-4 h-4 mr-2" />
+                Anulowane
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'change_requested')}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Prośba o zmianę
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -434,9 +464,58 @@ const CalendarItemDetailsDrawer = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'pending')}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Do potwierdzenia
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Przywróć
+                Potwierdzone
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
+                <Clock className="w-4 h-4 mr-2" />
+                W trakcie
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'completed')}>
+                <Check className="w-4 h-4 mr-2" />
+                Zakończone
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'change_requested')}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Prośba o zmianę
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {item.status === 'change_requested' && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex-1 bg-white">
+                Prośba o zmianę
+                <ChevronDown className="w-4 h-4 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'pending')}>
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Do potwierdzenia
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
+                <Check className="w-4 h-4 mr-2" />
+                Potwierdzone
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
+                <Clock className="w-4 h-4 mr-2" />
+                W trakcie
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'completed')}>
+                <Check className="w-4 h-4 mr-2" />
+                Zakończone
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'cancelled')}>
+                <X className="w-4 h-4 mr-2" />
+                Anulowane
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
