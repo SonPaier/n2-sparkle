@@ -3,7 +3,7 @@ import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClos
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +27,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout = ({ currentView, onViewChange, children }: DashboardLayoutProps) => {
-  const navigate = useNavigate();
+  const { signOut, username, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('n2serwis-sidebar-collapsed') === 'true';
@@ -42,9 +42,11 @@ const DashboardLayout = ({ currentView, onViewChange, children }: DashboardLayou
     setSidebarOpen(false);
   };
 
-  const handleLogout = () => {
-    navigate('/login');
+  const handleLogout = async () => {
+    await signOut();
   };
+
+  const displayName = username || user?.email || 'Użytkownik';
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -68,7 +70,7 @@ const DashboardLayout = ({ currentView, onViewChange, children }: DashboardLayou
               onClick={() => handleNavClick('kalendarz')}
               className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", sidebarCollapsed ? "justify-center" : "gap-3")}
             >
-              <div className={cn("rounded-xl bg-primary flex items-center justify-center shrink-0", sidebarCollapsed ? "w-10 h-10" : "w-10 h-10")}>
+              <div className={cn("rounded-xl bg-primary flex items-center justify-center shrink-0", "w-10 h-10")}>
                 <span className="text-primary-foreground font-bold text-lg">N2</span>
               </div>
               {!sidebarCollapsed && (
@@ -77,7 +79,6 @@ const DashboardLayout = ({ currentView, onViewChange, children }: DashboardLayou
                 </div>
               )}
             </button>
-            {/* Mobile close */}
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
               <X className="w-4 h-4" />
             </Button>
@@ -135,7 +136,7 @@ const DashboardLayout = ({ currentView, onViewChange, children }: DashboardLayou
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="w-full justify-between text-muted-foreground px-3 h-auto py-2">
-                    <span className="text-sm truncate">admin@n2serwis.pl</span>
+                    <span className="text-sm truncate">{displayName}</span>
                     <ChevronUp className="w-4 h-4 shrink-0 ml-2" />
                   </Button>
                 </DropdownMenuTrigger>
