@@ -1,5 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { format } from 'date-fns';
@@ -7,14 +6,8 @@ import { pl } from 'date-fns/locale';
 import type { CalendarItem, CalendarColumn } from './AdminCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-interface MapItem extends CalendarItem {
-  address_lat?: number | null;
-  address_lng?: number | null;
-  address_city?: string | null;
-}
-
 interface CalendarMapProps {
-  items: MapItem[];
+  items: CalendarItem[];
   columns: CalendarColumn[];
   onItemClick: (item: CalendarItem) => void;
 }
@@ -33,86 +26,109 @@ const createMarkerIcon = (color: string) => {
   });
 };
 
-const FitBoundsHelper = ({ items, isMobile }: { items: MapItem[]; isMobile: boolean }) => {
-  const map = useMap();
-  const prevBoundsKey = useRef('');
-
-  useEffect(() => {
-    const points = items.filter(i => i.address_lat && i.address_lng);
-    if (points.length === 0) return;
-
-    const boundsKey = points.map(p => `${p.id}:${p.address_lat}:${p.address_lng}`).sort().join('|');
-    if (boundsKey === prevBoundsKey.current) return;
-    prevBoundsKey.current = boundsKey;
-
-    const bounds = L.latLngBounds(points.map(p => [p.address_lat!, p.address_lng!]));
-    const padding = isMobile ? 8 : 50;
-    map.fitBounds(bounds, { padding: [padding, padding], maxZoom: 15 });
-  }, [items, isMobile, map]);
-
-  return null;
-};
-
 const CalendarMap = ({ items, columns, onItemClick }: CalendarMapProps) => {
+  const mapRef = useRef<L.Map | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<L.Marker[]>([]);
   const isMobile = useIsMobile();
 
   const columnColorMap = useMemo(() => {
     const map = new Map<string, string>();
-    columns.forEach(col => {
-      map.set(col.id, col.color || '#6366f1');
-    });
+    columns.forEach(col => map.set(col.id, col.color || '#6366f1'));
     return map;
   }, [columns]);
 
   const iconCache = useRef(new Map<string, L.DivIcon>());
-
-  const getIcon = (color: string) => {
+  const getIcon = useCallback((color: string) => {
     if (!iconCache.current.has(color)) {
       iconCache.current.set(color, createMarkerIcon(color));
     }
     return iconCache.current.get(color)!;
-  };
+  }, []);
 
   const validItems = useMemo(
     () => items.filter(i => i.address_lat != null && i.address_lng != null),
     [items]
   );
 
-  const defaultCenter: [number, number] = [52.0, 19.0];
+  // Initialize map
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
+    mapRef.current = L.map(containerRef.current, {
+      center: [52.0, 19.0],
+      zoom: 7,
+      scrollWheelZoom: true,
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(mapRef.current);
+
+    return () => {
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  // Update markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Clear old markers
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    validItems.forEach(item => {
+      const color = columnColorMap.get(item.column_id || '') || '#6366f1';
+      const city = item.address_city || '';
+      const dateStr = format(new Date(item.item_date), 'd MMM', { locale: pl });
+      const label = city ? `${city} | ${dateStr}` : dateStr;
+
+      const marker = L.marker([item.address_lat!, item.address_lng!], {
+        icon: getIcon(color),
+      })
+        .bindTooltip(label, { permanent: true, direction: 'top', offset: [0, -4], className: 'calendar-map-tooltip' })
+        .on('click', () => onItemClick(item))
+        .addTo(map);
+
+      markersRef.current.push(marker);
+    });
+
+    // Fit bounds
+    if (validItems.length > 0) {
+      const bounds = L.latLngBounds(validItems.map(i => [i.address_lat!, i.address_lng!] as [number, number]));
+      const padding = isMobile ? 8 : 50;
+      map.fitBounds(bounds, { padding: [padding, padding], maxZoom: 15 });
+    }
+  }, [validItems, columnColorMap, getIcon, onItemClick, isMobile]);
+
+  // Invalidate size when container resizes
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const timer = setTimeout(() => map.invalidateSize(), 200);
+    return () => clearTimeout(timer);
+  }, [validItems]);
 
   return (
-    <MapContainer
-      center={defaultCenter}
-      zoom={7}
-      className="w-full h-full rounded-lg"
-      style={{ minHeight: '300px' }}
-      scrollWheelZoom
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <FitBoundsHelper items={validItems} isMobile={isMobile} />
-      {validItems.map(item => {
-        const color = columnColorMap.get(item.column_id || '') || '#6366f1';
-        const city = item.address_city || '';
-        const dateStr = format(new Date(item.item_date), 'd MMM', { locale: pl });
-        const label = city ? `${city} | ${dateStr}` : dateStr;
-
-        return (
-          <Marker
-            key={item.id}
-            position={[item.address_lat!, item.address_lng!]}
-            icon={getIcon(color)}
-            eventHandlers={{ click: () => onItemClick(item) }}
-          >
-            <Tooltip permanent direction="top" offset={[0, -4]} className="!bg-background !text-foreground !border-border !shadow-md !rounded-md !px-2 !py-1 !text-xs !font-medium">
-              {label}
-            </Tooltip>
-          </Marker>
-        );
-      })}
-    </MapContainer>
+    <>
+      <style>{`
+        .calendar-map-tooltip {
+          background: hsl(var(--background)) !important;
+          color: hsl(var(--foreground)) !important;
+          border: 1px solid hsl(var(--border)) !important;
+          border-radius: 6px !important;
+          padding: 2px 8px !important;
+          font-size: 11px !important;
+          font-weight: 500 !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+        }
+        .calendar-map-tooltip::before {
+          border-top-color: hsl(var(--border)) !important;
+        }
+      `}</style>
+      <div ref={containerRef} className="w-full h-full rounded-lg" style={{ minHeight: '300px' }} />
+    </>
   );
 };
 
