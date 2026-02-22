@@ -1,141 +1,58 @@
 
 
-# Protokoly serwisowe - zaktualizowany plan
+# Skopiowanie rysika i fullscreen z N2Wash
 
-## Zmiana vs. poprzedni plan
+## Problem
 
-Zamiast tworzyc nowy `ClientSearchInput` od zera, wyodrebniamy istniejacy kod wyszukiwania klientow z `AddCalendarItemDialog.tsx` do wspoldzielonego komponentu. Analogicznie z selectem adresu klienta.
+Obecny `PhotoFullscreenDialog` to zle wymyslona implementacja rysika -- wszystko w jednym komponencie, inny UI niz w N2Wash. Trzeba skopiowac dokladna logike i flow z N2Wash.
 
----
+## Co robimy
 
-## 1. Migracja bazy danych
+Zamieniamy obecne pliki na dokladne kopie z N2Wash (z minimalnymi adaptacjami):
 
-Nowa tabela `protocols` + storage bucket `protocol-photos` + kolumna `protocol_email_template` w `instances`.
+### 1. Nowy plik: `src/components/protocols/PhotoAnnotationDialog.tsx`
 
-Tabela `protocols`:
-- id, instance_id, customer_id, customer_name, customer_email, customer_phone, customer_nip
-- customer_address_id, protocol_date, protocol_time, protocol_type (default 'completion')
-- status (default 'completed'), prepared_by, notes, customer_signature (base64)
-- photo_urls (jsonb, default '[]'), public_token (text, unique)
-- created_at, updated_at
+Dokladna kopia z N2Wash -- osobny fullscreen dialog do rysowania po zdjeciu:
+- Canvas z PointerEvents (dziala na mobile i desktop)
+- Toolbar gora: kolory (czerwony, zolty, niebieski) po lewej, rysik + X po prawej
+- Toolbar dol: undo/redo/clear po lewej, przycisk "Zapisz" po prawej (pojawia sie tylko gdy sa kreski)
+- Zapis: renderuje obraz + kreski na offscreen canvas, uploaduje do `protocol-photos` bucket, usuwa stary plik, zwraca nowy URL
+- Uzywamy `@radix-ui/react-dialog` primitives (DialogPrimitive) z z-index 10001+ (nad fullscreen viewerem)
 
-RLS: Admin/super_admin ALL, Employee SELECT, publiczny SELECT po public_token.
+### 2. Zastapienie: `src/components/protocols/PhotoFullscreenDialog.tsx`
 
-Storage bucket: `protocol-photos` (public).
+Dokladna kopia z N2Wash -- prosty fullscreen viewer:
+- Props: `open`, `onOpenChange`, `photoUrl`, `onAnnotate?`, `allPhotos?`, `initialIndex?`
+- Przyciski: rysik (otwiera PhotoAnnotationDialog) + X (zamknij) -- okragle biale przyciski
+- Strzalki carousel (lewo/prawo) -- okragle biale przyciski
+- Licznik zdjec na dole
+- Klikniecie w tlo zamyka dialog
+- Uzywamy `@radix-ui/react-dialog` primitives z z-index 9998+
+- Export jako named export: `export const PhotoFullscreenDialog`
 
-Nowa kolumna w `instances`: `protocol_email_template text nullable`.
+### 3. Zastapienie: `src/components/protocols/ProtocolPhotosUploader.tsx`
 
----
+Dokladna kopia z N2Wash z adaptacjami:
+- Props: `photos`, `onPhotosChange`, `onPhotoUploaded?`, `maxPhotos?`, `label?`, `disabled?`, `protocolId?`
+- Grid 4 kolumny z miniaturami
+- Tile "Dodaj zdjecie" z ikona kamery
+- Klikniecie w miniature otwiera fullscreen
+- X na miniaturze otwiera AlertDialog potwierdzenia
+- Kompresja obrazow przed uploadem (inline `compressImage`)
+- `onAnnotate` callback: po zapisaniu rysika aktualizuje liste zdjec i auto-zapisuje do tabeli `protocols` (zamiast `vehicle_protocols`)
+- Named export: `export const ProtocolPhotosUploader`
 
-## 2. Wspoldzielone komponenty (wyodrebnienie z AddCalendarItemDialog)
+### 4. Modyfikacja: `src/components/protocols/CreateProtocolForm.tsx`
 
-### `src/components/admin/CustomerSearchInput.tsx` (NOWY - wyodrebniony)
-Wyodrebniamy cala logike wyszukiwania klientow:
-- Popover + Command + debounced search po name/phone/company
-- Wyswietlanie wybranego klienta z przyciskiem "X" do czyszczenia
-- Props: `instanceId`, `selectedCustomer` (id/name/phone/email | null), `onSelect(customer)`, `onClear()`
-- Uzywany zarowno w `AddCalendarItemDialog` jak i `CreateProtocolForm`
+- Zmiana importu z default na named: `import { ProtocolPhotosUploader } from './ProtocolPhotosUploader'`
+- Zmiana propsow: `photoUrls`/`onChange` -> `photos`/`onPhotosChange` + dodanie `protocolId={editingProtocolId}`
 
-### `src/components/admin/CustomerAddressSelect.tsx` (NOWY - wyodrebniony)
-Wyodrebniamy logike wyboru adresu (juz istnieje inline w AddCalendarItemDialog):
-- Fetchuje adresy po `customerId`, select z nazwami
-- Props: `instanceId`, `customerId`, `value`, `onChange(addressId)`
-- Automatycznie wybiera domyslny adres (is_default lub pierwszy)
-
-### `src/components/admin/AddCalendarItemDialog.tsx` (MODYFIKACJA)
-- Usuwamy inline customer search (Popover/Command/debounce) -- zastepujemy `<CustomerSearchInput>`
-- Usuwamy inline address fetch/select -- zastepujemy `<CustomerAddressSelect>`
-- Logika formularza bez zmian, tylko UI refaktor
-
----
-
-## 3. Nowe komponenty protokolow
-
-### `src/components/protocols/ProtocolsView.tsx`
-Lista protokolow z wyszukiwaniem, paginacja, menu kontekstowe (edytuj, kopiuj link, usun). Bez kolumn pojazdu.
-
-### `src/components/protocols/CreateProtocolForm.tsx`
-Formularz z sekcjami:
-1. Typ protokolu (select: "Protokol zakonczenia prac")
-2. Klient (`<CustomerSearchInput>`) + pola reczne (imie, telefon, email, NIP)
-3. Adres klienta (`<CustomerAddressSelect>`)
-4. Zdjecia (`<ProtocolPhotosUploader>`)
-5. Uwagi (textarea)
-6. Data protokolu
-7. "Sporzadzil" (input)
-8. "Podpis osoby upowaznionej do odbioru" (`<SignatureDialog>`)
-
-### `src/components/protocols/ProtocolPhotosUploader.tsx`
-Upload zdjec do bucketu `protocol-photos`. Carousel z miniaturami.
-
-### `src/components/protocols/PhotoFullscreenDialog.tsx`
-Fullscreen viewer zdjec z nawigacja.
-
-### `src/components/protocols/SignatureDialog.tsx`
-Dialog z canvas do podpisu. Tytul: "Podpis osoby upowaznionej do odbioru". Wymaga `react-signature-canvas`.
-
-### `src/components/protocols/SendProtocolEmailDialog.tsx`
-Dialog wysylki emaila z linkiem do publicznego protokolu.
-
-### `src/components/protocols/PublicProtocolCustomerView.tsx`
-Widok publiczny protokolu (bez danych pojazdu, z adresem klienta).
-
-### `src/components/protocols/ProtocolHeader.tsx`
-Naglowek z logo firmy i tytulem "Protokol".
-
-### `src/components/protocols/ProtocolSettingsDialog.tsx`
-Ustawienia szablonu emaila (bez zmiennych pojazdu).
-
----
-
-## 4. Edge function
-
-### `supabase/functions/send-protocol-email/index.ts`
-Wysylka emaila z linkiem do publicznego widoku protokolu.
-
----
-
-## 5. Integracja z Dashboard
-
-### `DashboardLayout.tsx` -- dodajemy 'protokoly' do ViewType i nawigacji (ikona ClipboardCheck)
-### `Dashboard.tsx` -- renderujemy `<ProtocolsView>` dla widoku protokoly
-
----
-
-## 6. Routing publiczny
-
-### `src/App.tsx` -- nowa route `/protocols/:token`
-### `src/pages/PublicProtocolView.tsx` -- strona fetchujaca protokol po tokenie
-
----
-
-## 7. Nowa zaleznosc
-
-- `react-signature-canvas` -- do rysowania podpisu
-
----
-
-## Podsumowanie plikow
+## Podsumowanie zmian
 
 | Plik | Akcja |
 |------|-------|
-| Migracja SQL | Nowy -- tabela protocols, bucket protocol-photos, kolumna w instances |
-| `src/components/admin/CustomerSearchInput.tsx` | Nowy -- wyodrebniony z AddCalendarItemDialog |
-| `src/components/admin/CustomerAddressSelect.tsx` | Nowy -- wyodrebniony z AddCalendarItemDialog |
-| `src/components/admin/AddCalendarItemDialog.tsx` | Modyfikacja -- refaktor na shared components |
-| `src/components/protocols/ProtocolsView.tsx` | Nowy |
-| `src/components/protocols/CreateProtocolForm.tsx` | Nowy |
-| `src/components/protocols/ProtocolPhotosUploader.tsx` | Nowy |
-| `src/components/protocols/PhotoFullscreenDialog.tsx` | Nowy |
-| `src/components/protocols/SignatureDialog.tsx` | Nowy |
-| `src/components/protocols/SendProtocolEmailDialog.tsx` | Nowy |
-| `src/components/protocols/PublicProtocolCustomerView.tsx` | Nowy |
-| `src/components/protocols/ProtocolHeader.tsx` | Nowy |
-| `src/components/protocols/ProtocolSettingsDialog.tsx` | Nowy |
-| `supabase/functions/send-protocol-email/index.ts` | Nowy |
-| `src/pages/PublicProtocolView.tsx` | Nowy |
-| `src/components/layout/DashboardLayout.tsx` | Modyfikacja -- 'protokoly' |
-| `src/pages/Dashboard.tsx` | Modyfikacja -- widok protokoly |
-| `src/App.tsx` | Modyfikacja -- route /protocols/:token |
-| `package.json` | Modyfikacja -- react-signature-canvas |
+| `src/components/protocols/PhotoAnnotationDialog.tsx` | Nowy -- kopia z N2Wash |
+| `src/components/protocols/PhotoFullscreenDialog.tsx` | Zastapienie -- kopia z N2Wash |
+| `src/components/protocols/ProtocolPhotosUploader.tsx` | Zastapienie -- kopia z N2Wash (tabela `protocols` zamiast `vehicle_protocols`) |
+| `src/components/protocols/CreateProtocolForm.tsx` | Modyfikacja importow i propsow ProtocolPhotosUploader |
 
