@@ -11,7 +11,7 @@ interface CreateUserRequest {
   password: string;
   username: string;
   fullName?: string;
-  role: "super_admin" | "admin" | "user";
+  role: "super_admin" | "admin" | "user" | "employee";
   instanceId?: string;
 }
 
@@ -45,20 +45,31 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check if caller is super_admin or admin (admins can create employees)
     const { data: callerRoles } = await supabaseAdmin
       .from("user_roles")
-      .select("role")
-      .eq("user_id", caller.id)
-      .eq("role", "super_admin");
+      .select("role, instance_id")
+      .eq("user_id", caller.id);
 
-    if (!callerRoles || callerRoles.length === 0) {
+    const isSuperAdmin = callerRoles?.some(r => r.role === "super_admin");
+    const isAdmin = callerRoles?.some(r => r.role === "admin");
+
+    if (!isSuperAdmin && !isAdmin) {
       return new Response(
-        JSON.stringify({ error: "Only super admins can create users" }),
+        JSON.stringify({ error: "Only super admins or admins can create users" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Admins can only create employees
     const { email, password, username, fullName, role, instanceId }: CreateUserRequest = await req.json();
+    
+    if (!isSuperAdmin && role !== "employee") {
+      return new Response(
+        JSON.stringify({ error: "Admins can only create employee accounts" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!email || !password || !username || !role) {
       return new Response(
