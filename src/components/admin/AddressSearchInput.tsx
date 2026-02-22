@@ -81,7 +81,7 @@ const AddressSearchInput = ({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className={`w-full justify-start text-left font-normal ${!displayValue ? 'text-muted-foreground' : ''} ${className || ''}`}
+          className={`w-full justify-start text-left font-normal bg-background ${!displayValue ? 'text-muted-foreground' : ''} ${className || ''}`}
         >
           <MapPin className="w-4 h-4 mr-2 shrink-0" />
           <span className="truncate">{displayValue || placeholder}</span>
