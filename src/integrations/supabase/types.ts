@@ -377,6 +377,56 @@ export type Database = {
           },
         ]
       }
+      employee_calendar_configs: {
+        Row: {
+          active: boolean
+          allowed_actions: Json
+          column_ids: string[]
+          created_at: string
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+          visible_fields: Json
+        }
+        Insert: {
+          active?: boolean
+          allowed_actions?: Json
+          column_ids?: string[]
+          created_at?: string
+          id?: string
+          instance_id: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+          visible_fields?: Json
+        }
+        Update: {
+          active?: boolean
+          allowed_actions?: Json
+          column_ids?: string[]
+          created_at?: string
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+          visible_fields?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_calendar_configs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_days_off: {
         Row: {
           created_at: string
