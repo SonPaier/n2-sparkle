@@ -1,62 +1,87 @@
 
-# Rozszerzenie planu: "Kalendarze pracownikow" w Ustawieniach
 
-Kopiujemy caly widok "Hale" z N2Wash do ustawien, z rename kontekstu na "Kalendarze pracownikow".
+# Sekcja "Powiadomienia SMS" w formularzu uslugi (ServiceFormDialog)
 
----
+## Zakres
 
-## Nowe pliki (kopia z N2Wash halls/)
+Skopiowanie sekcji "Szablon przypomnien" z N2Wash `ServiceFormDialog` (linie 829-881) i dodanie jej do obecnego `ServiceFormDialog.tsx` w sekcji "Zaawansowane wlasciwosci". Nazwa zmieniona na "Powiadomienia SMS".
 
-### 1. `src/components/admin/employee-calendars/EmployeeCalendarsListView.tsx`
-Kopia `HallsListView.tsx`:
-- Tabela: `employee_calendar_configs` zamiast `halls`
-- "Stacje" -> `calendar_columns` (kolumny kalendarza)
-- Tlumaczenia inline (bez i18n): "Kalendarze pracownikow", "Dodaj kalendarz", "Brak kalendarzy" itd.
-- URL preview: `/employee-calendars/{number}` zamiast `/halls/{number}`
-
-### 2. `src/components/admin/employee-calendars/EmployeeCalendarCard.tsx`
-Kopia `HallCard.tsx`:
-- Interface `EmployeeCalendarConfig` zamiast `Hall`:
-  - `column_ids` zamiast `station_ids`
-  - `visible_fields`: customer_name, customer_phone, admin_notes, price, address (kontekst serwisowy zamiast myjni)
-  - `allowed_actions`: add_item, edit_item, delete_item, change_time, change_column
-  - `user_id` (uuid) -- powiazanie z pracownikiem
-- URL: `employee-calendars/{number}` zamiast `halls/{number}`
-- Etykiety po polsku inline
-
-### 3. `src/components/admin/employee-calendars/AddEditEmployeeCalendarDrawer.tsx`
-Kopia `AddEditHallDrawer.tsx`:
-- Drawer/Sheet z formularzem:
-  - Nazwa kalendarza
-  - Wybor kolumn kalendarza (checkboxy z `calendar_columns`)
-  - Powiazanie z pracownikiem (select z `user_roles` WHERE role='employee')
-  - Visible fields (checkboxy) -- dostosowane do kontekstu serwisowego
-  - Allowed actions (checkboxy) -- dostosowane do kontekstu serwisowego
-- Zapis do `employee_calendar_configs`
+Wymaga wczesniejszego istnienia tabeli `sms_notification_templates` i kolumny `notification_template_id` w `unified_services` (z glownego planu).
 
 ---
 
-## Modyfikacja istniejacych plikow
+## Zmiany w `src/components/admin/ServiceFormDialog.tsx`
 
-### 4. `src/components/admin/SettingsView.tsx`
-- Nowy tab: `{ key: 'employee-calendars', label: 'Kalendarze pracownikow', icon: <Monitor className="w-4 h-4" /> }`
-- Import `EmployeeCalendarsListView`
-- Case w renderTabContent: `case 'employee-calendars': return <EmployeeCalendarsListView instanceId={instanceId} />`
-- Dodac typ do `SettingsTab`: `'company' | 'calendar' | 'employee-calendars'`
+### 1. Nowe importy
+- `useNavigate`, `useLocation` z `react-router-dom`
+- `Plus` z `lucide-react` (opcjonalnie, przycisk "Dodaj" uzywa juz istniejacego `Button`)
+
+### 2. Nowe interfejsy (na gorze pliku)
+
+```typescript
+interface SmsTemplateItem {
+  months: number;
+  service_type: string;
+}
+
+interface SmsTemplateOption {
+  id: string;
+  name: string;
+  items?: SmsTemplateItem[];
+}
+```
+
+### 3. Rozszerzenie `ServiceData`
+Dodanie pola:
+```typescript
+notification_template_id?: string | null;
+```
+
+### 4. W komponencie `ServiceFormContent`
+
+**Nowe hooki i state:**
+- `useNavigate()`, `useLocation()`
+- `const [smsTemplates, setSmsTemplates] = useState<SmsTemplateOption[]>([])`
+
+**useEffect -- fetch szablonow SMS:**
+Pobranie z tabeli `sms_notification_templates` (kolumny: `id`, `name`, `items`), filtrowane po `instance_id`.
+
+**formData -- nowe pole:**
+```typescript
+notification_template_id: service?.notification_template_id || '__none__'
+```
+
+**Wyliczenie wybranego szablonu:**
+```typescript
+const selectedSmsTemplate = smsTemplates.find(t => t.id === formData.notification_template_id);
+const smsTemplateItems = selectedSmsTemplate?.items || [];
+```
+
+**hasAdvancedValues -- dodanie warunku:**
+```typescript
+service?.notification_template_id
+```
+
+**handleSave -- mapowanie:**
+`notification_template_id: formData.notification_template_id === '__none__' ? null : formData.notification_template_id`
+
+### 5. JSX -- nowa sekcja w `CollapsibleContent`
+
+Po checkboxie "Popularna usluga", przed zamknieciem `</CollapsibleContent>`, dodanie (kopia z N2Wash, linie 829-881, z polskimi etykietami inline):
+
+- Label: "Powiadomienie SMS"
+- FieldInfo tooltip: "Automatyczne powiadomienia SMS po wykonaniu uslugi"
+- Select z opcjami: "Brak" (`__none__`) + lista szablonow z `sms_notification_templates`
+- Przycisk "Dodaj" obok selecta -- nawiguje do `/admin/powiadomienia-sms/new?returnToService=true&serviceId=X`
+- Pod selectem: lista pozycji wybranego szablonu (miesiace + typ uslugi), wyswietlana jako `border-l-2` lista tekstowa
 
 ---
 
-## Bez zmian (z glownego planu)
+## Kolejnosc
 
-Tabela `employee_calendar_configs`, routing, strona `EmployeeCalendarView.tsx`, `RoleBasedRedirect` -- to wszystko zostaje jak w zatwierdzonym planie. Ten dodatek dotyczy TYLKO widoku zarzadzania w ustawieniach admina.
+Ta zmiana jest czescia kroku 5 z glownego planu i zostanie zaimplementowana po:
+1. Migracji DB (tabele + kolumna `notification_template_id`)
+2. Widoku listy szablonow
+3. Strony edycji szablonu
+4. Routingu i sidebaru
 
----
-
-## Podsumowanie nowych plikow
-
-| Plik | Akcja |
-|------|-------|
-| `src/components/admin/employee-calendars/EmployeeCalendarsListView.tsx` | Nowy -- kopia HallsListView |
-| `src/components/admin/employee-calendars/EmployeeCalendarCard.tsx` | Nowy -- kopia HallCard |
-| `src/components/admin/employee-calendars/AddEditEmployeeCalendarDrawer.tsx` | Nowy -- kopia AddEditHallDrawer |
-| `src/components/admin/SettingsView.tsx` | Modyfikacja -- nowy tab "Kalendarze pracownikow" |
