@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CustomerSearchInput, { type SelectedCustomer } from '@/components/admin/CustomerSearchInput';
 import CustomerAddressSelect from '@/components/admin/CustomerAddressSelect';
-import ProtocolPhotosUploader from './ProtocolPhotosUploader';
+import { ProtocolPhotosUploader } from './ProtocolPhotosUploader';
 import SignatureDialog from './SignatureDialog';
 
 interface CreateProtocolFormProps {
@@ -225,9 +225,9 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
               <div className="space-y-2">
                 <Label>Zdjęcia</Label>
                 <ProtocolPhotosUploader
-                  instanceId={instanceId}
-                  photoUrls={photoUrls}
-                  onChange={setPhotoUrls}
+                  photos={photoUrls}
+                  onPhotosChange={setPhotoUrls}
+                  protocolId={editingProtocolId}
                 />
               </div>
 
