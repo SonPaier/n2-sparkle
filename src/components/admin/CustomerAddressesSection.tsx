@@ -35,7 +35,7 @@ const CustomerAddressesSection = ({
   const activeAddresses = addresses.filter(a => !a._deleted);
 
   const addEmpty = () => {
-    onAddressesChange([...addresses, {
+    onAddressesChange([{
       name: '',
       street: '',
       city: '',
@@ -45,11 +45,11 @@ const CustomerAddressesSection = ({
       notes: '',
       is_default: false,
       _isNew: true,
-    }]);
+    }, ...addresses]);
   };
 
   const addFromSearch = (result: AddressSearchResult) => {
-    onAddressesChange([...addresses, {
+    onAddressesChange([{
       name: '',
       street: result.street,
       city: result.city,
@@ -61,7 +61,7 @@ const CustomerAddressesSection = ({
       lat: result.lat,
       lng: result.lng,
       _isNew: true,
-    }]);
+    }, ...addresses]);
   };
 
   const remove = (index: number) => {

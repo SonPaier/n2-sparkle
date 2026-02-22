@@ -70,6 +70,7 @@ const Dashboard = () => {
     customerPhone?: string;
     customerEmail?: string;
     customerAddressId?: string | null;
+    calendarItemId?: string | null;
   }>({});
 
   // Fetch columns
@@ -352,6 +353,7 @@ const Dashboard = () => {
                 customerPhone: item.customer_phone || '',
                 customerEmail: item.customer_email || '',
                 customerAddressId: item.customer_address_id,
+                calendarItemId: item.id,
               });
               setProtocolFormOpen(true);
             }}
@@ -402,6 +404,7 @@ const Dashboard = () => {
           prefillCustomerPhone={protocolPrefill.customerPhone}
           prefillCustomerEmail={protocolPrefill.customerEmail}
           prefillCustomerAddressId={protocolPrefill.customerAddressId}
+          prefillCalendarItemId={protocolPrefill.calendarItemId}
         />
       )}
     </DashboardLayout>
