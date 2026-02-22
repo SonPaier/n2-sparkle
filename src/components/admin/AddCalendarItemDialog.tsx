@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { format } from 'date-fns';
+import { format, isSameDay, parseISO, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Loader2, Search, X, MapPin } from 'lucide-react';
+import { type DateRange } from 'react-day-picker';
+import { Loader2, Search, X, MapPin, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -100,7 +104,9 @@ const AddCalendarItemDialog = ({
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [customerAddressId, setCustomerAddressId] = useState<string | null>(null);
   const [columnId, setColumnId] = useState('');
-  const [itemDate, setItemDate] = useState('');
+  const [reservationType, setReservationType] = useState<'single' | 'multi'>('single');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('09:00');
   const [adminNotes, setAdminNotes] = useState('');
@@ -134,7 +140,11 @@ const AddCalendarItemDialog = ({
       setCustomerId(editingItem.customer_id || null);
       setCustomerAddressId(editingItem.customer_address_id || null);
       setColumnId(editingItem.column_id || '');
-      setItemDate(editingItem.item_date || '');
+      const fromDate = editingItem.item_date ? parseISO(editingItem.item_date) : new Date();
+      const toDate = editingItem.end_date ? parseISO(editingItem.end_date) : fromDate;
+      const isMulti = editingItem.end_date && !isSameDay(fromDate, toDate);
+      setReservationType(isMulti ? 'multi' : 'single');
+      setDateRange({ from: fromDate, to: toDate });
       setStartTime(editingItem.start_time || '08:00');
       setEndTime(editingItem.end_time || '09:00');
       setAdminNotes(editingItem.admin_notes || '');
@@ -147,7 +157,9 @@ const AddCalendarItemDialog = ({
       setCustomerId(null);
       setCustomerAddressId(null);
       setColumnId(initialColumnId || columns[0]?.id || '');
-      setItemDate(initialDate || format(new Date(), 'yyyy-MM-dd'));
+      const initDate = initialDate ? parseISO(initialDate) : new Date();
+      setDateRange({ from: initDate, to: initDate });
+      setReservationType('single');
       setStartTime(initialTime || '08:00');
       const startIdx = TIME_OPTIONS.indexOf(initialTime || '08:00');
       setEndTime(TIME_OPTIONS[Math.min(startIdx + 4, TIME_OPTIONS.length - 1)] || '09:00');
@@ -297,6 +309,10 @@ const AddCalendarItemDialog = ({
       toast.error('Wybierz kolumnę');
       return;
     }
+    if (!dateRange?.from) {
+      toast.error('Wybierz datę');
+      return;
+    }
     if (startTime >= endTime) {
       toast.error('Godzina końca musi być późniejsza niż początku');
       return;
@@ -313,7 +329,8 @@ const AddCalendarItemDialog = ({
         customer_email: customerEmail.trim() || null,
         customer_id: customerId || null,
         customer_address_id: customerAddressId || null,
-        item_date: itemDate,
+        item_date: format(dateRange!.from!, 'yyyy-MM-dd'),
+        end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
         start_time: startTime,
         end_time: endTime,
         admin_notes: adminNotes.trim() || null,
@@ -471,10 +488,84 @@ const AddCalendarItemDialog = ({
               </Select>
             </div>
 
-            {/* Date */}
+            {/* Date - RadioGroup + Calendar */}
+            <div className="space-y-2">
+              <Label>Typ zlecenia</Label>
+              <RadioGroup
+                value={reservationType}
+                onValueChange={(v: 'single' | 'multi') => {
+                  setReservationType(v);
+                  if (v === 'single' && dateRange?.from) {
+                    setDateRange({ from: dateRange.from, to: dateRange.from });
+                  }
+                }}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="single" id="type-single" />
+                  <Label htmlFor="type-single" className="cursor-pointer font-normal">Jednodniowa</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="multi" id="type-multi" />
+                  <Label htmlFor="type-multi" className="cursor-pointer font-normal">Wielodniowa</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
             <div className="space-y-2">
               <Label>Data</Label>
-              <Input type="date" value={itemDate} onChange={(e) => setItemDate(e.target.value)} />
+              <Popover open={dateRangeOpen} onOpenChange={setDateRangeOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dateRange?.from && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateRange?.from ? (
+                      reservationType === 'multi' && dateRange.to && !isSameDay(dateRange.from, dateRange.to)
+                        ? `${format(dateRange.from, 'd MMM', { locale: pl })} – ${format(dateRange.to, 'd MMM yyyy', { locale: pl })}`
+                        : format(dateRange.from, 'EEEE, d MMM yyyy', { locale: pl })
+                    ) : (
+                      <span>Wybierz datę</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  {reservationType === 'single' ? (
+                    <Calendar
+                      mode="single"
+                      selected={dateRange?.from}
+                      onSelect={(date) => {
+                        if (date) {
+                          setDateRange({ from: date, to: date });
+                          setDateRangeOpen(false);
+                        }
+                      }}
+                      initialFocus
+                      locale={pl}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  ) : (
+                    <Calendar
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={(range) => {
+                        setDateRange(range);
+                        if (range?.from && range?.to) {
+                          setDateRangeOpen(false);
+                        }
+                      }}
+                      numberOfMonths={isMobile ? 1 : 2}
+                      initialFocus
+                      locale={pl}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
 
             {/* Time */}
