@@ -7,14 +7,17 @@ import { supabase } from '@/integrations/supabase/client';
 const RoleBasedRedirect = () => {
   const { user, roles, loading } = useAuth();
   const [employeeConfigId, setEmployeeConfigId] = useState<string | null>(null);
-  const [checkingConfig, setCheckingConfig] = useState(false);
+  const [configResolved, setConfigResolved] = useState(false);
 
   const isEmployeeOnly = roles.some(r => r.role === 'employee') &&
     !roles.some(r => r.role === 'admin' || r.role === 'super_admin');
 
   useEffect(() => {
-    if (!user || !isEmployeeOnly) return;
-    setCheckingConfig(true);
+    if (!user || !isEmployeeOnly) {
+      setConfigResolved(true);
+      return;
+    }
+    setConfigResolved(false);
     supabase
       .from('employee_calendar_configs')
       .select('id')
@@ -25,11 +28,11 @@ const RoleBasedRedirect = () => {
       .maybeSingle()
       .then(({ data }) => {
         setEmployeeConfigId(data?.id || null);
-        setCheckingConfig(false);
+        setConfigResolved(true);
       });
   }, [user, isEmployeeOnly]);
 
-  if (loading || checkingConfig) {
+  if (loading || !configResolved) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
