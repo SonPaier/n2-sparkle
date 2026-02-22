@@ -17,9 +17,10 @@ interface CalendarMapPanelProps {
   columns: CalendarColumn[];
   onItemClick: (item: CalendarItem) => void;
   onClose: () => void;
+  hqLocation?: { lat: number; lng: number; name: string } | null;
 }
 
-const CalendarMapPanel = ({ items, columns, onItemClick, onClose }: CalendarMapPanelProps) => {
+const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: CalendarMapPanelProps) => {
   const [dateFilter, setDateFilter] = useState<DateFilter>('week');
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [columnFilter, setColumnFilter] = useState<string>('all');
@@ -145,7 +146,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose }: CalendarMapP
 
       {/* Map */}
       <div className="flex-1 min-h-0">
-        <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} />
+        <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} hqLocation={hqLocation} />
       </div>
     </div>
   );

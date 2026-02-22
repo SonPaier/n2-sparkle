@@ -10,23 +10,54 @@ interface CalendarMapProps {
   items: CalendarItem[];
   columns: CalendarColumn[];
   onItemClick: (item: CalendarItem) => void;
+  hqLocation?: { lat: number; lng: number; name: string } | null;
 }
 
+// Convert any color to fully saturated version
+const saturateColor = (color: string): string => {
+  // Parse hex
+  let r = 0, g = 0, b = 0;
+  if (color.startsWith('#')) {
+    const hex = color.replace('#', '');
+    r = parseInt(hex.substring(0, 2), 16);
+    g = parseInt(hex.substring(2, 4), 16);
+    b = parseInt(hex.substring(4, 6), 16);
+  } else {
+    return color;
+  }
+  // Convert to HSL and force full saturation + good lightness
+  const rn = r / 255, gn = g / 255, bn = b / 255;
+  const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+  let h = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    if (max === rn) h = ((gn - bn) / d + (gn < bn ? 6 : 0)) / 6;
+    else if (max === gn) h = ((bn - rn) / d + 2) / 6;
+    else h = ((rn - gn) / d + 4) / 6;
+  }
+  // Force saturation to 85% and lightness between 40-50%
+  const newS = 85;
+  const newL = Math.max(35, Math.min(50, Math.round(l * 100)));
+  return `hsl(${Math.round(h * 360)}, ${newS}%, ${newL}%)`;
+};
+
 const createMarkerIcon = (color: string) => {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36">
-    <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.27 21.73 0 14 0z" fill="${color}" stroke="#fff" stroke-width="2"/>
-    <circle cx="14" cy="14" r="6" fill="#fff" opacity="0.9"/>
+  const vivid = saturateColor(color);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
+    <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 26 16 26s16-14 16-26C32 7.16 24.84 0 16 0z" fill="${vivid}" stroke="#fff" stroke-width="2.5"/>
+    <circle cx="16" cy="16" r="7" fill="#fff"/>
   </svg>`;
   return L.divIcon({
     html: svg,
     className: '',
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
-    tooltipAnchor: [0, -36],
+    iconSize: [32, 42],
+    iconAnchor: [16, 42],
+    tooltipAnchor: [0, -42],
   });
 };
 
-const CalendarMap = ({ items, columns, onItemClick }: CalendarMapProps) => {
+const CalendarMap = ({ items, columns, onItemClick, hqLocation }: CalendarMapProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -82,25 +113,63 @@ const CalendarMap = ({ items, columns, onItemClick }: CalendarMapProps) => {
       const color = columnColorMap.get(item.column_id || '') || '#6366f1';
       const city = item.address_city || '';
       const dateStr = format(new Date(item.item_date), 'd MMM', { locale: pl });
-      const label = city ? `${city} | ${dateStr}` : dateStr;
+      const line1 = city ? `${city} · ${dateStr}` : dateStr;
+      const title = item.title || '';
+      const tooltipHtml = `<div class="calendar-map-tooltip-content"><div class="cmt-line1">${line1}</div>${title ? `<div class="cmt-line2">${title}</div>` : ''}</div>`;
 
       const marker = L.marker([item.address_lat!, item.address_lng!], {
         icon: getIcon(color),
       })
-        .bindTooltip(label, { permanent: true, direction: 'top', offset: [0, -4], className: 'calendar-map-tooltip' })
+        .bindTooltip(tooltipHtml, { permanent: true, direction: 'top', offset: [0, -4], className: 'calendar-map-tooltip', interactive: true })
         .on('click', () => onItemClick(item))
         .addTo(map);
+
+      // Make tooltip clicks also open the drawer
+      marker.on('tooltipopen', () => {
+        const el = marker.getTooltip()?.getElement();
+        if (el) {
+          el.style.cursor = 'pointer';
+          el.onclick = (e) => { e.stopPropagation(); onItemClick(item); };
+        }
+      });
 
       markersRef.current.push(marker);
     });
 
+    // HQ marker
+    if (hqLocation) {
+      const hqSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="44" viewBox="0 0 34 44">
+        <path d="M17 0C7.61 0 0 7.61 0 17c0 12.75 17 27 17 27s17-14.25 17-27C34 7.61 26.39 0 17 0z" fill="#1e293b" stroke="#fff" stroke-width="2.5"/>
+        <rect x="9" y="10" width="16" height="14" rx="2" fill="#fff"/>
+        <rect x="13" y="16" width="3" height="4" fill="#1e293b"/>
+        <rect x="18" y="16" width="3" height="4" fill="#1e293b"/>
+        <rect x="13" y="11" width="3" height="3" fill="#1e293b"/>
+        <rect x="18" y="11" width="3" height="3" fill="#1e293b"/>
+      </svg>`;
+      const hqIcon = L.divIcon({
+        html: hqSvg,
+        className: '',
+        iconSize: [34, 44],
+        iconAnchor: [17, 44],
+        tooltipAnchor: [0, -44],
+      });
+      const hqMarker = L.marker([hqLocation.lat, hqLocation.lng], { icon: hqIcon })
+        .bindTooltip(`<div class="calendar-map-tooltip-content"><div class="cmt-line1">🏢 ${hqLocation.name}</div><div class="cmt-line2">Baza firmy</div></div>`, {
+          permanent: true, direction: 'top', offset: [0, -4], className: 'calendar-map-tooltip calendar-map-tooltip-hq',
+        })
+        .addTo(map);
+      markersRef.current.push(hqMarker);
+    }
+
     // Fit bounds
-    if (validItems.length > 0) {
-      const bounds = L.latLngBounds(validItems.map(i => [i.address_lat!, i.address_lng!] as [number, number]));
+    const allPoints: [number, number][] = validItems.map(i => [i.address_lat!, i.address_lng!]);
+    if (hqLocation) allPoints.push([hqLocation.lat, hqLocation.lng]);
+    if (allPoints.length > 0) {
+      const bounds = L.latLngBounds(allPoints);
       const padding = isMobile ? 8 : 50;
       map.fitBounds(bounds, { padding: [padding, padding], maxZoom: 15 });
     }
-  }, [validItems, columnColorMap, getIcon, onItemClick, isMobile]);
+  }, [validItems, columnColorMap, getIcon, onItemClick, isMobile, hqLocation]);
 
   // Invalidate size when container resizes
   useEffect(() => {
@@ -117,14 +186,34 @@ const CalendarMap = ({ items, columns, onItemClick }: CalendarMapProps) => {
           background: hsl(var(--background)) !important;
           color: hsl(var(--foreground)) !important;
           border: 1px solid hsl(var(--border)) !important;
-          border-radius: 6px !important;
-          padding: 2px 8px !important;
-          font-size: 11px !important;
+          border-radius: 8px !important;
+          padding: 0 !important;
+          font-size: 13px !important;
           font-weight: 500 !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+          cursor: pointer !important;
         }
         .calendar-map-tooltip::before {
           border-top-color: hsl(var(--border)) !important;
+        }
+        .calendar-map-tooltip-content {
+          padding: 5px 10px;
+        }
+        .cmt-line1 {
+          font-size: 13px;
+          font-weight: 600;
+          line-height: 1.3;
+        }
+        .cmt-line2 {
+          font-size: 11px;
+          font-weight: 400;
+          color: hsl(var(--muted-foreground));
+          line-height: 1.3;
+          margin-top: 1px;
+          max-width: 180px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       `}</style>
       <div ref={containerRef} className="w-full h-full rounded-lg" style={{ minHeight: '300px' }} />

@@ -11,7 +11,9 @@ import { toast } from 'sonner';
 import CalendarColumnsSettings from './CalendarColumnsSettings';
 import EmployeeCalendarsListView from './employee-calendars/EmployeeCalendarsListView';
 import InstanceUsersTab from './users/InstanceUsersTab';
+import AddressSearchInput from './AddressSearchInput';
 import { useIsMobile } from '@/hooks/use-mobile';
+import type { AddressSearchResult } from '@/lib/addressSearch';
 
 interface SettingsViewProps {
   instanceId: string | null;
@@ -35,6 +37,11 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
     phone: '',
     email: '',
     address: '',
+    address_street: '',
+    address_city: '',
+    address_postal_code: '',
+    address_lat: null as number | null,
+    address_lng: null as number | null,
     contact_person: '',
     website: '',
     logo_url: '',
@@ -58,6 +65,11 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
             phone: data.phone || '',
             email: data.email || '',
             address: data.address || '',
+            address_street: (data as any).address_street || '',
+            address_city: (data as any).address_city || '',
+            address_postal_code: (data as any).address_postal_code || '',
+            address_lat: (data as any).address_lat || null,
+            address_lng: (data as any).address_lng || null,
             contact_person: (data as any).contact_person || '',
             website: (data as any).website || '',
             logo_url: data.logo_url || '',
@@ -137,6 +149,11 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
           phone: companyForm.phone || null,
           email: companyForm.email || null,
           address: companyForm.address || null,
+          address_street: companyForm.address_street || null,
+          address_city: companyForm.address_city || null,
+          address_postal_code: companyForm.address_postal_code || null,
+          address_lat: companyForm.address_lat || null,
+          address_lng: companyForm.address_lng || null,
           logo_url: companyForm.logo_url || null,
           website: companyForm.website || null,
           contact_person: companyForm.contact_person || null,
@@ -216,8 +233,27 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Adres</Label>
-              <Input id="address" value={companyForm.address} onChange={(e) => handleInputChange('address', e.target.value)} />
+              <Label>Adres siedziby</Label>
+              <AddressSearchInput
+                placeholder="Szukaj adresu siedziby..."
+                defaultValue={
+                  [companyForm.address_street, companyForm.address_postal_code, companyForm.address_city]
+                    .filter(Boolean)
+                    .join(', ') || companyForm.address || ''
+                }
+                onSelect={(result: AddressSearchResult) => {
+                  const label = [result.street, result.postal_code, result.city].filter(Boolean).join(', ');
+                  setCompanyForm(prev => ({
+                    ...prev,
+                    address: label,
+                    address_street: result.street,
+                    address_city: result.city,
+                    address_postal_code: result.postal_code,
+                    address_lat: result.lat,
+                    address_lng: result.lng,
+                  }));
+                }}
+              />
             </div>
 
             <div className="space-y-2">

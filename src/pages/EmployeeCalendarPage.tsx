@@ -47,6 +47,7 @@ const EmployeeCalendarPage = () => {
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [mapOpen, setMapOpen] = useState(false);
+  const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
 
   // Protocol form state
@@ -190,6 +191,21 @@ const EmployeeCalendarPage = () => {
       fetchBreaks();
     }
   }, [currentView, config, fetchColumns, fetchItems, fetchBreaks]);
+
+  // Fetch HQ location
+  useEffect(() => {
+    if (!instanceId) return;
+    supabase
+      .from('instances')
+      .select('name, address_lat, address_lng')
+      .eq('id', instanceId)
+      .single()
+      .then(({ data }) => {
+        if (data && (data as any).address_lat && (data as any).address_lng) {
+          setHqLocation({ lat: (data as any).address_lat, lng: (data as any).address_lng, name: data.name || 'Baza' });
+        }
+      });
+  }, [instanceId]);
 
   // Realtime
   useEffect(() => {
@@ -447,6 +463,7 @@ const EmployeeCalendarPage = () => {
                   columns={calendarColumns}
                   onItemClick={handleItemClick}
                   onClose={() => setMapOpen(false)}
+                  hqLocation={hqLocation}
                 />
               ) : null;
 

@@ -670,6 +670,11 @@ export type Database = {
         Row: {
           active: boolean
           address: string | null
+          address_city: string | null
+          address_lat: number | null
+          address_lng: number | null
+          address_postal_code: string | null
+          address_street: string | null
           contact_person: string | null
           created_at: string
           email: string | null
@@ -689,6 +694,11 @@ export type Database = {
         Insert: {
           active?: boolean
           address?: string | null
+          address_city?: string | null
+          address_lat?: number | null
+          address_lng?: number | null
+          address_postal_code?: string | null
+          address_street?: string | null
           contact_person?: string | null
           created_at?: string
           email?: string | null
@@ -708,6 +718,11 @@ export type Database = {
         Update: {
           active?: boolean
           address?: string | null
+          address_city?: string | null
+          address_lat?: number | null
+          address_lng?: number | null
+          address_postal_code?: string | null
+          address_street?: string | null
           contact_person?: string | null
           created_at?: string
           email?: string | null
