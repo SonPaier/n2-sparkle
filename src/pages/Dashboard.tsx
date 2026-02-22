@@ -17,6 +17,7 @@ import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/co
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { EmployeesView } from '@/components/admin/employees';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
+import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import { MessageSquare } from 'lucide-react';
 
@@ -60,6 +61,16 @@ const Dashboard = () => {
   const [newItemData, setNewItemData] = useState({ columnId: '', date: '', time: '' });
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+
+  // Protocol form state
+  const [protocolFormOpen, setProtocolFormOpen] = useState(false);
+  const [protocolPrefill, setProtocolPrefill] = useState<{
+    customerId?: string | null;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    customerAddressId?: string | null;
+  }>({});
 
   // Fetch columns
   const fetchColumns = useCallback(async () => {
@@ -335,7 +346,14 @@ const Dashboard = () => {
             onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
             onAddProtocol={(item) => {
               setDetailsOpen(false);
-              navigate(`${basePath || '/admin'}/protokoly`);
+              setProtocolPrefill({
+                customerId: item.customer_id,
+                customerName: item.customer_name || '',
+                customerPhone: item.customer_phone || '',
+                customerEmail: item.customer_email || '',
+                customerAddressId: item.customer_address_id,
+              });
+              setProtocolFormOpen(true);
             }}
             instanceId={instanceId || undefined}
           />
@@ -372,6 +390,20 @@ const Dashboard = () => {
   return (
     <DashboardLayout currentView={currentView} onViewChange={handleViewChange}>
       {renderContent()}
+      {instanceId && (
+        <CreateProtocolForm
+          open={protocolFormOpen}
+          onClose={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
+          instanceId={instanceId}
+          onSuccess={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
+          editingProtocolId={null}
+          prefillCustomerId={protocolPrefill.customerId}
+          prefillCustomerName={protocolPrefill.customerName}
+          prefillCustomerPhone={protocolPrefill.customerPhone}
+          prefillCustomerEmail={protocolPrefill.customerEmail}
+          prefillCustomerAddressId={protocolPrefill.customerAddressId}
+        />
+      )}
     </DashboardLayout>
   );
 };

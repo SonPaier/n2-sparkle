@@ -173,6 +173,42 @@ const AddCalendarItemDialog = ({
       setAdminNotes(editingItem.admin_notes || '');
       setPrice(editingItem.price?.toString() || '');
       setAssignedEmployeeIds(editingItem.assigned_employee_ids || []);
+
+      // Load saved services from calendar_item_services
+      const loadServices = async () => {
+        const { data: savedServices } = await supabase
+          .from('calendar_item_services' as any)
+          .select('service_id, custom_price')
+          .eq('calendar_item_id', editingItem.id);
+
+        if (savedServices && savedServices.length > 0) {
+          const svcIds = savedServices.map((s: any) => s.service_id);
+          const { data: svcData } = await supabase
+            .from('unified_services')
+            .select('id, name, short_name, price, duration_minutes, category_id, notification_template_id')
+            .in('id', svcIds);
+
+          if (svcData) {
+            setAllServices(svcData as ServiceWithCategory[]);
+            setSelectedServiceIds(svcIds);
+            setServiceItems(savedServices.map((ss: any) => {
+              const svc = svcData.find((s: any) => s.id === ss.service_id);
+              return {
+                service_id: ss.service_id,
+                custom_price: ss.custom_price,
+                name: svc?.name,
+                short_name: svc?.short_name,
+                price: svc?.price,
+              };
+            }));
+          }
+        } else {
+          setSelectedServiceIds([]);
+          setAllServices([]);
+          setServiceItems([]);
+        }
+      };
+      loadServices();
     } else {
       setTitle('');
       setCustomerName('');
@@ -190,11 +226,10 @@ const AddCalendarItemDialog = ({
       setAdminNotes('');
       setPrice('');
       setAssignedEmployeeIds([]);
+      setSelectedServiceIds([]);
+      setAllServices([]);
+      setServiceItems([]);
     }
-    // Reset
-    setSelectedServiceIds([]);
-    setAllServices([]);
-    setServiceItems([]);
     setSendImmediateSms(false);
     setImmediateSmsTemplate(null);
     setImmediateSmsTemplateId(null);
@@ -403,16 +438,19 @@ const AddCalendarItemDialog = ({
         assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
       };
 
+      let calendarItemId: string;
+
       if (isEditMode) {
+        calendarItemId = editingItem!.id;
         const { error } = await supabase
           .from('calendar_items')
           .update(data)
-          .eq('id', editingItem!.id);
+          .eq('id', calendarItemId);
         if (error) throw error;
 
         // Send immediate SMS in edit mode if checkbox checked and no existing notification
         if (sendImmediateSms && immediateSmsTemplateId && customerPhone.trim() && !existingSmsNotification) {
-          await createAndSendSms(editingItem!.id);
+          await createAndSendSms(calendarItemId);
         }
 
         toast.success('Zlecenie zaktualizowane');
@@ -423,13 +461,37 @@ const AddCalendarItemDialog = ({
           .select('id')
           .single();
         if (error) throw error;
+        calendarItemId = inserted!.id;
 
         // Send immediate SMS if checkbox checked
         if (sendImmediateSms && immediateSmsTemplateId && customerPhone.trim() && inserted) {
-          await createAndSendSms(inserted.id);
+          await createAndSendSms(calendarItemId);
         }
 
         toast.success('Zlecenie dodane');
+      }
+
+      // Save services to calendar_item_services
+      // Delete existing services first
+      await supabase
+        .from('calendar_item_services' as any)
+        .delete()
+        .eq('calendar_item_id', calendarItemId);
+
+      // Insert new services
+      if (selectedServiceIds.length > 0) {
+        const serviceRows = selectedServiceIds.map(svcId => {
+          const si = serviceItems.find(s => s.service_id === svcId);
+          return {
+            calendar_item_id: calendarItemId,
+            service_id: svcId,
+            custom_price: si?.custom_price ?? null,
+            instance_id: instanceId,
+          };
+        });
+        await supabase
+          .from('calendar_item_services' as any)
+          .insert(serviceRows);
       }
 
       onSuccess();
