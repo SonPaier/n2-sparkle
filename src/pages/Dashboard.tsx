@@ -13,7 +13,7 @@ import CalendarItemDetailsDrawer from '@/components/admin/CalendarItemDetailsDra
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { CalendarItem, CalendarColumn, Break } from '@/components/admin/AdminCalendar';
+import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { EmployeesView } from '@/components/admin/employees';
 
@@ -76,7 +76,7 @@ const Dashboard = () => {
     const rangeEnd = format(addDays(currentCalendarDate, 14), 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('calendar_items')
-      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, item_date, end_date, start_time, end_time, status, admin_notes, price')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price')
       .eq('instance_id', instanceId)
       .gte('item_date', rangeStart)
       .lte('item_date', rangeEnd);
@@ -97,6 +97,26 @@ const Dashboard = () => {
         items.forEach(item => {
           if (item.customer_address_id) {
             (item as any).address_name = addressMap.get(item.customer_address_id) || null;
+          }
+        });
+      }
+    }
+
+    // Fetch assigned employees
+    const allEmployeeIds = [...new Set(items.flatMap(i => i.assigned_employee_ids || []))];
+    if (allEmployeeIds.length > 0) {
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id, name, photo_url')
+        .in('id', allEmployeeIds);
+      
+      if (employees) {
+        const empMap = new Map(employees.map(e => [e.id, e]));
+        items.forEach(item => {
+          if (item.assigned_employee_ids?.length) {
+            (item as any).assigned_employees = item.assigned_employee_ids
+              .map(id => empMap.get(id))
+              .filter(Boolean) as AssignedEmployee[];
           }
         });
       }
@@ -223,6 +243,7 @@ const Dashboard = () => {
       customer_email: item.customer_email,
       customer_id: item.customer_id,
       customer_address_id: item.customer_address_id,
+      assigned_employee_ids: item.assigned_employee_ids,
       item_date: item.item_date,
       end_date: item.end_date,
       start_time: item.start_time,

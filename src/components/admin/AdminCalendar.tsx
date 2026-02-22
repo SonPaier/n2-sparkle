@@ -1,7 +1,8 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -19,6 +20,12 @@ export interface CalendarColumn {
   color?: string | null;
 }
 
+export interface AssignedEmployee {
+  id: string;
+  name: string;
+  photo_url?: string | null;
+}
+
 export interface CalendarItem {
   id: string;
   column_id: string | null;
@@ -28,6 +35,9 @@ export interface CalendarItem {
   customer_email?: string | null;
   customer_id?: string | null;
   customer_address_id?: string | null;
+  address_name?: string | null;
+  assigned_employee_ids?: string[] | null;
+  assigned_employees?: AssignedEmployee[];
   item_date: string;
   end_date?: string | null;
   start_time: string;
@@ -595,6 +605,30 @@ const AdminCalendar = ({
                 <a href={`tel:${item.customer_phone}`} onClick={(e) => e.stopPropagation()} className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors ml-auto" title={item.customer_phone}>
                   <Phone className="w-3 h-3" />
                 </a>
+              )}
+            </div>
+          )}
+          {/* Line 4: Address */}
+          {item.address_name && (
+            <div className="flex items-center gap-0.5 text-[11px] md:text-[12px] truncate opacity-80">
+              <MapPin className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate">{item.address_name}</span>
+            </div>
+          )}
+          {/* Line 5: Assigned employees chips */}
+          {item.assigned_employees && item.assigned_employees.length > 0 && (
+            <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
+              {item.assigned_employees.slice(0, 3).map(emp => (
+                <div key={emp.id} className="flex items-center gap-0.5 bg-black/10 rounded-full pl-0.5 pr-1.5 py-0">
+                  <Avatar className="w-3.5 h-3.5">
+                    {emp.photo_url && <AvatarImage src={emp.photo_url} />}
+                    <AvatarFallback className="text-[6px] bg-black/20">{emp.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-[9px] md:text-[10px] truncate max-w-[50px]">{emp.name.split(' ')[0]}</span>
+                </div>
+              ))}
+              {item.assigned_employees.length > 3 && (
+                <span className="text-[9px] md:text-[10px] opacity-70">+{item.assigned_employees.length - 3}</span>
               )}
             </div>
           )}

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, isSameDay, parseISO, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { type DateRange } from 'react-day-picker';
-import { Loader2, Search, X, MapPin, CalendarIcon } from 'lucide-react';
+import { Loader2, Search, X, MapPin, CalendarIcon, HardHat } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,9 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
 import SelectedServicesList, { type ServiceItem } from './SelectedServicesList';
+import { useEmployees } from '@/hooks/useEmployees';
+import AssignedEmployeesChips from './AssignedEmployeesChips';
+import EmployeeSelectionDrawer from './EmployeeSelectionDrawer';
 
 interface CalendarColumn {
   id: string;
@@ -48,6 +51,7 @@ export interface EditingCalendarItem {
   customer_email?: string | null;
   customer_id?: string | null;
   customer_address_id?: string | null;
+  assigned_employee_ids?: string[] | null;
   item_date: string;
   end_date?: string | null;
   start_time: string;
@@ -95,7 +99,7 @@ const AddCalendarItemDialog = ({
 }: AddCalendarItemDialogProps) => {
   const isEditMode = !!editingItem?.id;
   const isMobile = useIsMobile();
-
+  const { data: allEmployees = [] } = useEmployees(instanceId);
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
   const [customerName, setCustomerName] = useState('');
@@ -127,7 +131,8 @@ const AddCalendarItemDialog = ({
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [allServices, setAllServices] = useState<ServiceWithCategory[]>([]);
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
-
+  const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
+  const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
   // Initialize form
   useEffect(() => {
     if (!open) return;
@@ -149,6 +154,7 @@ const AddCalendarItemDialog = ({
       setEndTime(editingItem.end_time || '09:00');
       setAdminNotes(editingItem.admin_notes || '');
       setPrice(editingItem.price?.toString() || '');
+      setAssignedEmployeeIds(editingItem.assigned_employee_ids || []);
     } else {
       setTitle('');
       setCustomerName('');
@@ -165,6 +171,7 @@ const AddCalendarItemDialog = ({
       setEndTime(TIME_OPTIONS[Math.min(startIdx + 4, TIME_OPTIONS.length - 1)] || '09:00');
       setAdminNotes('');
       setPrice('');
+      setAssignedEmployeeIds([]);
     }
     // Reset
     setSelectedServiceIds([]);
@@ -335,6 +342,7 @@ const AddCalendarItemDialog = ({
         end_time: endTime,
         admin_notes: adminNotes.trim() || null,
         price: price ? parseFloat(price) : null,
+        assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
       };
 
       if (isEditMode) {
@@ -596,6 +604,22 @@ const AddCalendarItemDialog = ({
               <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" />
             </div>
 
+            {/* Assigned Employees */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1">
+                <HardHat className="w-3.5 h-3.5" />
+                Przypisani pracownicy
+              </Label>
+              <AssignedEmployeesChips
+                employees={allEmployees}
+                selectedIds={assignedEmployeeIds}
+                onRemove={(id) => setAssignedEmployeeIds(prev => prev.filter(x => x !== id))}
+              />
+              <Button type="button" variant="outline" size="sm" onClick={() => setEmployeeDrawerOpen(true)}>
+                {assignedEmployeeIds.length > 0 ? 'Zmień pracowników' : 'Przypisz pracowników'}
+              </Button>
+            </div>
+
             {/* Notes */}
             <div className="space-y-2">
               <Label>Notatki</Label>
@@ -620,6 +644,15 @@ const AddCalendarItemDialog = ({
         instanceId={instanceId}
         selectedServiceIds={selectedServiceIds}
         onConfirm={handleServicesConfirmed}
+      />
+
+      {/* Employee Selection Drawer */}
+      <EmployeeSelectionDrawer
+        open={employeeDrawerOpen}
+        onClose={() => setEmployeeDrawerOpen(false)}
+        employees={allEmployees}
+        selectedIds={assignedEmployeeIds}
+        onConfirm={setAssignedEmployeeIds}
       />
     </>
   );
