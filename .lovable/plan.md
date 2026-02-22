@@ -1,43 +1,103 @@
 
 
-# Checkbox "Stworz konto w aplikacji" w dialogu dodawania pracownika
+# Refaktoryzacja drawer szczegolow i edycji zlecen (styl N2Wash)
 
-## Co sie zmieni
+## 1. CalendarItemDetailsDrawer - nowy layout jak N2Wash ReservationDetailsDrawer
 
-W dialogu "Dodaj pracownika" (`AddEditEmployeeDialog.tsx`) pojawi sie:
+### Struktura SheetContent
+- `flex flex-col` layout z `hideCloseButton hideOverlay`
+- Header: czas + data po lewej, custom X button (p-2 rounded-full hover:bg-muted, X w-5 h-5) po prawej
+- Srodek: `flex-1 overflow-y-auto` scrollable content
+- Footer: `flex-shrink-0 border-t pt-4` z przyciskami akcji
 
-1. **Checkbox** "Stworz konto w aplikacji dla pracownika" -- widoczny tylko w trybie dodawania (nie edycji), tylko dla admina
-2. **Pola username i haslo** -- pokazuja sie tylko gdy checkbox jest zaznaczony
-3. **Przycisk "Dodaj" jest zablokowany** jesli checkbox zaznaczony ale username lub haslo sa puste (haslo min 6 znakow, username min 3 znaki)
-4. **Automatyczne tworzenie kalendarza** -- juz jest zaimplementowane w edge function `manage-instance-users` (linie 196-223), wiec nie trzeba nic zmieniac na backendzie
+### Header (jak N2Wash)
+- Czas: `{start_time} - {end_time}` jako bold + data obok (separator kropka)
+- Status badge + kolumna pod spodem
+- Custom X button zamiast domyslnego SheetClose
 
-## Przeplyw
+### Content (te same sekcje z ikonkami jak N2Wash)
+- Klient: ikona User, imie klikalne, przyciski Phone/SMS obok
+- Telefon: ikona Phone, numer
+- Adres: ikona MapPin
+- Przypisani pracownicy: **styl N2Wash** - pills `bg-primary text-primary-foreground rounded-full` z X do usuniecia + przycisk "Dodaj" rounded-full (zamiast obecnych small avatar chips)
+- Cena: ikona Receipt, kwota bold
+- Notatki: inline edytowalne (click to edit -> textarea -> auto-save on blur)
+- SMS status: jak jest
 
-1. Admin otwiera "Dodaj pracownika"
-2. Wpisuje imie, stawke, opcjonalnie zdjecie
-3. Zaznacza checkbox "Stworz konto w aplikacji"
-4. Pojawiaja sie pola: "Nazwa uzytkownika" i "Haslo"
-5. Wpisuje dane logowania
-6. Klika "Dodaj"
-7. System:
-   - Tworzy rekord `employees` (jak dotychczas)
-   - Wywoluje `manage-instance-users` z akcja `create`, rola `employee`
-   - Edge function automatycznie tworzy: auth user, profil, role, employee_calendar_config
+### Footer - przyciski statusowe (jak N2Wash)
+- **confirmed**: "Edytuj" (outline, bg-white) + "..." DropdownMenu (MoreVertical, z opcjami: Dodaj protokol, Usun) + "Rozpocznij prace" (emerald-600, z dropdown ChevronDown do zmiany na inne statusy)
+- **in_progress**: "Edytuj" + "..." + "Zakoncz prace" (sky-500, z dropdown)
+- **completed**: "Edytuj" + "..." + status disabled + dropdown do cofniecia
+- **cancelled**: "Edytuj" + "..."
 
-## Zmiany techniczne
+### Nowe props
+- `onStartWork?: (itemId: string) => void`
+- `onEndWork?: (itemId: string) => void`
+- `onAddProtocol?: (item: CalendarItem) => void`
+- `instanceId: string` (do employee assignment)
 
-### Plik: `src/components/admin/employees/AddEditEmployeeDialog.tsx`
+### Nowa funkcjonalnosc
+- Inline edycja notatek (click -> textarea -> blur saves)
+- Quick add/remove pracownikow (pills + EmployeeSelectionDrawer)
+- Przycisk "Dodaj protokol" w menu "..."
 
-- Nowe stany: `createAccount` (boolean), `username` (string), `password` (string)
-- Reset stanow przy zamknieciu/otwarciu dialogu
-- Checkbox widoczny tylko gdy `!isEditing && isAdmin`
-- Pola username/haslo widoczne tylko gdy `createAccount === true`
-- Walidacja: username min 3 znaki, haslo min 6 znakow
-- Przycisk "Dodaj" disabled jesli `createAccount && (!username.trim() || username.length < 3 || password.length < 6)`
-- W `handleSubmit`: po utworzeniu pracownika, jesli `createAccount`, wywolanie `supabase.functions.invoke('manage-instance-users', { body: { action: 'create', instanceId, username, password, role: 'employee' } })`
-- Obsluga bledow (np. username juz istnieje) -- toast z bledem, ale pracownik i tak zostaje dodany
+---
 
-### Brak zmian w backendzie
+## 2. AddCalendarItemDialog - refaktoryzacja formularza edycji
 
-Edge function `manage-instance-users` juz obsluguje tworzenie usera z rola `employee` i automatycznie tworzy `employee_calendar_config` z wszystkimi aktywnymi kolumnami kalendarza.
+### Zmiany w layoucie SheetContent
+- Ten sam styl co N2Wash: `flex flex-col h-full p-0 gap-0`, `hideOverlay hideCloseButton`
+- Header: `px-6 pt-6 pb-4 border-b shrink-0` z tytulem + X button (w-6 h-6)
+- Content: `flex-1 overflow-y-auto px-6 py-4`
+- Footer: `px-6 py-4 border-t shrink-0` z jednym pelnym przyciskiem "Dodaj zlecenie" / "Zapisz zmiany"
+
+### Usuwane pola
+- Imie klienta (Input) -- dane beda z CustomerSearchInput
+- Email (Input)
+- Telefon (Input)
+- Kolumna (Select)
+
+### Nowa kolejnosc pol
+1. Tytul zlecenia
+2. Klient (CustomerSearchInput - reusable autocomplete)
+3. Adres serwisowy (CustomerAddressSelect - widoczny gdy wybrany klient)
+4. Uslugi (SelectedServicesList + ServiceSelectionDrawer)
+5. Typ zlecenia (single/multi radio)
+6. Data (Calendar popover)
+7. Od / Do (time selects)
+8. Przypisani pracownicy
+9. Cena
+10. Notatki
+11. SMS checkbox (jesli dotyczy)
+
+### Biale tlo kontrolek
+- Wszystkie Input, Select, Textarea, Popover trigger Button dostaną `bg-white` class
+
+---
+
+## 3. Dashboard.tsx - nowe handlery
+
+- `handleStartWork(itemId)` - zmiana statusu na `in_progress`
+- `handleEndWork(itemId)` - zmiana statusu na `completed`
+- `handleAddProtocol(item)` - nawigacja do `/admin` z tab protocols + parametry
+- Przekazanie `instanceId` do CalendarItemDetailsDrawer
+
+---
+
+## 4. Zmiany techniczne
+
+### Pliki do edycji:
+| Plik | Zmiana |
+|------|--------|
+| `CalendarItemDetailsDrawer.tsx` | Pelna przebudowa na styl N2Wash: flex layout, custom X, footer z przyciskami statusowymi, inline notes, employee pills |
+| `AddCalendarItemDialog.tsx` | Nowy layout (flex, p-0, custom X, footer), usuniecie pol (name/email/phone/column), nowa kolejnosc, bg-white na kontrolkach |
+| `Dashboard.tsx` | Nowe handlery startWork/endWork/addProtocol, nowe props |
+| `EmployeeCalendarPage.tsx` | Te same nowe props |
+
+### Zachowane:
+- `CustomerSearchInput` jako reusable component do wyszukiwania klientow
+- `CustomerAddressSelect` do wyboru adresu
+- `ServiceSelectionDrawer` + `SelectedServicesList` do uslug
+- `EmployeeSelectionDrawer` + pills do pracownikow
+- SMS checkbox logika bez zmian
 
