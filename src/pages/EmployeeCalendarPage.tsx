@@ -12,6 +12,7 @@ import AddCalendarItemDialog from '@/components/admin/AddCalendarItemDialog';
 import CalendarItemDetailsDrawer from '@/components/admin/CalendarItemDetailsDrawer';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
+import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
@@ -42,6 +43,17 @@ const EmployeeCalendarPage = () => {
   const [newItemData, setNewItemData] = useState({ columnId: '', date: '', time: '' });
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+
+  // Protocol form state
+  const [protocolFormOpen, setProtocolFormOpen] = useState(false);
+  const [protocolPrefill, setProtocolPrefill] = useState<{
+    customerId?: string | null;
+    customerName?: string;
+    customerPhone?: string;
+    customerEmail?: string;
+    customerAddressId?: string | null;
+    calendarItemId?: string;
+  }>({});
 
   // Fetch config
   useEffect(() => {
@@ -377,6 +389,18 @@ const EmployeeCalendarPage = () => {
                 onStatusChange={handleStatusChange}
                 onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                 onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+                onAddProtocol={(item) => {
+                  setDetailsOpen(false);
+                  setProtocolPrefill({
+                    customerId: item.customer_id,
+                    customerName: item.customer_name || '',
+                    customerPhone: item.customer_phone || '',
+                    customerEmail: item.customer_email || '',
+                    customerAddressId: item.customer_address_id,
+                    calendarItemId: item.id,
+                  });
+                  setProtocolFormOpen(true);
+                }}
                 instanceId={instanceId || undefined}
               />
 
@@ -388,6 +412,21 @@ const EmployeeCalendarPage = () => {
                 initialData={newBreakData}
                 onBreakAdded={() => fetchBreaks()}
               />
+              {instanceId && (
+                <CreateProtocolForm
+                  open={protocolFormOpen}
+                  onClose={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
+                  instanceId={instanceId}
+                  onSuccess={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
+                  editingProtocolId={null}
+                  prefillCustomerId={protocolPrefill.customerId}
+                  prefillCustomerName={protocolPrefill.customerName}
+                  prefillCustomerPhone={protocolPrefill.customerPhone}
+                  prefillCustomerEmail={protocolPrefill.customerEmail}
+                  prefillCustomerAddressId={protocolPrefill.customerAddressId}
+                  prefillCalendarItemId={protocolPrefill.calendarItemId}
+                />
+              )}
             </div>
           ) : (
             <div className="flex items-center justify-center h-full">
