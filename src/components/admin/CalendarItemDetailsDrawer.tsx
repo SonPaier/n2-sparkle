@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat, MessageSquare, MoreVertical, ChevronDown, Plus, ClipboardCheck } from 'lucide-react';
+import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat, MessageSquare, MoreVertical, ChevronDown, Plus, ClipboardCheck, Send, Loader2 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,14 @@ interface SmsNotificationInfo {
   status: string;
   sent_at: string | null;
   service_type: string;
+  template_name?: string;
+}
+
+interface AvailableSmsTemplate {
+  templateId: string;
+  templateName: string;
+  smsTemplate: string;
+  serviceName: string;
 }
 
 interface CalendarItemDetailsDrawerProps {
@@ -77,6 +85,11 @@ const CalendarItemDetailsDrawer = ({
   const [notesValue, setNotesValue] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
 
+  // SMS templates & sending
+  const [availableSmsTemplates, setAvailableSmsTemplates] = useState<AvailableSmsTemplate[]>([]);
+  const [sendingSms, setSendingSms] = useState(false);
+  const [instanceShortName, setInstanceShortName] = useState('');
+
   // Employee management
   const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
   const { data: allEmployees = [] } = useEmployees(instanceId || null);
@@ -116,6 +129,120 @@ const CalendarItemDetailsDrawer = ({
     };
     fetchSms();
   }, [item?.id, open]);
+
+  // Fetch instance short_name
+  useEffect(() => {
+    if (!instanceId || !open) return;
+    supabase.from('instances').select('short_name').eq('id', instanceId).single()
+      .then(({ data }) => { if (data) setInstanceShortName(data.short_name || ''); });
+  }, [instanceId, open]);
+
+  // Fetch available SMS templates from item's services
+  useEffect(() => {
+    if (!item?.id || !open || !instanceId) { setAvailableSmsTemplates([]); return; }
+    const fetchTemplates = async () => {
+      // Get services linked to this calendar item
+      const { data: itemServices } = await supabase
+        .from('calendar_item_services')
+        .select('service_id')
+        .eq('calendar_item_id', item.id);
+      if (!itemServices?.length) { setAvailableSmsTemplates([]); return; }
+
+      const serviceIds = itemServices.map(s => s.service_id);
+      // Get services with notification_template_id
+      const { data: services } = await supabase
+        .from('unified_services')
+        .select('id, name, notification_template_id')
+        .in('id', serviceIds);
+      
+      const templatesWithService = (services || []).filter(s => s.notification_template_id);
+      if (!templatesWithService.length) { setAvailableSmsTemplates([]); return; }
+
+      const templateIds = [...new Set(templatesWithService.map(s => s.notification_template_id!))];
+      const { data: templates } = await supabase
+        .from('sms_notification_templates')
+        .select('id, name, sms_template, items')
+        .in('id', templateIds);
+
+      const available: AvailableSmsTemplate[] = [];
+      for (const tmpl of templates || []) {
+        const tmplItems = Array.isArray(tmpl.items) ? tmpl.items : [];
+        const hasImmediate = tmplItems.some((i: any) => i.trigger_type === 'immediate');
+        if (hasImmediate && tmpl.sms_template) {
+          const svc = templatesWithService.find(s => s.notification_template_id === tmpl.id);
+          available.push({
+            templateId: tmpl.id,
+            templateName: tmpl.name,
+            smsTemplate: tmpl.sms_template,
+            serviceName: svc?.name || '',
+          });
+        }
+      }
+      setAvailableSmsTemplates(available);
+    };
+    fetchTemplates();
+  }, [item?.id, open, instanceId]);
+
+  // Check which templates already have SMS sent
+  const sentTemplateIds = new Set(smsNotifications.map(n => n.id ? n.service_type : ''));
+  const unsent = availableSmsTemplates.filter(t => 
+    !smsNotifications.some(n => n.service_type === t.serviceName)
+  );
+
+  const handleSendSms = async (template: AvailableSmsTemplate) => {
+    if (!item?.customer_phone || !instanceId) {
+      toast.error('Brak numeru telefonu klienta');
+      return;
+    }
+    setSendingSms(true);
+    try {
+      const { data: notif, error: notifError } = await (supabase
+        .from('customer_sms_notifications') as any)
+        .insert({
+          instance_id: instanceId,
+          notification_template_id: template.templateId,
+          customer_name: item.customer_name || '',
+          customer_phone: item.customer_phone,
+          service_type: template.serviceName,
+          months_after: 0,
+          scheduled_date: item.item_date,
+          status: 'pending',
+          calendar_item_id: item.id,
+        })
+        .select('id')
+        .single();
+
+      if (notifError) throw notifError;
+
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const message = template.smsTemplate;
+
+      await fetch(`https://${projectId}.supabase.co/functions/v1/send-sms`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': anonKey },
+        body: JSON.stringify({
+          phone: item.customer_phone,
+          message,
+          instanceId,
+          notificationId: notif?.id,
+        }),
+      });
+
+      // Refresh SMS list
+      const { data: refreshed } = await (supabase.from('customer_sms_notifications') as any)
+        .select('id, status, sent_at, service_type')
+        .eq('calendar_item_id', item.id);
+      if (refreshed) setSmsNotifications(refreshed);
+
+      toast.success('SMS wysłany');
+    } catch (err) {
+      console.error('Error sending SMS:', err);
+      toast.error('Błąd wysyłania SMS');
+    } finally {
+      setSendingSms(false);
+    }
+  };
 
   if (!item) return null;
 
@@ -449,7 +576,7 @@ const CalendarItemDetailsDrawer = ({
             </div>
 
             {/* SMS Notification Status */}
-            {smsNotifications.length > 0 && (
+            {(smsNotifications.length > 0 || unsent.length > 0) && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <MessageSquare className="w-4 h-4 text-muted-foreground" />
@@ -459,13 +586,37 @@ const CalendarItemDetailsDrawer = ({
                   <div key={sms.id} className="ml-6 text-sm">
                     {sms.sent_at ? (
                       <span className="text-emerald-600">
-                        Wysłano SMS ({sms.service_type}) — {format(new Date(sms.sent_at), 'd MMM yyyy, HH:mm', { locale: pl })}
+                        ✓ Wysłano SMS ({sms.service_type}) — {format(new Date(sms.sent_at), 'd MMM yyyy, HH:mm', { locale: pl })}
                       </span>
                     ) : sms.status === 'pending' ? (
                       <span className="text-orange-600">
-                        SMS oczekuje na wysłanie ({sms.service_type})
+                        ⏳ SMS oczekuje na wysłanie ({sms.service_type})
+                      </span>
+                    ) : sms.status === 'failed' ? (
+                      <span className="text-destructive">
+                        ✗ Błąd wysyłki SMS ({sms.service_type})
                       </span>
                     ) : null}
+                  </div>
+                ))}
+                {unsent.map(template => (
+                  <div key={template.templateId} className="ml-6 space-y-1.5">
+                    <p className="text-xs text-muted-foreground">
+                      Szablon: {template.templateName}
+                    </p>
+                    <p className="text-xs bg-muted rounded p-2 whitespace-pre-wrap">
+                      {template.smsTemplate.replace(/\{short_name\}/g, instanceShortName)}
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={sendingSms || !item.customer_phone}
+                      onClick={() => handleSendSms(template)}
+                      className="text-xs"
+                    >
+                      {sendingSms ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
+                      Wyślij SMS
+                    </Button>
                   </div>
                 ))}
               </div>
