@@ -1,92 +1,70 @@
 
-# Kopiowanie listy klientow i drawera edycji z N2Wash
+
+# Adresy klienta w drawerze zlecen
 
 ## Podsumowanie
 
-Kopiujemy `CustomersView` i `CustomerEditDrawer` z N2Wash. Usuwamy: vehicles, SMS dialog, tabs myjnia/oferty, visit history, reminders tab, `useCombinedFeatures`, `useTranslation`, `discount_percent`. Dodajemy: sekcje zarzadzania wieloma adresami serwisowymi (`customer_addresses`).
+Dodajemy mozliwosc wyboru klienta z bazy i jego adresu serwisowego w drawerze zlecen (`AddCalendarItemDialog`). Po wyborze klienta, jego dane (imie, telefon, email) uzupelnia sie automatycznie, a lista adresow pojawia sie jako dropdown.
 
 ---
 
-## 1. Baza danych (migracja SQL)
+## 1. Migracja bazy danych
 
-Tworzymy dwie tabele:
+Dodajemy dwie nowe kolumny do tabeli `calendar_items`:
+- `customer_id` (uuid, nullable, FK -> customers ON DELETE SET NULL)
+- `customer_address_id` (uuid, nullable, FK -> customer_addresses ON DELETE SET NULL)
 
-**`customers`**:
-- id (uuid PK), instance_id (uuid NOT NULL), name (text NOT NULL), short_name (text), phone (text NOT NULL), email (text), notes (text), company (text), nip (text), address (text), contact_person (text), contact_phone (text), contact_email (text), source (text DEFAULT 'manual'), billing_street (text), billing_street_line2 (text), billing_city (text), billing_postal_code (text), billing_region (text), billing_country_code (text), country_code (text), default_currency (text DEFAULT 'PLN'), vat_eu_number (text), sales_notes (text), created_at (timestamptz), updated_at (timestamptz)
-- UNIQUE(instance_id, phone)
-
-**`customer_addresses`**:
-- id (uuid PK), customer_id (uuid NOT NULL FK -> customers ON DELETE CASCADE), instance_id (uuid NOT NULL), name (text NOT NULL), street (text), street_line2 (text), city (text), postal_code (text), region (text), country_code (text), lat (double precision), lng (double precision), contact_person (text), contact_phone (text), notes (text), is_default (boolean DEFAULT false), sort_order (integer DEFAULT 0), created_at (timestamptz), updated_at (timestamptz)
-
-RLS: SELECT dla admin/employee/super_admin, ALL dla admin/super_admin. Triggery `update_updated_at_column` na obu.
+Uzycie SET NULL zamiast CASCADE -- jesli klient/adres zostanie usuniety, zlecenie pozostaje ale traci referencje.
 
 ---
 
-## 2. Nowe pliki pomocnicze
+## 2. Modyfikacja `AddCalendarItemDialog.tsx`
 
-### `src/lib/phoneUtils.ts`
-Kopia z N2Wash -- `normalizePhone`, `stripPhone`, `isValidPhone`, `formatPhoneDisplay`.
+Dodajemy nastepujace elementy:
 
-### `src/lib/textUtils.ts`
-Tylko `normalizeSearchQuery` z N2Wash.
+### Wyszukiwanie klienta
+- Pole tekstowe z autocomplete/combobox -- wpisujemy imie/telefon/firme, lista podpowiada klientow z bazy (`customers` table, filtrowane po `instance_id`)
+- Po wyborze klienta: auto-wypelnienie `customerName`, `customerPhone`, `customerEmail`, ustawienie `customerId`
+- Mozliwosc recznego wpisania danych klienta (bez wyboru z bazy)
 
----
+### Wybor adresu
+- Po wyborze klienta: fetch adresow z `customer_addresses` dla tego klienta
+- Dropdown/Select z listą adresow (wyswietlanie: nazwa + ulica + miasto)
+- Wybrany adres zapisuje sie jako `customer_address_id` w zleceniu
+- Jesli klient nie ma adresow, sekcja jest ukryta
 
-## 3. Modyfikacja `src/components/ui/sheet.tsx`
-Dodajemy prop `hideCloseButton` do `SheetContent` -- N2Wash uzywa tego w `CustomerEditDrawer` zeby miec wlasny przycisk X w headerze.
-
----
-
-## 4. Nowe komponenty
-
-### `src/components/admin/CustomersView.tsx` (~250 linii)
-Adaptacja z N2Wash:
-- **Usuwamy**: tabs myjnia/oferty, vehicles fetch i chips, `useCombinedFeatures`, `useTranslation`, `SendSmsDialog`, `AdminTabsList`, SMS button, `CustomersList` (inline rendering)
-- **Zostawiamy**: lista klientow z wyszukiwaniem (name, phone, email, company, nip), paginacja, przycisk dodaj, delete dialog (uzyje `ConfirmDialog`), przycisk telefon, drawer edycji
-- Pod nazwa klienta: firma (zamiast vehicles)
-- Polskie stringi hardcoded
-- Source nie jest uzywane do filtrowania (brak tabow)
-
-### `src/components/admin/CustomerEditDrawer.tsx` (~500 linii)
-Adaptacja z N2Wash:
-- **Usuwamy**: vehicles editor (`CustomerVehiclesEditor`), visit history tab, reminders tab, `AdminTabsList`, `SendSmsDialog`, `discount_percent`, `useTranslation`, `normalizePhone` w sync vehicles
-- **Zostawiamy**: Sheet drawer, tryb view/edit/add, formularz (name, phone, email, company, nip, notes), przyciski SMS/telefon w headerze (SMS otwiera natywne sms:), sticky footer (zapisz/anuluj/edytuj)
-- **Dodajemy nowa sekcje w trybie edycji**: "Adresy serwisowe"
-  - Lista `customer_addresses` z CRUD
-  - Kazdy adres: nazwa lokalizacji, ulica, miasto, kod pocztowy, osoba kontaktowa, telefon, notatki
-  - Lat/lng na razie opcjonalne (reczne pola)
-  - Przycisk "Dodaj adres" / "Usun" per adres
-  - Fetch adresow przy otwarciu drawera, zapis razem z klientem
-- **Dodajemy sekcje w trybie view**: lista adresow (read-only) zamiast vehicles
-- **Dane fakturowe**: dodatkowe pola billing_street, billing_city, billing_postal_code w sekcji "Dane do faktury" (collapsible)
+### Zapis
+- Przy zapisie zlecenia dodajemy `customer_id` i `customer_address_id` do danych
 
 ---
 
-## 5. Modyfikacja `src/pages/Dashboard.tsx`
-- Import `CustomersView`
-- W `renderContent()`: jesli `currentView === 'klienci'` i `instanceId`, renderuj `<CustomersView instanceId={instanceId} />`
+## 3. Aktualizacja `EditingCalendarItem` interface
+
+Dodajemy pola `customer_id` i `customer_address_id` do interfejsu, zeby edycja tez odczytywala te dane.
 
 ---
 
-## 6. Podsumowanie plikow
+## 4. Aktualizacja `CalendarItemDetailsDrawer.tsx`
+
+Jesli zlecenie ma `customer_address_id`, wyswietlamy adres serwisowy w sekcji klienta (nazwa lokalizacji, ulica, miasto).
+
+---
+
+## Podsumowanie plikow
 
 | Plik | Akcja |
 |------|-------|
-| Migracja SQL | Nowy -- customers + customer_addresses + RLS + triggery |
-| `src/lib/phoneUtils.ts` | Nowy -- kopia z N2Wash |
-| `src/lib/textUtils.ts` | Nowy -- normalizeSearchQuery |
-| `src/components/ui/sheet.tsx` | Modyfikacja -- hideCloseButton prop |
-| `src/components/admin/CustomersView.tsx` | Nowy -- lista klientow |
-| `src/components/admin/CustomerEditDrawer.tsx` | Nowy -- drawer edycji + adresy serwisowe |
-| `src/pages/Dashboard.tsx` | Modyfikacja -- podpiecie CustomersView |
+| Migracja SQL | Nowy -- customer_id + customer_address_id na calendar_items |
+| `AddCalendarItemDialog.tsx` | Modyfikacja -- combobox klienta, dropdown adresow |
+| `CalendarItemDetailsDrawer.tsx` | Modyfikacja -- wyswietlanie adresu |
 
 ---
 
 ## Detale techniczne
 
-- `customer_addresses` ma FK do `customers` z ON DELETE CASCADE
-- `customer_addresses` ma `instance_id` dla RLS (nie trzeba joinowac z customers)
-- Adresy sa fetchowane i zapisywane w ramach `CustomerEditDrawer` (nie jako osobny dialog)
-- Przy dodawaniu nowego klienta sprawdzamy duplikat po telefonie (jak w N2Wash)
-- `ConfirmDialog` (juz istnieje) uzywany do potwierdzenia usuwania klienta
-- Brak SMS dialog na desktopie -- na mobile otwiera natywne `sms:`, na desktop przycisk SMS jest ukryty lub otwiera `sms:` tez
+- Wyszukiwanie klientow: query do `customers` z `ilike` na name, phone, company, ograniczone do 10 wynikow, debounced (300ms)
+- Adresy fetchowane jednorazowo po wyborze klienta (nie przy kazdym renderze)
+- `customer_id` i `customer_address_id` sa nullable -- mozna tworzyc zlecenia bez klienta z bazy (reczne dane)
+- Komponent combobox uzyje `cmdk` (juz zainstalowany) przez shadcn Command component
+- FK z ON DELETE SET NULL -- bezpieczne usuwanie klientow/adresow bez utraty zlecen
+
