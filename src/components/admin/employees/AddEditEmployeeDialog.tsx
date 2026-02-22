@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useCreateEmployee, useUpdateEmployee, useDeleteEmployee, Employee } from '@/hooks/useEmployees';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -26,6 +27,9 @@ const AddEditEmployeeDialog = ({ open, onOpenChange, instanceId, employee, isAdm
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [createAccount, setCreateAccount] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const createEmployee = useCreateEmployee(instanceId);
@@ -45,6 +49,9 @@ const AddEditEmployeeDialog = ({ open, onOpenChange, instanceId, employee, isAdm
       setName('');
       setHourlyRate('');
       setPhotoUrl(null);
+      setCreateAccount(false);
+      setUsername('');
+      setPassword('');
     }
   }, [employee, open]);
 
@@ -81,8 +88,11 @@ const AddEditEmployeeDialog = ({ open, onOpenChange, instanceId, employee, isAdm
 
   const handleRemovePhoto = () => { setPhotoUrl(null); };
 
+  const isAccountValid = !createAccount || (username.trim().length >= 3 && password.length >= 6);
+
   const handleSubmit = async () => {
     if (!name.trim()) { toast.error('Podaj imię lub ksywkę'); return; }
+    if (!isAccountValid) return;
     try {
       const data = { name: name.trim(), hourly_rate: isAdmin && hourlyRate ? parseFloat(hourlyRate) : null, photo_url: photoUrl };
       if (isEditing && employee) {
@@ -91,6 +101,20 @@ const AddEditEmployeeDialog = ({ open, onOpenChange, instanceId, employee, isAdm
       } else {
         await createEmployee.mutateAsync(data);
         toast.success('Pracownik został dodany');
+
+        if (createAccount && instanceId) {
+          try {
+            const response = await supabase.functions.invoke('manage-instance-users', {
+              body: { action: 'create', instanceId, username: username.trim(), password, role: 'employee' },
+            });
+            if (response.error) throw new Error(response.error.message);
+            if (response.data?.error) throw new Error(response.data.error);
+            toast.success('Konto użytkownika zostało utworzone');
+          } catch (accountError: any) {
+            console.error('Account creation error:', accountError);
+            toast.error(`Błąd tworzenia konta: ${accountError.message || 'Nieznany błąd'}`);
+          }
+        }
       }
       onOpenChange(false);
     } catch (error) {
@@ -153,6 +177,32 @@ const AddEditEmployeeDialog = ({ open, onOpenChange, instanceId, employee, isAdm
                 <Input id="rate" type="number" min="0" step="0.01" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} placeholder="np. 30" />
               </div>
             )}
+            {!isEditing && isAdmin && (
+              <>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="createAccount" checked={createAccount} onCheckedChange={(checked) => setCreateAccount(checked === true)} />
+                  <Label htmlFor="createAccount" className="text-sm font-normal cursor-pointer">Stwórz konto w aplikacji dla pracownika</Label>
+                </div>
+                {createAccount && (
+                  <div className="space-y-3 pl-6 border-l-2 border-primary/20">
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Nazwa użytkownika *</Label>
+                      <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="np. jan.kowalski" autoComplete="off" />
+                      {username.length > 0 && username.trim().length < 3 && (
+                        <p className="text-xs text-destructive">Min. 3 znaki</p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Hasło *</Label>
+                      <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min. 6 znaków" autoComplete="new-password" />
+                      {password.length > 0 && password.length < 6 && (
+                        <p className="text-xs text-destructive">Min. 6 znaków</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
           <DialogFooter className="flex flex-row gap-2">
             {isEditing && isAdmin && (
@@ -161,7 +211,7 @@ const AddEditEmployeeDialog = ({ open, onOpenChange, instanceId, employee, isAdm
               </Button>
             )}
             <Button variant="outline" onClick={() => onOpenChange(false)} className={cn(!isEditing && "flex-1")}>Anuluj</Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting} className={cn(!isEditing && "flex-1")}>
+            <Button onClick={handleSubmit} disabled={isSubmitting || !isAccountValid} className={cn(!isEditing && "flex-1")}>
               {isSubmitting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isEditing ? 'Zapisz' : 'Dodaj'}
             </Button>
