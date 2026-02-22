@@ -375,6 +375,9 @@ const EmployeeCalendarPage = () => {
                 onDelete={allowedActions.delete_item ? handleDeleteItem : undefined}
                 onEdit={allowedActions.edit_item ? handleEditItem : undefined}
                 onStatusChange={handleStatusChange}
+                onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
+                onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+                instanceId={instanceId || undefined}
               />
 
               <AddBreakDialog

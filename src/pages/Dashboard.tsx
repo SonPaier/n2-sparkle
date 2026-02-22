@@ -331,6 +331,13 @@ const Dashboard = () => {
             onDelete={handleDeleteItem}
             onEdit={handleEditItem}
             onStatusChange={handleStatusChange}
+            onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
+            onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+            onAddProtocol={(item) => {
+              setDetailsOpen(false);
+              navigate(`${basePath || '/admin'}/protokoly`);
+            }}
+            instanceId={instanceId || undefined}
           />
 
           <AddBreakDialog
