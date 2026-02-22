@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendar_columns: {
+        Row: {
+          active: boolean
+          color: string | null
+          created_at: string
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          id?: string
+          instance_id: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          color?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_columns_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_permissions: {
         Row: {
           created_at: string
@@ -56,6 +97,7 @@ export type Database = {
         Row: {
           active: boolean
           address: string | null
+          contact_person: string | null
           created_at: string
           email: string | null
           id: string
@@ -65,11 +107,13 @@ export type Database = {
           primary_color: string | null
           slug: string
           updated_at: string
+          website: string | null
           working_hours: Json | null
         }
         Insert: {
           active?: boolean
           address?: string | null
+          contact_person?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -79,11 +123,13 @@ export type Database = {
           primary_color?: string | null
           slug: string
           updated_at?: string
+          website?: string | null
           working_hours?: Json | null
         }
         Update: {
           active?: boolean
           address?: string | null
+          contact_person?: string | null
           created_at?: string
           email?: string | null
           id?: string
@@ -93,6 +139,7 @@ export type Database = {
           primary_color?: string | null
           slug?: string
           updated_at?: string
+          website?: string | null
           working_hours?: Json | null
         }
         Relationships: []
