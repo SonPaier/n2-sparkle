@@ -45,7 +45,13 @@ const ProtectedRoute = ({ children, requiredRole, requiredInstanceId }: Protecte
         return <Navigate to="/" replace />;
       }
     } else {
-      if (requiredRole === 'admin') {
+      if (requiredRole === 'employee') {
+        // Employee routes: accessible by employee, admin, and super_admin
+        const hasAccess = hasRole('employee') || hasRole('admin') || hasRole('super_admin');
+        if (!hasAccess) {
+          return <Navigate to="/" replace />;
+        }
+      } else if (requiredRole === 'admin') {
         const hasAccess = hasRole('admin') || hasRole('super_admin') || hasRole('employee') || hasRole('hall') || hasRole('sales');
         if (!hasAccess) {
           return <Navigate to="/" replace />;
