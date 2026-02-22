@@ -13,6 +13,15 @@ interface CalendarMapProps {
   hqLocation?: { lat: number; lng: number; name: string } | null;
 }
 
+// Haversine distance in km
+const haversineKm = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(a));
+};
+
 // Convert any color to fully saturated version
 const saturateColor = (color: string): string => {
   // Parse hex
@@ -113,7 +122,13 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation }: CalendarMapPro
       const color = columnColorMap.get(item.column_id || '') || '#6366f1';
       const city = item.address_city || '';
       const dateStr = format(new Date(item.item_date), 'd MMM', { locale: pl });
-      const line1 = city ? `${city} · ${dateStr}` : dateStr;
+      let distPart = '';
+      if (hqLocation && item.address_lat != null && item.address_lng != null) {
+        const km = Math.round(haversineKm(hqLocation.lat, hqLocation.lng, item.address_lat, item.address_lng) * 1.35);
+        distPart = `~${km} km`;
+      }
+      const parts = [city, distPart, dateStr].filter(Boolean).join(' · ');
+      const line1 = parts;
       const title = item.title || '';
       const tooltipHtml = `<div class="calendar-map-tooltip-content"><div class="cmt-line1">${line1}</div>${title ? `<div class="cmt-line2">${title}</div>` : ''}</div>`;
 
