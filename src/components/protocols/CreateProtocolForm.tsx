@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
 import CustomerSearchInput, { type SelectedCustomer } from '@/components/admin/CustomerSearchInput';
 import CustomerAddressSelect from '@/components/admin/CustomerAddressSelect';
 import { ProtocolPhotosUploader } from './ProtocolPhotosUploader';
@@ -34,6 +35,7 @@ interface CreateProtocolFormProps {
 
 const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId }: CreateProtocolFormProps) => {
   const isMobile = useIsMobile();
+  const { fullName } = useAuth();
   const isEditMode = !!editingProtocolId;
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -92,7 +94,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
       setPhotoUrls([]);
       setNotes('');
       setProtocolDate(new Date());
-      setPreparedBy('');
+      setPreparedBy(fullName || '');
       setCustomerSignature(null);
     }
   }, [open, isEditMode, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId]);

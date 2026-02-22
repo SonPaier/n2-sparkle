@@ -15,6 +15,7 @@ interface AuthContextType {
   session: Session | null;
   roles: UserRole[];
   username: string | null;
+  fullName: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [username, setUsername] = useState<string | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [rolesLoading, setRolesLoading] = useState(false);
   
@@ -59,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         previousUserIdRef.current = null;
         setRoles([]);
         setUsername(null);
+        setFullName(null);
         setRolesLoading(false);
       }
     });
@@ -79,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setRoles([]);
           setUsername(null);
+          setFullName(null);
           setRolesLoading(false);
         }
 
@@ -101,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('user_id', userId),
         supabase
           .from('profiles')
-          .select('username')
+          .select('username, full_name')
           .eq('id', userId)
           .maybeSingle()
       ]);
@@ -121,6 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (profileResult.data?.username) {
         setUsername(profileResult.data.username);
+      }
+      if (profileResult.data?.full_name) {
+        setFullName(profileResult.data.full_name);
       }
     } catch (err) {
       console.error('Error fetching roles:', err);
@@ -182,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setRoles([]);
     setUsername(null);
+    setFullName(null);
     previousUserIdRef.current = null;
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -205,6 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       roles,
       username,
+      fullName,
       loading: sessionLoading || rolesLoading,
       signIn,
       signUp,
