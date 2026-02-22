@@ -1,164 +1,91 @@
 
 
-# N2Serwis - Pelny system logowania, rol i subdomain detection z N2Wash
+# Widok Ustawien - Dane firmy + Kolumny kalendarza
 
 ## Co zrobimy
 
-Skopiujemy kompletny system autentykacji, rol, subdomain detection i edge functions z N2Wash, dostosowujac go do domeny `n2service.com`.
+Stworzymy widok ustawien z dwoma zakladkami, wzorowany na N2Wash `SettingsView`:
 
-## Struktura subdomen
+1. **Dane firmy** - formularz edycji danych instancji (bez pola "telefon do obslugi rezerwacji")
+2. **Kalendarz** - zarzadzanie kolumnami kalendarza (odpowiednik stanowisk w N2Wash, np. "Dostawy", "Montaz", "Serwis")
 
-```text
-instance_name.admin.n2service.com  -> Panel admina instancji (login + dashboard)
-instance_name.n2service.com        -> Widok publiczny instancji (na przyszlosc)
-super.admin.n2service.com          -> Panel super admina
-localhost / *.lovable.app           -> Tryb deweloperski (pelny dostep)
-```
+## Zmiany w bazie danych
 
-## Plan implementacji
+### Nowe kolumny w tabeli `instances`:
+- `website` (text, nullable)
+- `contact_person` (text, nullable)
 
-### 1. Wlaczenie Lovable Cloud (Supabase)
-- Podlaczenie backendu Supabase do projektu (wymagane przed migracjami)
+### Nowa tabela `calendar_columns`:
+- `id` (uuid, PK)
+- `instance_id` (uuid, NOT NULL, FK -> instances)
+- `name` (text, NOT NULL) - np. "Dostawy", "Montaz", "Serwis"
+- `color` (text, nullable) - kolor kolumny
+- `active` (boolean, default true)
+- `sort_order` (integer, default 0)
+- `created_at`, `updated_at` (timestamptz)
 
-### 2. Migracja bazy danych (1 migracja zbiorcza)
+### RLS na `calendar_columns`:
+- SELECT: admin instancji lub super_admin
+- ALL: admin instancji lub super_admin
 
-Wszystko w jednej migracji, w kolejnosci:
+## Nowe pliki
 
-**Typy enum:**
-- `app_role`: `super_admin`, `admin`, `user`, `employee`, `hall`, `sales`
+### `src/components/admin/SettingsView.tsx`
+- Layout z bocznym menu (desktop) / dropdown (mobile) - skopiowany z N2Wash
+- Dwie zakladki: "Dane firmy" (`company`) i "Kalendarz" (`calendar`)
+- Formularz danych firmy: nazwa, telefon, email, adres, osoba kontaktowa, strona www, logo (upload/usun)
+- Bez pola "telefon do obslugi rezerwacji" (N2Wash-specific)
+- Bez pol: short_name, invoice_company_name, nip, social_facebook, social_instagram, google_maps_url (uproszczenie)
+- Przycisk "Zapisz" z walidacja
 
-**Tabele:**
-- `instances` - firmy/instancje (name, slug, phone, address, email, logo_url, primary_color, active, working_hours JSONB)
-- `profiles` - profile uzytkownikow (email, full_name, phone, username, instance_id, is_blocked)
-- `user_roles` - role uzytkownikow (user_id, role, instance_id, hall_id)
-- `employee_permissions` - uprawnienia pracownikow (instance_id, user_id, feature_key, enabled)
+### `src/components/admin/CalendarColumnsSettings.tsx`
+- Odpowiednik N2Wash `StationsSettings`, ale dla kolumn kalendarza
+- Lista kolumn z drag-and-drop (sortowanie) - uzyje `@dnd-kit`
+- Dodawanie/edycja/usuwanie kolumn
+- Wybor koloru z palety (identyczna paleta jak N2Wash)
+- Dialog edycji z polem nazwy i kolorem
+- Bez logiki employee assignment i subscription limits (uproszczenie)
 
-**Funkcje security definer:**
-- `has_role(user_id, role)` - czy user ma dana role
-- `has_instance_role(user_id, role, instance_id)` - czy user ma role w instancji
-- `is_user_blocked(user_id)` - czy user jest zablokowany
-- `has_employee_permission(user_id, instance_id, feature_key)` - uprawnienia pracownika
+## Modyfikowane pliki
 
-**Triggery:**
-- `handle_new_user()` - auto-tworzenie profilu po rejestracji
-- `update_updated_at_column()` - auto-update `updated_at`
+### `src/pages/Dashboard.tsx`
+- Importowanie `SettingsView`
+- Gdy `currentView === 'ustawienia'`, renderowanie `<SettingsView>` zamiast placeholdera
+- Przekazywanie `instanceId` (pobieranego z `useAuth().roles`)
 
-**RLS Policies (identyczne jak N2Wash):**
-- instances: publiczne do odczytu, super_admin zarzadza
-- profiles: user widzi swoj, admin widzi swoich, anyone moze lookup po username
-- user_roles: user widzi swoje, super_admin zarzadza
-- employee_permissions: admin zarzadza, user widzi swoje
-
-**Indeksy:**
-- `profiles(instance_id, username)` - unique per instancja
-- `profiles(username)` - szybki lookup
-
-### 3. Edge Functions (3 funkcje, identyczne jak N2Wash)
-
-**`create-user`** (verify_jwt: true)
-- Super admin tworzy uzytkownikow globalnie
-- Walidacja: caller musi byc super_admin
-- Tworzy auth user + profil + rola
-
-**`init-admin`** (verify_jwt: false)
-- Bootstrap pierwszego admina instancji
-- Dziala tylko jesli instancja nie ma jeszcze admina
-- Tworzy auth user + profil + rola admin
-- (Bez kopiowania global scopes - to N2Wash-specific)
-
-**`manage-instance-users`** (verify_jwt: false)
-- Zarzadzanie uzytkownikami instancji przez admina
-- Akcje: list, create, update, delete, block, unblock, reset-password
-- Walidacja: caller musi byc admin instancji lub super_admin
-- Create generuje email wewnetrzny: `username_instanceid@internal.local`
-- Role dozwolone: admin, employee, hall
-
-### 4. Frontend - Auth System
-
-**`src/hooks/useAuth.tsx`** (skopiowany z N2Wash, bez Sentry):
-- AuthProvider context
-- user, session, roles, username, loading
-- signIn, signOut, signUp
-- hasRole, hasInstanceRole
-- fetchUserRoles - pobiera role + username rownolegle
-- forceClearAuthStorage - fallback na wypadek bledu signOut
-- onAuthStateChange + getSession pattern
-- Pomijanie re-fetcha rol na TOKEN_REFRESHED (previousUserIdRef)
-
-**`src/components/ProtectedRoute.tsx`** (identyczny z N2Wash):
-- Sprawdzanie user zalogowany
-- Sprawdzanie wymaganej roli (admin pozwala tez employee, hall, sales)
-- Redirect do /login z returnTo param
-- Loading spinner
-
-**`src/components/RoleBasedRedirect.tsx`** (dostosowany do N2Serwis):
-- hall -> /halls/:hallId (na przyszlosc)
-- super_admin -> /super-admin (na przyszlosc)
-- admin/employee -> / (dashboard)
-- sales -> /sales (na przyszlosc)
-- Domyslnie: admin/employee -> dashboard glowny
-
-### 5. Frontend - Login Page z logika instancji
-
-**Aktualizacja `src/pages/Login.tsx`**:
-- Props: `subdomainSlug?: string` (jak InstanceAuth w N2Wash)
-- Pobieranie instancji po slug z Supabase
-- Login przez username: lookup email w profiles -> signIn
-- Walidacja formularza z bledami (username/password/general)
-- Sprawdzanie is_blocked
-- Redirect jesli juz zalogowany z odpowiednia rola
-- Loading states (instance loading, auth loading, submit loading)
-- Error states (brak instancji, nieaktywna, bledne dane)
-- Zachowanie obecnego designu (N2Serwis branding)
-
-### 6. Frontend - Subdomain Detection + Routing
-
-**Aktualizacja `index.html`**:
-- Tytul: "N2Serwis"
-- Meta tags dostosowane
-- Skrypt do dynamic manifest (n2service.com zamiast n2wash.com)
-
-**Aktualizacja `src/App.tsx`**:
-- `getSubdomainInfo()` z domena `n2service.com`:
-  - `super.admin.n2service.com` -> super_admin
-  - `instance.admin.n2service.com` -> instance_admin
-  - `instance.n2service.com` -> instance_public
-  - localhost / lovable.app -> dev
-- Oddzielne route components:
-  - `InstanceAdminRoutes` - login + protected dashboard
-  - `InstancePublicRoutes` - placeholder na przyszlosc
-  - `SuperAdminRoutes` - placeholder na przyszlosc
-  - `DevRoutes` - pelny dostep do testowania
-- Opakowanie w `AuthProvider`
-
-**Aktualizacja `src/components/layout/DashboardLayout.tsx`**:
-- signOut z useAuth zamiast navigate('/login')
+## Nowe zaleznosci
+- `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` - do drag-and-drop sortowania kolumn
 
 ## Szczegoly techniczne
 
-### Nowe pliki:
-- `src/hooks/useAuth.tsx`
-- `src/components/ProtectedRoute.tsx`
-- `src/components/RoleBasedRedirect.tsx`
-- `supabase/functions/create-user/index.ts`
-- `supabase/functions/init-admin/index.ts`
-- `supabase/functions/manage-instance-users/index.ts`
-- 1 migracja SQL
+### Storage bucket
+- Potrzebny bucket `instance-logos` do uploadu logo
+- Migracja utworzy bucket + polityki dostepu
 
-### Modyfikowane pliki:
-- `index.html` - tytul, meta, subdomain script
-- `src/App.tsx` - subdomain detection, AuthProvider, route components
-- `src/pages/Login.tsx` - pelna logika auth z Supabase
-- `src/components/layout/DashboardLayout.tsx` - signOut z useAuth
+### Schemat widoku ustawien (desktop)
+```text
++------------------+----------------------------------------+
+| [Dane firmy]     |  Formularz edycji danych firmy          |
+| [Kalendarz]      |  (logo, nazwa, telefon, email, ...)     |
+|                  |                                        |
+|                  |  [Zapisz]                              |
++------------------+----------------------------------------+
+```
 
-### Roznice vs N2Wash:
-- Domena: `n2service.com` zamiast `n2wash.com`
-- Branding: N2Serwis zamiast N2Wash
-- Bez Sentry (na razie)
-- Bez react-helmet-async
-- Bez CarModelsProvider
-- Bez copy_global_scopes w init-admin (N2Wash-specific)
-- Bez tabel N2Wash-specific (stations, services, reservations, customers itd.)
-- Bez _shared/sentry.ts w edge functions
-- hall_id w user_roles bez FK do halls (tabela halls nie istnieje jeszcze)
+### Schemat widoku "Kalendarz"
+```text
++------------------+----------------------------------------+
+| [Dane firmy]     |  Kolumny kalendarza                    |
+| [Kalendarz]  <-- |                                        |
+|                  |  [= Dostawy    ] [Edit] [Delete]       |
+|                  |  [= Montaz     ] [Edit] [Delete]       |
+|                  |  [= Serwis     ] [Edit] [Delete]       |
+|                  |                                        |
+|                  |  [+ Dodaj kolumne]                     |
++------------------+----------------------------------------+
+```
+
+### Pobieranie instanceId w Dashboard
+- Z `useAuth().roles` - szukamy roli admin/employee z `instance_id`
+- Identyczny pattern jak N2Wash `AdminDashboard`
 
