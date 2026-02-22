@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar, Users, BadgeDollarSign, Settings } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, HardHat } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
@@ -15,12 +15,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { CalendarItem, CalendarColumn, Break } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
+import { EmployeesView } from '@/components/admin/employees';
 
-const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'ustawienia'];
+const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'ustawienia'];
 
 const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; description: string }> = {
   kalendarz: { label: 'Kalendarz', icon: Calendar, description: 'Zarządzaj harmonogramem i rezerwacjami' },
   klienci: { label: 'Klienci', icon: Users, description: 'Przeglądaj i zarządzaj bazą klientów' },
+  pracownicy: { label: 'Pracownicy', icon: HardHat, description: 'Zarządzaj pracownikami i czasem pracy' },
   uslugi: { label: 'Usługi', icon: BadgeDollarSign, description: 'Konfiguruj usługi i cennik' },
   ustawienia: { label: 'Ustawienia', icon: Settings, description: 'Ustawienia systemu i konfiguracja' },
 };
@@ -79,7 +81,28 @@ const Dashboard = () => {
       .gte('item_date', rangeStart)
       .lte('item_date', rangeEnd);
     if (error) { console.error('Error fetching items:', error); return; }
-    setCalendarItems(data || []);
+    
+    const items = data || [];
+    
+    // Fetch address names for items that have customer_address_id
+    const addressIds = [...new Set(items.filter(i => i.customer_address_id).map(i => i.customer_address_id!))];
+    if (addressIds.length > 0) {
+      const { data: addresses } = await supabase
+        .from('customer_addresses')
+        .select('id, name')
+        .in('id', addressIds);
+      
+      if (addresses) {
+        const addressMap = new Map(addresses.map(a => [a.id, a.name]));
+        items.forEach(item => {
+          if (item.customer_address_id) {
+            (item as any).address_name = addressMap.get(item.customer_address_id) || null;
+          }
+        });
+      }
+    }
+    
+    setCalendarItems(items as CalendarItem[]);
   }, [instanceId, currentCalendarDate]);
 
   // Fetch breaks
@@ -232,6 +255,10 @@ const Dashboard = () => {
 
     if (currentView === 'klienci' && instanceId) {
       return <CustomersView instanceId={instanceId} />;
+    }
+
+    if (currentView === 'pracownicy' && instanceId) {
+      return <EmployeesView instanceId={instanceId} />;
     }
 
     if (currentView === 'kalendarz' && instanceId) {
