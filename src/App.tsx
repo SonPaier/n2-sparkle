@@ -93,7 +93,7 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
     <Route
       path="/employee-calendars/:configId"
       element={
-        <ProtectedRoute requiredRole="admin">
+        <ProtectedRoute requiredRole="employee">
           <EmployeeCalendarPage />
         </ProtectedRoute>
       }
@@ -175,7 +175,7 @@ const DevRoutes = () => (
     <Route
       path="/employee-calendars/:configId"
       element={
-        <ProtectedRoute requiredRole="admin">
+        <ProtectedRoute requiredRole="employee">
           <EmployeeCalendarPage />
         </ProtectedRoute>
       }
