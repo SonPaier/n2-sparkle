@@ -357,7 +357,7 @@ const EmployeeCalendarPage = () => {
                 items={calendarItems}
                 breaks={calendarBreaks}
                 onItemClick={handleItemClick}
-                onAddItem={allowedActions.add_item ? handleAddItem : undefined}
+                onAddItem={undefined}
                 onAddBreak={handleAddBreak}
                 onDeleteBreak={handleDeleteBreak}
                 onItemMove={handleItemMove}
@@ -365,19 +365,17 @@ const EmployeeCalendarPage = () => {
                 selectedItemId={selectedItem?.id}
               />
 
-              {allowedActions.add_item && (
-                <AddCalendarItemDialog
-                  open={addItemOpen}
-                  onClose={() => { setAddItemOpen(false); setEditingItem(null); }}
-                  instanceId={instanceId}
-                  columns={calendarColumns}
-                  onSuccess={() => { fetchItems(); setEditingItem(null); }}
-                  editingItem={editingItem}
-                  initialDate={newItemData.date}
-                  initialTime={newItemData.time}
-                  initialColumnId={newItemData.columnId}
-                />
-              )}
+              <AddCalendarItemDialog
+                open={addItemOpen}
+                onClose={() => { setAddItemOpen(false); setEditingItem(null); }}
+                instanceId={instanceId}
+                columns={calendarColumns}
+                onSuccess={() => { fetchItems(); setEditingItem(null); }}
+                editingItem={editingItem}
+                initialDate={newItemData.date}
+                initialTime={newItemData.time}
+                initialColumnId={newItemData.columnId}
+              />
 
               <CalendarItemDetailsDrawer
                 item={selectedItem}
