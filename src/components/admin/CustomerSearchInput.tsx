@@ -1,0 +1,102 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, X, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { supabase } from '@/integrations/supabase/client';
+
+export interface SelectedCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  company: string | null;
+  nip?: string | null;
+}
+
+interface CustomerSearchInputProps {
+  instanceId: string;
+  selectedCustomer: SelectedCustomer | null;
+  onSelect: (customer: SelectedCustomer) => void;
+  onClear: () => void;
+}
+
+const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear }: CustomerSearchInputProps) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SelectedCustomer[]>([]);
+  const [searching, setSearching] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const search = useCallback(async (q: string) => {
+    if (q.length < 2) { setResults([]); return; }
+    setSearching(true);
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, phone, email, company, nip')
+      .eq('instance_id', instanceId)
+      .or(`name.ilike.%${q}%,phone.ilike.%${q}%,company.ilike.%${q}%`)
+      .limit(10);
+    setResults(data || []);
+    setSearching(false);
+  }, [instanceId]);
+
+  useEffect(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => search(query), 300);
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, [query, search]);
+
+  if (selectedCustomer) {
+    return (
+      <div className="flex items-center gap-2 p-2 rounded-md border border-input bg-muted/30">
+        <Search className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm flex-1">
+          {selectedCustomer.name}{selectedCustomer.phone ? ` • ${selectedCustomer.phone}` : ''}
+        </span>
+        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClear}>
+          <X className="w-3 h-3" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal">
+          <Search className="w-4 h-4 mr-2" />
+          Szukaj klienta w bazie...
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Wpisz imię, telefon lub firmę..."
+            value={query}
+            onValueChange={setQuery}
+          />
+          <CommandList>
+            <CommandEmpty>
+              {searching ? 'Szukam...' : query.length < 2 ? 'Wpisz min. 2 znaki' : 'Brak wyników'}
+            </CommandEmpty>
+            <CommandGroup>
+              {results.map((c) => (
+                <CommandItem key={c.id} onSelect={() => { onSelect(c); setOpen(false); setQuery(''); }} className="cursor-pointer">
+                  <div>
+                    <div className="font-medium">{c.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {c.phone}{c.company ? ` • ${c.company}` : ''}
+                    </div>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+export default CustomerSearchInput;

@@ -1,0 +1,310 @@
+import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { Loader2, CalendarIcon } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
+import CustomerSearchInput, { type SelectedCustomer } from '@/components/admin/CustomerSearchInput';
+import CustomerAddressSelect from '@/components/admin/CustomerAddressSelect';
+import ProtocolPhotosUploader from './ProtocolPhotosUploader';
+import SignatureDialog from './SignatureDialog';
+
+interface CreateProtocolFormProps {
+  open: boolean;
+  onClose: () => void;
+  instanceId: string;
+  onSuccess: () => void;
+  editingProtocolId: string | null;
+}
+
+const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProtocolId }: CreateProtocolFormProps) => {
+  const isMobile = useIsMobile();
+  const isEditMode = !!editingProtocolId;
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+
+  // Form state
+  const [protocolType, setProtocolType] = useState('completion');
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerNip, setCustomerNip] = useState('');
+  const [customerAddressId, setCustomerAddressId] = useState<string | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
+  const [protocolDate, setProtocolDate] = useState<Date>(new Date());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [preparedBy, setPreparedBy] = useState('');
+  const [customerSignature, setCustomerSignature] = useState<string | null>(null);
+  const [signatureOpen, setSignatureOpen] = useState(false);
+
+  // Load existing protocol for editing
+  useEffect(() => {
+    if (!open) return;
+    if (isEditMode && editingProtocolId) {
+      setLoadingData(true);
+      supabase
+        .from('protocols')
+        .select('*')
+        .eq('id', editingProtocolId)
+        .single()
+        .then(({ data, error }) => {
+          if (error || !data) { toast.error('Nie znaleziono protokołu'); onClose(); return; }
+          setProtocolType(data.protocol_type);
+          setCustomerId(data.customer_id);
+          setCustomerName(data.customer_name);
+          setCustomerPhone(data.customer_phone || '');
+          setCustomerEmail(data.customer_email || '');
+          setCustomerNip(data.customer_nip || '');
+          setCustomerAddressId(data.customer_address_id);
+          setPhotoUrls(Array.isArray(data.photo_urls) ? (data.photo_urls as string[]) : []);
+          setNotes(data.notes || '');
+          setProtocolDate(new Date(data.protocol_date));
+          setPreparedBy(data.prepared_by || '');
+          setCustomerSignature(data.customer_signature || null);
+          setLoadingData(false);
+        });
+    } else {
+      // Reset form
+      setProtocolType('completion');
+      setCustomerId(null);
+      setCustomerName('');
+      setCustomerPhone('');
+      setCustomerEmail('');
+      setCustomerNip('');
+      setCustomerAddressId(null);
+      setPhotoUrls([]);
+      setNotes('');
+      setProtocolDate(new Date());
+      setPreparedBy('');
+      setCustomerSignature(null);
+    }
+  }, [open, isEditMode, editingProtocolId]);
+
+  const handleSelectCustomer = (customer: SelectedCustomer) => {
+    setCustomerId(customer.id);
+    setCustomerName(customer.name);
+    setCustomerPhone(customer.phone);
+    setCustomerEmail(customer.email || '');
+    setCustomerNip(customer.nip || '');
+  };
+
+  const handleClearCustomer = () => {
+    setCustomerId(null);
+    setCustomerAddressId(null);
+    setCustomerName('');
+    setCustomerPhone('');
+    setCustomerEmail('');
+    setCustomerNip('');
+  };
+
+  const handleSubmit = async () => {
+    if (!customerName.trim()) {
+      toast.error('Podaj nazwę klienta');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        instance_id: instanceId,
+        customer_id: customerId,
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim() || null,
+        customer_email: customerEmail.trim() || null,
+        customer_nip: customerNip.trim() || null,
+        customer_address_id: customerAddressId,
+        protocol_date: format(protocolDate, 'yyyy-MM-dd'),
+        protocol_type: protocolType,
+        prepared_by: preparedBy.trim() || null,
+        notes: notes.trim() || null,
+        customer_signature: customerSignature,
+        photo_urls: photoUrls,
+      };
+
+      if (isEditMode) {
+        const { error } = await supabase.from('protocols').update(payload).eq('id', editingProtocolId!);
+        if (error) throw error;
+        toast.success('Protokół zaktualizowany');
+      } else {
+        const { error } = await supabase.from('protocols').insert(payload);
+        if (error) throw error;
+        toast.success('Protokół utworzony');
+      }
+
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      console.error('Error saving protocol:', error);
+      toast.error('Błąd podczas zapisywania protokołu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <SheetContent side={isMobile ? 'bottom' : 'right'} className={isMobile ? 'h-[90vh] overflow-y-auto' : 'sm:max-w-lg overflow-y-auto'}>
+          <SheetHeader>
+            <SheetTitle>{isEditMode ? 'Edytuj protokół' : 'Nowy protokół'}</SheetTitle>
+          </SheetHeader>
+
+          {loadingData ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              {/* Protocol Type */}
+              <div className="space-y-2">
+                <Label>Typ protokołu</Label>
+                <Select value={protocolType} onValueChange={setProtocolType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="completion">Protokół zakończenia prac</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Customer Search */}
+              <div className="space-y-2">
+                <Label>Klient *</Label>
+                <CustomerSearchInput
+                  instanceId={instanceId}
+                  selectedCustomer={customerId ? { id: customerId, name: customerName, phone: customerPhone, email: customerEmail || null, company: null } : null}
+                  onSelect={handleSelectCustomer}
+                  onClear={handleClearCustomer}
+                />
+              </div>
+
+              {/* Customer details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Imię i nazwisko *</Label>
+                  <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); if (customerId) setCustomerId(null); }} placeholder="Jan Kowalski" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefon</Label>
+                  <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+48 ..." type="tel" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="jan@example.com" type="email" />
+                </div>
+                <div className="space-y-2">
+                  <Label>NIP</Label>
+                  <Input value={customerNip} onChange={(e) => setCustomerNip(e.target.value)} placeholder="123-456-78-90" />
+                </div>
+              </div>
+
+              {/* Customer Address */}
+              <CustomerAddressSelect
+                instanceId={instanceId}
+                customerId={customerId}
+                value={customerAddressId}
+                onChange={setCustomerAddressId}
+                label="Adres klienta"
+              />
+
+              {/* Photos */}
+              <div className="space-y-2">
+                <Label>Zdjęcia</Label>
+                <ProtocolPhotosUploader
+                  instanceId={instanceId}
+                  photoUrls={photoUrls}
+                  onChange={setPhotoUrls}
+                />
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label>Uwagi</Label>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Dodatkowe uwagi..." rows={3} />
+              </div>
+
+              {/* Date */}
+              <div className="space-y-2">
+                <Label>Data protokołu</Label>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(protocolDate, 'EEEE, d MMM yyyy', { locale: pl })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={protocolDate}
+                      onSelect={(date) => { if (date) { setProtocolDate(date); setDatePickerOpen(false); } }}
+                      initialFocus
+                      locale={pl}
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Prepared By */}
+              <div className="space-y-2">
+                <Label>Sporządził</Label>
+                <Input value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} placeholder="Imię i nazwisko osoby sporządzającej" />
+              </div>
+
+              {/* Signature */}
+              <div className="space-y-2">
+                <Label>Podpis osoby upoważnionej do odbioru</Label>
+                {customerSignature ? (
+                  <div className="space-y-2">
+                    <div className="border border-border rounded-md p-2 bg-background">
+                      <img src={customerSignature} alt="Podpis" className="max-h-24 mx-auto" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setSignatureOpen(true)}>Zmień podpis</Button>
+                      <Button variant="ghost" size="sm" onClick={() => setCustomerSignature(null)}>Usuń podpis</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="outline" onClick={() => setSignatureOpen(true)} className="w-full">
+                    Dodaj podpis
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <SheetFooter className="gap-2">
+            <Button variant="outline" onClick={onClose}>Anuluj</Button>
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isEditMode ? 'Zapisz zmiany' : 'Utwórz protokół'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <SignatureDialog
+        open={signatureOpen}
+        onClose={() => setSignatureOpen(false)}
+        onSave={(dataUrl) => { setCustomerSignature(dataUrl); setSignatureOpen(false); }}
+      />
+    </>
+  );
+};
+
+export default CreateProtocolForm;

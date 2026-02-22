@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import PublicProtocolView from "./pages/PublicProtocolView";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedRedirect from "./components/RoleBasedRedirect";
 
@@ -77,6 +78,7 @@ const SuperAdminRoutes = () => (
         </ProtectedRoute>
       }
     />
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
@@ -94,6 +96,7 @@ const InstanceAdminRoutes = ({ subdomain }: { subdomain: string }) => (
         </ProtectedRoute>
       }
     />
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes>
 );
@@ -109,6 +112,7 @@ const InstancePublicRoutes = ({ subdomain }: { subdomain: string }) => (
         </div>
       </div>
     } />
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
@@ -142,6 +146,7 @@ const DevRoutes = () => (
     />
     {/* Root redirect to admin */}
     <Route path="/" element={<Navigate to="/admin" replace />} />
+    <Route path="/protocols/:token" element={<PublicProtocolView />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

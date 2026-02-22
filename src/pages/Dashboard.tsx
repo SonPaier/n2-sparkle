@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar, Users, BadgeDollarSign, Settings, HardHat } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
@@ -16,13 +16,15 @@ import { toast } from 'sonner';
 import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { EmployeesView } from '@/components/admin/employees';
+import ProtocolsView from '@/components/protocols/ProtocolsView';
 
-const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'ustawienia'];
+const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'ustawienia'];
 
 const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; description: string }> = {
   kalendarz: { label: 'Kalendarz', icon: Calendar, description: 'Zarządzaj harmonogramem i rezerwacjami' },
   klienci: { label: 'Klienci', icon: Users, description: 'Przeglądaj i zarządzaj bazą klientów' },
   pracownicy: { label: 'Pracownicy', icon: HardHat, description: 'Zarządzaj pracownikami i czasem pracy' },
+  protokoly: { label: 'Protokoły', icon: ClipboardCheck, description: 'Protokoły serwisowe zakończenia prac' },
   uslugi: { label: 'Usługi', icon: BadgeDollarSign, description: 'Konfiguruj usługi i cennik' },
   ustawienia: { label: 'Ustawienia', icon: Settings, description: 'Ustawienia systemu i konfiguracja' },
 };
@@ -280,6 +282,10 @@ const Dashboard = () => {
 
     if (currentView === 'pracownicy' && instanceId) {
       return <EmployeesView instanceId={instanceId} />;
+    }
+
+    if (currentView === 'protokoly' && instanceId) {
+      return <ProtocolsView instanceId={instanceId} />;
     }
 
     if (currentView === 'kalendarz' && instanceId) {
