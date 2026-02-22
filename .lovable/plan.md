@@ -1,56 +1,71 @@
 
 
-# Trzy poprawki: kolejnosc adresow, link lokalizacji, przyciski po zakonczeniu
+# Naprawa przekierowania pracownika i widoku kalendarza
 
-## 1. Nowe adresy na gorze listy (CustomerAddressesSection.tsx)
+## Problem
 
-W funkcjach `addEmpty()` i `addFromSearch()` nowy adres bedzie wstawiany na poczatek tablicy zamiast na koniec:
-- `[newAddress, ...addresses]` zamiast `[...addresses, newAddress]`
+Gdy pracownik (rola `employee`) loguje sie, komponent `RoleBasedRedirect` ma blad synchronizacji (race condition):
 
-## 2. Link "Lokalizacja" w szczegolach zlecenia (CalendarItemDetailsDrawer.tsx)
+1. Stan `checkingConfig` startuje jako `false`
+2. `useEffect` ustawia go na `true` DOPIERO PO pierwszym renderze
+3. Ale w pierwszym renderze: `loading=false`, `checkingConfig=false` - brak spinnera
+4. `employeeConfigId` jest `null` (fetch jeszcze nie ruszyl) - pomija warunek pracownika
+5. Wpada w `hasStudioAccess` (bo rola `employee` pasuje) i przekierowuje na `/admin`
 
-- Rozszerzyc fetch adresu (linia 108-118) o pobieranie `lat` i `lng` z `customer_addresses`
-- Nowy stan `addressCoords: { lat: number; lng: number } | null`
-- Obok `addressLabel` (linia 505-510) dodac link "Lokalizacja" ktory otwiera Google Maps: `https://www.google.com/maps?q={lat},{lng}` w nowej karcie
-- Link wyswietlany tylko gdy `addressCoords` nie jest null
+Pracownik laduje na Dashboard z pelnym admin sidebar zamiast na swoj kalendarz.
 
-## 3. Przyciski "Wyslij FV" i "SMS o rozliczeniu" dla statusu completed
+## Rozwiazanie
 
-### 3a. Migracja bazy danych
+**Plik: `src/components/RoleBasedRedirect.tsx`**
 
-Dodac kolumne `calendar_item_id` do tabeli `protocols`:
+Zmienic inicjalizacje `checkingConfig` tak, aby od razu uwzglednial czy uzytkownik jest employee-only. Dwa podejscia mozliwe - najlepsze to:
 
-```text
-ALTER TABLE public.protocols 
-  ADD COLUMN calendar_item_id uuid REFERENCES public.calendar_items(id) ON DELETE SET NULL;
+- Ustawic `checkingConfig` na `true` wewnatrz warunku renderowania (nie jako stan poczatkowy)
+- Dodac warunek: jesli `isEmployeeOnly` jest `true` a `employeeConfigId` jest `null` i `checkingConfig` jest `false` - traktowac to jako "jeszcze nie sprawdzono" i pokazac loader
+
+Konkretnie: zmienic warunek loadingu z:
+```
+if (loading || checkingConfig)
+```
+na:
+```
+if (loading || checkingConfig || (isEmployeeOnly && employeeConfigId === null && !loading))
 ```
 
-### 3b. Przekazywanie calendar_item_id przy tworzeniu protokolu
+Ewentualnie prostsza wersja - uzyc osobnego flaga `configResolved`:
 
-- `CreateProtocolForm` - dodac prop `prefillCalendarItemId?: string | null`
-- Przy zapisie protokolu wstawiac `calendar_item_id`
-- `Dashboard.tsx` - w `onAddProtocol` przekazac `item.id` jako `calendarItemId`
+```typescript
+const [configResolved, setConfigResolved] = useState(false);
 
-### 3c. Sekcja przyciskow w CalendarItemDetailsDrawer
+useEffect(() => {
+  if (!user || !isEmployeeOnly) {
+    setConfigResolved(true); // nie dotyczy
+    return;
+  }
+  supabase
+    .from('employee_calendar_configs')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('active', true)
+    .order('sort_order')
+    .limit(1)
+    .maybeSingle()
+    .then(({ data }) => {
+      setEmployeeConfigId(data?.id || null);
+      setConfigResolved(true);
+    });
+}, [user, isEmployeeOnly]);
 
-Gdy status === `completed`, w sekcji content (pod notatkami) dodac dwa przyciski:
+if (loading || !configResolved) {
+  return <Loader2 spinner />;
+}
+```
 
-**"Wyslij FV"** - mock button z toast "Wkrotce dostepne"
+To gwarantuje ze komponent nie podejmie decyzji o przekierowaniu dopoki nie sprawdzi konfiguracji pracownika.
 
-**"Wyslij SMS o rozliczeniu"** - otwiera natywna aplikacje SMS (`sms:` URI):
-- Fetch protokolu po `calendar_item_id` z tabeli `protocols` (jesli istnieje, pobrac `public_token`)
-- Tresc SMS: `Prosba o rozliczenie "{item.title}" w kwocie {item.price} PLN. Link do protokolu: {origin}/protocols/{public_token}`
-- Jesli brak protokolu, SMS bez linku
-- Jesli brak `customer_phone` - przycisk disabled
-- URI format: `sms:{phone}?body={encodeURIComponent(message)}`
-
-## Pliki do zmiany
+## Zmienione pliki
 
 | Plik | Zmiana |
 |------|--------|
-| `CustomerAddressesSection.tsx` | Nowe adresy na poczatku tablicy |
-| `CalendarItemDetailsDrawer.tsx` | Fetch lat/lng adresu + link Google Maps; fetch protokolu po calendar_item_id; sekcja z przyciskami FV/SMS dla completed |
-| `CreateProtocolForm.tsx` | Nowy prop `prefillCalendarItemId`, zapis `calendar_item_id` |
-| `Dashboard.tsx` | Przekazanie `item.id` jako `calendarItemId` do prefill protokolu |
-| Migracja SQL | Dodanie kolumny `calendar_item_id` do `protocols` |
+| `src/components/RoleBasedRedirect.tsx` | Naprawa race condition - czekaj na wynik fetcha konfiguracji przed przekierowaniem |
 
