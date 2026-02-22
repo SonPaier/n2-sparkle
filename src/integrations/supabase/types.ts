@@ -181,6 +181,182 @@ export type Database = {
           },
         ]
       }
+      customer_addresses: {
+        Row: {
+          city: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          country_code: string | null
+          created_at: string
+          customer_id: string
+          id: string
+          instance_id: string
+          is_default: boolean | null
+          lat: number | null
+          lng: number | null
+          name: string
+          notes: string | null
+          postal_code: string | null
+          region: string | null
+          sort_order: number | null
+          street: string | null
+          street_line2: string | null
+          updated_at: string
+        }
+        Insert: {
+          city?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          country_code?: string | null
+          created_at?: string
+          customer_id: string
+          id?: string
+          instance_id: string
+          is_default?: boolean | null
+          lat?: number | null
+          lng?: number | null
+          name: string
+          notes?: string | null
+          postal_code?: string | null
+          region?: string | null
+          sort_order?: number | null
+          street?: string | null
+          street_line2?: string | null
+          updated_at?: string
+        }
+        Update: {
+          city?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          country_code?: string | null
+          created_at?: string
+          customer_id?: string
+          id?: string
+          instance_id?: string
+          is_default?: boolean | null
+          lat?: number | null
+          lng?: number | null
+          name?: string
+          notes?: string | null
+          postal_code?: string | null
+          region?: string | null
+          sort_order?: number | null
+          street?: string | null
+          street_line2?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_addresses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_addresses_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          billing_city: string | null
+          billing_country_code: string | null
+          billing_postal_code: string | null
+          billing_region: string | null
+          billing_street: string | null
+          billing_street_line2: string | null
+          company: string | null
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          country_code: string | null
+          created_at: string
+          default_currency: string | null
+          email: string | null
+          id: string
+          instance_id: string
+          name: string
+          nip: string | null
+          notes: string | null
+          phone: string
+          sales_notes: string | null
+          short_name: string | null
+          source: string | null
+          updated_at: string
+          vat_eu_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          billing_city?: string | null
+          billing_country_code?: string | null
+          billing_postal_code?: string | null
+          billing_region?: string | null
+          billing_street?: string | null
+          billing_street_line2?: string | null
+          company?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          country_code?: string | null
+          created_at?: string
+          default_currency?: string | null
+          email?: string | null
+          id?: string
+          instance_id: string
+          name: string
+          nip?: string | null
+          notes?: string | null
+          phone: string
+          sales_notes?: string | null
+          short_name?: string | null
+          source?: string | null
+          updated_at?: string
+          vat_eu_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          billing_city?: string | null
+          billing_country_code?: string | null
+          billing_postal_code?: string | null
+          billing_region?: string | null
+          billing_street?: string | null
+          billing_street_line2?: string | null
+          company?: string | null
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          country_code?: string | null
+          created_at?: string
+          default_currency?: string | null
+          email?: string | null
+          id?: string
+          instance_id?: string
+          name?: string
+          nip?: string | null
+          notes?: string | null
+          phone?: string
+          sales_notes?: string | null
+          short_name?: string | null
+          source?: string | null
+          updated_at?: string
+          vat_eu_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_permissions: {
         Row: {
           created_at: string
