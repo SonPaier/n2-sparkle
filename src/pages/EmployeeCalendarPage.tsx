@@ -11,11 +11,14 @@ import AdminCalendar from '@/components/admin/AdminCalendar';
 import AddCalendarItemDialog from '@/components/admin/AddCalendarItemDialog';
 import CalendarItemDetailsDrawer from '@/components/admin/CalendarItemDetailsDrawer';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
+import CalendarMapPanel from '@/components/admin/CalendarMapPanel';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
 
 type EmployeeView = 'kalendarz' | 'protokoly';
 
@@ -43,6 +46,8 @@ const EmployeeCalendarPage = () => {
   const [newItemData, setNewItemData] = useState({ columnId: '', date: '', time: '' });
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+  const [mapOpen, setMapOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Protocol form state
   const [protocolFormOpen, setProtocolFormOpen] = useState(false);
@@ -103,7 +108,7 @@ const EmployeeCalendarPage = () => {
     if (columnIds.length === 0) return;
 
     const rangeStart = format(subDays(currentCalendarDate, 7), 'yyyy-MM-dd');
-    const rangeEnd = format(addDays(currentCalendarDate, 14), 'yyyy-MM-dd');
+    const rangeEnd = format(addDays(currentCalendarDate, mapOpen ? 30 : 14), 'yyyy-MM-dd');
 
     const { data, error } = await supabase
       .from('calendar_items')
@@ -121,13 +126,17 @@ const EmployeeCalendarPage = () => {
     if (addressIds.length > 0) {
       const { data: addresses } = await supabase
         .from('customer_addresses')
-        .select('id, name')
+        .select('id, name, lat, lng, city')
         .in('id', addressIds);
       if (addresses) {
-        const addressMap = new Map(addresses.map(a => [a.id, a.name]));
+        const addressMap = new Map(addresses.map(a => [a.id, { name: a.name, lat: a.lat, lng: a.lng, city: a.city }]));
         items.forEach(item => {
           if (item.customer_address_id) {
-            (item as any).address_name = addressMap.get(item.customer_address_id) || null;
+            const addr = addressMap.get(item.customer_address_id);
+            (item as any).address_name = addr?.name || null;
+            (item as any).address_lat = addr?.lat || null;
+            (item as any).address_lng = addr?.lng || null;
+            (item as any).address_city = addr?.city || null;
           }
         });
       }
@@ -153,7 +162,7 @@ const EmployeeCalendarPage = () => {
     }
 
     setCalendarItems(items as CalendarItem[]);
-  }, [instanceId, config, currentCalendarDate]);
+  }, [instanceId, config, currentCalendarDate, mapOpen]);
 
   // Fetch breaks
   const fetchBreaks = useCallback(async () => {
@@ -351,81 +360,128 @@ const EmployeeCalendarPage = () => {
           {currentView === 'protokoly' && instanceId ? (
             <ProtocolsView instanceId={instanceId} />
           ) : currentView === 'kalendarz' && instanceId ? (
-            <div className="flex-1 min-h-[600px] h-full relative">
-              <AdminCalendar
-                columns={calendarColumns}
-                items={calendarItems}
-                breaks={calendarBreaks}
-                onItemClick={handleItemClick}
-                onAddItem={undefined}
-                onAddBreak={handleAddBreak}
-                onDeleteBreak={handleDeleteBreak}
-                onItemMove={handleItemMove}
-                onDateChange={(date) => setCurrentCalendarDate(date)}
-                selectedItemId={selectedItem?.id}
-              />
+            (() => {
+              const calendarContent = (
+                <>
+                  <AdminCalendar
+                    columns={calendarColumns}
+                    items={calendarItems}
+                    breaks={calendarBreaks}
+                    onItemClick={handleItemClick}
+                    onAddItem={undefined}
+                    onAddBreak={handleAddBreak}
+                    onDeleteBreak={handleDeleteBreak}
+                    onItemMove={handleItemMove}
+                    onDateChange={(date) => setCurrentCalendarDate(date)}
+                    selectedItemId={selectedItem?.id}
+                    onToggleMap={() => setMapOpen(prev => !prev)}
+                    mapOpen={mapOpen}
+                  />
 
-              <AddCalendarItemDialog
-                open={addItemOpen}
-                onClose={() => { setAddItemOpen(false); setEditingItem(null); }}
-                instanceId={instanceId}
-                columns={calendarColumns}
-                onSuccess={() => { fetchItems(); setEditingItem(null); }}
-                editingItem={editingItem}
-                initialDate={newItemData.date}
-                initialTime={newItemData.time}
-                initialColumnId={newItemData.columnId}
-              />
+                  <AddCalendarItemDialog
+                    open={addItemOpen}
+                    onClose={() => { setAddItemOpen(false); setEditingItem(null); }}
+                    instanceId={instanceId}
+                    columns={calendarColumns}
+                    onSuccess={() => { fetchItems(); setEditingItem(null); }}
+                    editingItem={editingItem}
+                    initialDate={newItemData.date}
+                    initialTime={newItemData.time}
+                    initialColumnId={newItemData.columnId}
+                  />
 
-              <CalendarItemDetailsDrawer
-                item={selectedItem}
-                open={detailsOpen}
-                onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
-                columns={calendarColumns}
-                onDelete={allowedActions.delete_item ? handleDeleteItem : undefined}
-                onEdit={allowedActions.edit_item ? handleEditItem : undefined}
-                onStatusChange={handleStatusChange}
-                onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
-                onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
-                onAddProtocol={(item) => {
-                  setDetailsOpen(false);
-                  setProtocolPrefill({
-                    customerId: item.customer_id,
-                    customerName: item.customer_name || '',
-                    customerPhone: item.customer_phone || '',
-                    customerEmail: item.customer_email || '',
-                    customerAddressId: item.customer_address_id,
-                    calendarItemId: item.id,
-                  });
-                  setProtocolFormOpen(true);
-                }}
-                instanceId={instanceId || undefined}
-              />
+                  <CalendarItemDetailsDrawer
+                    item={selectedItem}
+                    open={detailsOpen}
+                    onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
+                    columns={calendarColumns}
+                    onDelete={allowedActions.delete_item ? handleDeleteItem : undefined}
+                    onEdit={allowedActions.edit_item ? handleEditItem : undefined}
+                    onStatusChange={handleStatusChange}
+                    onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
+                    onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+                    onAddProtocol={(item) => {
+                      setDetailsOpen(false);
+                      setProtocolPrefill({
+                        customerId: item.customer_id,
+                        customerName: item.customer_name || '',
+                        customerPhone: item.customer_phone || '',
+                        customerEmail: item.customer_email || '',
+                        customerAddressId: item.customer_address_id,
+                        calendarItemId: item.id,
+                      });
+                      setProtocolFormOpen(true);
+                    }}
+                    instanceId={instanceId || undefined}
+                  />
 
-              <AddBreakDialog
-                open={addBreakOpen}
-                onOpenChange={setAddBreakOpen}
-                instanceId={instanceId}
-                columns={calendarColumns}
-                initialData={newBreakData}
-                onBreakAdded={() => fetchBreaks()}
-              />
-              {instanceId && (
-                <CreateProtocolForm
-                  open={protocolFormOpen}
-                  onClose={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
-                  instanceId={instanceId}
-                  onSuccess={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
-                  editingProtocolId={null}
-                  prefillCustomerId={protocolPrefill.customerId}
-                  prefillCustomerName={protocolPrefill.customerName}
-                  prefillCustomerPhone={protocolPrefill.customerPhone}
-                  prefillCustomerEmail={protocolPrefill.customerEmail}
-                  prefillCustomerAddressId={protocolPrefill.customerAddressId}
-                  prefillCalendarItemId={protocolPrefill.calendarItemId}
+                  <AddBreakDialog
+                    open={addBreakOpen}
+                    onOpenChange={setAddBreakOpen}
+                    instanceId={instanceId}
+                    columns={calendarColumns}
+                    initialData={newBreakData}
+                    onBreakAdded={() => fetchBreaks()}
+                  />
+                  {instanceId && (
+                    <CreateProtocolForm
+                      open={protocolFormOpen}
+                      onClose={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
+                      instanceId={instanceId}
+                      onSuccess={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
+                      editingProtocolId={null}
+                      prefillCustomerId={protocolPrefill.customerId}
+                      prefillCustomerName={protocolPrefill.customerName}
+                      prefillCustomerPhone={protocolPrefill.customerPhone}
+                      prefillCustomerEmail={protocolPrefill.customerEmail}
+                      prefillCustomerAddressId={protocolPrefill.customerAddressId}
+                      prefillCalendarItemId={protocolPrefill.calendarItemId}
+                    />
+                  )}
+                </>
+              );
+
+              const mapPanel = mapOpen ? (
+                <CalendarMapPanel
+                  items={calendarItems}
+                  columns={calendarColumns}
+                  onItemClick={handleItemClick}
+                  onClose={() => setMapOpen(false)}
                 />
-              )}
-            </div>
+              ) : null;
+
+              if (isMobile && mapOpen) {
+                return (
+                  <div className="flex-1 min-h-[600px] h-full relative">
+                    {calendarContent}
+                    <Drawer open={mapOpen} onOpenChange={setMapOpen}>
+                      <DrawerContent className="h-[90vh]">
+                        {mapPanel}
+                      </DrawerContent>
+                    </Drawer>
+                  </div>
+                );
+              }
+
+              if (mapOpen) {
+                return (
+                  <div className="flex flex-1 min-h-[600px] h-full">
+                    <div className="w-1/2 min-w-0 relative">
+                      {calendarContent}
+                    </div>
+                    <div className="w-1/2 min-w-0">
+                      {mapPanel}
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="flex-1 min-h-[600px] h-full relative">
+                  {calendarContent}
+                </div>
+              );
+            })()
           ) : (
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground">Brak konfiguracji kalendarza</p>

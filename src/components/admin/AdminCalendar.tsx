@@ -36,6 +36,9 @@ export interface CalendarItem {
   customer_id?: string | null;
   customer_address_id?: string | null;
   address_name?: string | null;
+  address_lat?: number | null;
+  address_lng?: number | null;
+  address_city?: string | null;
   assigned_employee_ids?: string[] | null;
   assigned_employees?: AssignedEmployee[];
   item_date: string;
@@ -67,6 +70,8 @@ interface AdminCalendarProps {
   onItemMove?: (itemId: string, newColumnId: string, newDate: string, newTime?: string) => void;
   onDateChange?: (date: Date) => void;
   selectedItemId?: string | null;
+  onToggleMap?: () => void;
+  mapOpen?: boolean;
 }
 
 const DEFAULT_START_HOUR = 6;
@@ -121,6 +126,8 @@ const AdminCalendar = ({
   onItemMove,
   onDateChange,
   selectedItemId,
+  onToggleMap,
+  mapOpen,
 }: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(() => {
     const saved = localStorage.getItem('admin-calendar-date');
@@ -840,6 +847,20 @@ const AdminCalendar = ({
             {!isMobile && (
               <Button variant={isCompact ? "secondary" : "outline"} size="sm" onClick={toggleCompact} className="gap-1" title={isCompact ? 'Rozwiń kolumny' : 'Zwiń kolumny'}>
                 <ChevronsLeftRight className="w-4 h-4" />
+              </Button>
+            )}
+
+            {/* Map toggle */}
+            {onToggleMap && (
+              <Button
+                variant={mapOpen ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={onToggleMap}
+                className="gap-1"
+                title={mapOpen ? 'Zamknij mapę' : 'Otwórz mapę'}
+              >
+                <MapPin className="w-4 h-4" />
+                {!isMobile && <span>Mapa</span>}
               </Button>
             )}
 
