@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
+import SelectedServicesList, { type ServiceItem } from './SelectedServicesList';
 
 interface CalendarColumn {
   id: string;
@@ -83,6 +85,12 @@ const AddCalendarItemDialog = ({
   const [adminNotes, setAdminNotes] = useState('');
   const [price, setPrice] = useState('');
 
+  // Service selection state
+  const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [allServices, setAllServices] = useState<ServiceWithCategory[]>([]);
+  const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
+
   // Initialize form
   useEffect(() => {
     if (!open) return;
@@ -106,13 +114,83 @@ const AddCalendarItemDialog = ({
       setColumnId(initialColumnId || columns[0]?.id || '');
       setItemDate(initialDate || format(new Date(), 'yyyy-MM-dd'));
       setStartTime(initialTime || '08:00');
-      // Auto-set end time 1h after start
       const startIdx = TIME_OPTIONS.indexOf(initialTime || '08:00');
       setEndTime(TIME_OPTIONS[Math.min(startIdx + 4, TIME_OPTIONS.length - 1)] || '09:00');
       setAdminNotes('');
       setPrice('');
     }
+    // Reset services on open
+    setSelectedServiceIds([]);
+    setAllServices([]);
+    setServiceItems([]);
   }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns]);
+
+  // Handle service selection confirmed
+  const handleServicesConfirmed = (serviceIds: string[], totalDuration: number, services: ServiceWithCategory[]) => {
+    setSelectedServiceIds(serviceIds);
+    setAllServices(prev => {
+      const map = new Map(prev.map(s => [s.id, s]));
+      services.forEach(s => map.set(s.id, s));
+      return Array.from(map.values());
+    });
+
+    // Create service items for new services
+    setServiceItems(prev => {
+      const existing = new Map(prev.map(si => [si.service_id, si]));
+      return serviceIds.map(id => {
+        if (existing.has(id)) return existing.get(id)!;
+        const svc = services.find(s => s.id === id);
+        return {
+          service_id: id,
+          custom_price: null,
+          name: svc?.name,
+          short_name: svc?.short_name,
+          price: svc?.price,
+        };
+      });
+    });
+
+    // Auto-generate title from selected services
+    if (services.length > 0) {
+      const names = serviceIds.map(id => {
+        const s = services.find(sv => sv.id === id);
+        return s?.short_name || s?.name || '';
+      }).filter(Boolean);
+      if (names.length > 0 && !title.trim()) {
+        setTitle(names.join(', '));
+      }
+    }
+
+    // Update end time based on total duration
+    if (totalDuration > 0) {
+      const [h, m] = startTime.split(':').map(Number);
+      const totalMinutes = h * 60 + m + totalDuration;
+      const endH = Math.floor(totalMinutes / 60);
+      const endM = totalMinutes % 60;
+      const newEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+      const closest = TIME_OPTIONS.reduce((prev, curr) =>
+        Math.abs(curr.localeCompare(newEnd)) <= Math.abs(prev.localeCompare(newEnd)) ? curr : prev
+      );
+      // Find the closest time option that is >= newEnd
+      const closestOption = TIME_OPTIONS.find(t => t >= newEnd) || TIME_OPTIONS[TIME_OPTIONS.length - 1];
+      setEndTime(closestOption);
+    }
+  };
+
+  const handleRemoveService = (serviceId: string) => {
+    setSelectedServiceIds(prev => prev.filter(id => id !== serviceId));
+    setServiceItems(prev => prev.filter(si => si.service_id !== serviceId));
+  };
+
+  const handlePriceChange = (serviceId: string, newPrice: number | null) => {
+    setServiceItems(prev => prev.map(si =>
+      si.service_id === serviceId ? { ...si, custom_price: newPrice } : si
+    ));
+  };
+
+  const handleTotalPriceChange = (newTotal: number) => {
+    setPrice(newTotal.toString());
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -170,97 +248,122 @@ const AddCalendarItemDialog = ({
   };
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <SheetContent side={isMobile ? 'bottom' : 'right'} className={isMobile ? 'h-[90vh] overflow-y-auto' : 'sm:max-w-lg overflow-y-auto'}>
-        <SheetHeader>
-          <SheetTitle>{isEditMode ? 'Edytuj zlecenie' : 'Nowe zlecenie'}</SheetTitle>
-        </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <SheetContent side={isMobile ? 'bottom' : 'right'} className={isMobile ? 'h-[90vh] overflow-y-auto' : 'sm:max-w-lg overflow-y-auto'}>
+          <SheetHeader>
+            <SheetTitle>{isEditMode ? 'Edytuj zlecenie' : 'Nowe zlecenie'}</SheetTitle>
+          </SheetHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Title */}
-          <div className="space-y-2">
-            <Label>Tytuł zlecenia *</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Np. Wymiana oleju, Przegląd..." />
-          </div>
-
-          {/* Customer */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-4 py-4">
+            {/* Services Selection */}
             <div className="space-y-2">
-              <Label>Imię klienta</Label>
-              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Jan Kowalski" />
+              <Label>Usługi</Label>
+              <SelectedServicesList
+                services={allServices}
+                selectedServiceIds={selectedServiceIds}
+                serviceItems={serviceItems}
+                onRemoveService={handleRemoveService}
+                onPriceChange={handlePriceChange}
+                onAddMore={() => setServiceDrawerOpen(true)}
+                onTotalPriceChange={handleTotalPriceChange}
+              />
             </div>
+
+            {/* Title */}
             <div className="space-y-2">
-              <Label>Telefon</Label>
-              <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+48 ..." type="tel" />
+              <Label>Tytuł zlecenia *</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Np. Wymiana oleju, Przegląd..." />
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="jan@example.com" type="email" />
-          </div>
+            {/* Customer */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Imię klienta</Label>
+                <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Jan Kowalski" />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefon</Label>
+                <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+48 ..." type="tel" />
+              </div>
+            </div>
 
-          {/* Column */}
-          <div className="space-y-2">
-            <Label>Kolumna *</Label>
-            <Select value={columnId} onValueChange={setColumnId}>
-              <SelectTrigger><SelectValue placeholder="Wybierz kolumnę" /></SelectTrigger>
-              <SelectContent>
-                {columns.map((col) => <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Date */}
-          <div className="space-y-2">
-            <Label>Data</Label>
-            <Input type="date" value={itemDate} onChange={(e) => setItemDate(e.target.value)} />
-          </div>
-
-          {/* Time */}
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Od</Label>
-              <Select value={startTime} onValueChange={setStartTime}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label>Email</Label>
+              <Input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="jan@example.com" type="email" />
+            </div>
+
+            {/* Column */}
+            <div className="space-y-2">
+              <Label>Kolumna *</Label>
+              <Select value={columnId} onValueChange={setColumnId}>
+                <SelectTrigger><SelectValue placeholder="Wybierz kolumnę" /></SelectTrigger>
                 <SelectContent>
-                  {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {columns.map((col) => <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Date */}
             <div className="space-y-2">
-              <Label>Do</Label>
-              <Select value={endTime} onValueChange={setEndTime}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Data</Label>
+              <Input type="date" value={itemDate} onChange={(e) => setItemDate(e.target.value)} />
+            </div>
+
+            {/* Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Od</Label>
+                <Select value={startTime} onValueChange={setStartTime}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Do</Label>
+                <Select value={endTime} onValueChange={setEndTime}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Price */}
+            <div className="space-y-2">
+              <Label>Cena (PLN)</Label>
+              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label>Notatki</Label>
+              <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} placeholder="Dodatkowe informacje..." rows={3} />
             </div>
           </div>
 
-          {/* Price */}
-          <div className="space-y-2">
-            <Label>Cena (PLN)</Label>
-            <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" />
-          </div>
+          <SheetFooter className="gap-2">
+            <Button variant="outline" onClick={onClose}>Anuluj</Button>
+            <Button onClick={handleSubmit} disabled={loading}>
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isEditMode ? 'Zapisz zmiany' : 'Dodaj zlecenie'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <Label>Notatki</Label>
-            <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} placeholder="Dodatkowe informacje..." rows={3} />
-          </div>
-        </div>
-
-        <SheetFooter className="gap-2">
-          <Button variant="outline" onClick={onClose}>Anuluj</Button>
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {isEditMode ? 'Zapisz zmiany' : 'Dodaj zlecenie'}
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      {/* Service Selection Drawer */}
+      <ServiceSelectionDrawer
+        open={serviceDrawerOpen}
+        onClose={() => setServiceDrawerOpen(false)}
+        instanceId={instanceId}
+        selectedServiceIds={selectedServiceIds}
+        onConfirm={handleServicesConfirmed}
+      />
+    </>
   );
 };
 
