@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { type DateRange } from 'react-day-picker';
-import { Loader2, CalendarIcon, HardHat, MessageSquare } from 'lucide-react';
+import { Loader2, CalendarIcon, HardHat, MessageSquare, X } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -445,30 +445,30 @@ const AddCalendarItemDialog = ({
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side={isMobile ? 'bottom' : 'right'} className={isMobile ? 'h-[90vh] overflow-y-auto' : 'sm:max-w-lg overflow-y-auto'}>
-          <SheetHeader>
-            <SheetTitle>{isEditMode ? 'Edytuj zlecenie' : 'Nowe zlecenie'}</SheetTitle>
-          </SheetHeader>
-
-          <div className="space-y-4 py-4">
-            {/* Services Selection */}
-            <div className="space-y-2">
-              <Label>Usługi</Label>
-              <SelectedServicesList
-                services={allServices}
-                selectedServiceIds={selectedServiceIds}
-                serviceItems={serviceItems}
-                onRemoveService={handleRemoveService}
-                onPriceChange={handlePriceChange}
-                onAddMore={() => setServiceDrawerOpen(true)}
-                onTotalPriceChange={handleTotalPriceChange}
-              />
+        <SheetContent
+          side={isMobile ? 'bottom' : 'right'}
+          hideCloseButton
+          hideOverlay
+          className={`flex flex-col p-0 gap-0 ${isMobile ? 'h-[90vh]' : 'sm:max-w-lg'}`}
+        >
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-lg font-semibold">
+                {isEditMode ? 'Edytuj zlecenie' : 'Nowe zlecenie'}
+              </SheetTitle>
+              <button onClick={onClose} className="p-2 rounded-full hover:bg-muted transition-colors">
+                <X className="w-5 h-5" />
+              </button>
             </div>
+          </div>
 
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {/* Title */}
             <div className="space-y-2">
               <Label>Tytuł zlecenia *</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Np. Wymiana oleju, Przegląd..." />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Np. Wymiana oleju, Przegląd..." className="bg-white" />
             </div>
 
             {/* Customer Search */}
@@ -482,23 +482,6 @@ const AddCalendarItemDialog = ({
               />
             </div>
 
-            {/* Customer details (manual or from selection) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Imię klienta</Label>
-                <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); if (customerId) setCustomerId(null); }} placeholder="Jan Kowalski" />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefon</Label>
-                <Input value={customerPhone} onChange={(e) => { setCustomerPhone(e.target.value); if (customerId) setCustomerId(null); }} placeholder="+48 ..." type="tel" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input value={customerEmail} onChange={(e) => { setCustomerEmail(e.target.value); if (customerId) setCustomerId(null); }} placeholder="jan@example.com" type="email" />
-            </div>
-
             {/* Customer Address */}
             <CustomerAddressSelect
               instanceId={instanceId}
@@ -507,15 +490,18 @@ const AddCalendarItemDialog = ({
               onChange={setCustomerAddressId}
             />
 
-            {/* Column */}
+            {/* Services Selection */}
             <div className="space-y-2">
-              <Label>Kolumna *</Label>
-              <Select value={columnId} onValueChange={setColumnId}>
-                <SelectTrigger><SelectValue placeholder="Wybierz kolumnę" /></SelectTrigger>
-                <SelectContent>
-                  {columns.map((col) => <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Usługi</Label>
+              <SelectedServicesList
+                services={allServices}
+                selectedServiceIds={selectedServiceIds}
+                serviceItems={serviceItems}
+                onRemoveService={handleRemoveService}
+                onPriceChange={handlePriceChange}
+                onAddMore={() => setServiceDrawerOpen(true)}
+                onTotalPriceChange={handleTotalPriceChange}
+              />
             </div>
 
             {/* Date - RadioGroup + Calendar */}
@@ -549,7 +535,7 @@ const AddCalendarItemDialog = ({
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-full justify-start text-left font-normal",
+                      "w-full justify-start text-left font-normal bg-white",
                       !dateRange?.from && "text-muted-foreground"
                     )}
                   >
@@ -603,7 +589,7 @@ const AddCalendarItemDialog = ({
               <div className="space-y-2">
                 <Label>Od</Label>
                 <Select value={startTime} onValueChange={setStartTime}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
@@ -612,18 +598,12 @@ const AddCalendarItemDialog = ({
               <div className="space-y-2">
                 <Label>Do</Label>
                 <Select value={endTime} onValueChange={setEndTime}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            {/* Price */}
-            <div className="space-y-2">
-              <Label>Cena (PLN)</Label>
-              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" />
             </div>
 
             {/* Assigned Employees */}
@@ -637,14 +617,25 @@ const AddCalendarItemDialog = ({
                 selectedIds={assignedEmployeeIds}
                 onRemove={(id) => setAssignedEmployeeIds(prev => prev.filter(x => x !== id))}
               />
-              <Button type="button" variant="outline" size="sm" onClick={() => setEmployeeDrawerOpen(true)}>
+              <Button type="button" variant="outline" size="sm" className="bg-white" onClick={() => setEmployeeDrawerOpen(true)}>
                 {assignedEmployeeIds.length > 0 ? 'Zmień pracowników' : 'Przypisz pracowników'}
               </Button>
             </div>
 
+            {/* Price */}
+            <div className="space-y-2">
+              <Label>Cena (PLN)</Label>
+              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" className="bg-white" />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label>Notatki</Label>
+              <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} placeholder="Dodatkowe informacje..." rows={3} className="bg-white" />
+            </div>
+
             {/* SMS Notification */}
             {(() => {
-              // Edit mode: show status or checkbox
               if (isEditMode && existingSmsNotification) {
                 if (existingSmsNotification.sent_at) {
                   return (
@@ -663,7 +654,6 @@ const AddCalendarItemDialog = ({
                   );
                 }
               }
-              // Show checkbox if immediate template available and no existing sent SMS
               if (immediateSmsTemplate && (!existingSmsNotification || (!existingSmsNotification.sent_at && existingSmsNotification.status !== 'pending'))) {
                 const hasPhone = !!customerPhone.trim();
                 return (
@@ -692,21 +682,15 @@ const AddCalendarItemDialog = ({
               }
               return null;
             })()}
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label>Notatki</Label>
-              <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} placeholder="Dodatkowe informacje..." rows={3} />
-            </div>
           </div>
 
-          <SheetFooter className="gap-2">
-            <Button variant="outline" onClick={onClose}>Anuluj</Button>
-            <Button onClick={handleSubmit} disabled={loading}>
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-border shrink-0">
+            <Button onClick={handleSubmit} disabled={loading} className="w-full">
               {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {isEditMode ? 'Zapisz zmiany' : 'Dodaj zlecenie'}
             </Button>
-          </SheetFooter>
+          </div>
         </SheetContent>
       </Sheet>
 
