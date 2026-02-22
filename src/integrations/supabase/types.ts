@@ -282,6 +282,66 @@ export type Database = {
           },
         ]
       }
+      customer_sms_notifications: {
+        Row: {
+          created_at: string
+          customer_name: string
+          customer_phone: string
+          id: string
+          instance_id: string
+          months_after: number
+          notification_template_id: string
+          scheduled_date: string
+          sent_at: string | null
+          service_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name: string
+          customer_phone: string
+          id?: string
+          instance_id: string
+          months_after: number
+          notification_template_id: string
+          scheduled_date: string
+          sent_at?: string | null
+          service_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          instance_id?: string
+          months_after?: number
+          notification_template_id?: string
+          scheduled_date?: string
+          sent_at?: string | null
+          service_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_sms_notifications_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_sms_notifications_notification_template_id_fkey"
+            columns: ["notification_template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_notification_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -740,6 +800,47 @@ export type Database = {
           },
         ]
       }
+      sms_notification_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          instance_id: string
+          items: Json | null
+          name: string
+          sms_template: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_id: string
+          items?: Json | null
+          name: string
+          sms_template?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_id?: string
+          items?: Json | null
+          name?: string
+          sms_template?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_notification_templates_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_entries: {
         Row: {
           created_at: string
@@ -859,6 +960,7 @@ export type Database = {
           is_popular: boolean
           metadata: Json | null
           name: string
+          notification_template_id: string | null
           price: number | null
           prices_are_net: boolean
           short_name: string | null
@@ -877,6 +979,7 @@ export type Database = {
           is_popular?: boolean
           metadata?: Json | null
           name: string
+          notification_template_id?: string | null
           price?: number | null
           prices_are_net?: boolean
           short_name?: string | null
@@ -895,6 +998,7 @@ export type Database = {
           is_popular?: boolean
           metadata?: Json | null
           name?: string
+          notification_template_id?: string | null
           price?: number | null
           prices_are_net?: boolean
           short_name?: string | null
@@ -915,6 +1019,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_services_notification_template_id_fkey"
+            columns: ["notification_template_id"]
+            isOneToOne: false
+            referencedRelation: "sms_notification_templates"
             referencedColumns: ["id"]
           },
         ]
