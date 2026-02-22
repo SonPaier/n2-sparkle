@@ -314,6 +314,125 @@ export type Database = {
           },
         ]
       }
+      unified_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          instance_id: string
+          name: string
+          prices_are_net: boolean
+          slug: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_id: string
+          name: string
+          prices_are_net?: boolean
+          slug?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_id?: string
+          name?: string
+          prices_are_net?: boolean
+          slug?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_categories_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unified_services: {
+        Row: {
+          active: boolean
+          category_id: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          instance_id: string
+          is_popular: boolean
+          metadata: Json | null
+          name: string
+          price: number | null
+          prices_are_net: boolean
+          short_name: string | null
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instance_id: string
+          is_popular?: boolean
+          metadata?: Json | null
+          name: string
+          price?: number | null
+          prices_are_net?: boolean
+          short_name?: string | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category_id?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instance_id?: string
+          is_popular?: boolean
+          metadata?: Json | null
+          name?: string
+          price?: number | null
+          prices_are_net?: boolean
+          short_name?: string | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unified_services_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "unified_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unified_services_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

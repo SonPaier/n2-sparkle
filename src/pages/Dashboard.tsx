@@ -5,6 +5,7 @@ import { Calendar, Users, BadgeDollarSign, Settings } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
+import ServicesView from '@/components/admin/ServicesView';
 import AdminCalendar from '@/components/admin/AdminCalendar';
 import AddCalendarItemDialog from '@/components/admin/AddCalendarItemDialog';
 import CalendarItemDetailsDrawer from '@/components/admin/CalendarItemDetailsDrawer';
@@ -220,6 +221,10 @@ const Dashboard = () => {
   const renderContent = () => {
     if (currentView === 'ustawienia') {
       return <SettingsView instanceId={instanceId} />;
+    }
+
+    if (currentView === 'uslugi' && instanceId) {
+      return <ServicesView instanceId={instanceId} />;
     }
 
     if (currentView === 'kalendarz' && instanceId) {
