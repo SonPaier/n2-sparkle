@@ -13,7 +13,8 @@ const RoleBasedRedirect = () => {
     !roles.some(r => r.role === 'admin' || r.role === 'super_admin');
 
   useEffect(() => {
-    if (!user || !isEmployeeOnly) {
+    if (!user) return; // don't touch configResolved until we have a user
+    if (!isEmployeeOnly) {
       setConfigResolved(true);
       return;
     }
@@ -32,7 +33,7 @@ const RoleBasedRedirect = () => {
       });
   }, [user, isEmployeeOnly]);
 
-  if (loading || (isEmployeeOnly && !configResolved)) {
+  if (loading || (user && isEmployeeOnly && !configResolved)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
