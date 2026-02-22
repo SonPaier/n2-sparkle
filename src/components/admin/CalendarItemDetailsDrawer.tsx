@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat } from 'lucide-react';
+import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat, MessageSquare } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
+
+interface SmsNotificationInfo {
+  id: string;
+  status: string;
+  sent_at: string | null;
+  service_type: string;
+}
 
 interface CalendarItemDetailsDrawerProps {
   item: CalendarItem | null;
@@ -53,6 +60,7 @@ const CalendarItemDetailsDrawer = ({
   const [deleting, setDeleting] = useState(false);
   const [changingStatus, setChangingStatus] = useState(false);
   const [addressLabel, setAddressLabel] = useState<string | null>(null);
+  const [smsNotifications, setSmsNotifications] = useState<SmsNotificationInfo[]>([]);
 
   // Fetch address if customer_address_id is set
   useEffect(() => {
@@ -70,6 +78,21 @@ const CalendarItemDetailsDrawer = ({
     };
     fetchAddr();
   }, [item?.customer_address_id]);
+
+  // Fetch SMS notifications for this calendar item
+  useEffect(() => {
+    if (!item?.id || !open) { setSmsNotifications([]); return; }
+    const fetchSms = async () => {
+      const { data } = await (supabase
+        .from('customer_sms_notifications') as any)
+        .select('id, status, sent_at, service_type')
+        .eq('calendar_item_id', item.id);
+      if (data) {
+        setSmsNotifications(data);
+      }
+    };
+    fetchSms();
+  }, [item?.id, open]);
 
   if (!item) return null;
 
@@ -200,6 +223,29 @@ const CalendarItemDetailsDrawer = ({
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* SMS Notification Status */}
+            {smsNotifications.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  Powiadomienie SMS
+                </div>
+                {smsNotifications.map(sms => (
+                  <div key={sms.id} className="ml-6 text-sm">
+                    {sms.sent_at ? (
+                      <span className="text-emerald-600">
+                        Wysłano SMS ({sms.service_type}) — {format(new Date(sms.sent_at), 'd MMM yyyy, HH:mm', { locale: pl })}
+                      </span>
+                    ) : sms.status === 'pending' ? (
+                      <span className="text-orange-600">
+                        SMS oczekuje na wysłanie ({sms.service_type})
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
               </div>
             )}
 
