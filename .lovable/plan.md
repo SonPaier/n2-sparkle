@@ -1,73 +1,92 @@
 
-
-# Implementacja widoku Uslug - kopiowanie z N2Wash
+# Kopiowanie listy klientow i drawera edycji z N2Wash
 
 ## Podsumowanie
 
-Kopiujemy UI uslug z N2Wash (PriceListSettings, ServiceFormDialog, CategoryManagementDialog) i tworzymy wspoldzielony komponent ConfirmDialog. Usuwamy: reminder templates, searchParams/navigate logic, service_type/visibility, size-based prices/durations, useTranslation, metadata (trwalosc, lakiery), AI description generation. Zostawiamy: DnD sortowanie, inline editable price, wyszukiwanie, kategorie.
+Kopiujemy `CustomersView` i `CustomerEditDrawer` z N2Wash. Usuwamy: vehicles, SMS dialog, tabs myjnia/oferty, visit history, reminders tab, `useCombinedFeatures`, `useTranslation`, `discount_percent`. Dodajemy: sekcje zarzadzania wieloma adresami serwisowymi (`customer_addresses`).
+
+---
 
 ## 1. Baza danych (migracja SQL)
 
 Tworzymy dwie tabele:
 
-**`unified_categories`**: name, slug, description, sort_order, prices_are_net, active, instance_id, created_at, updated_at
+**`customers`**:
+- id (uuid PK), instance_id (uuid NOT NULL), name (text NOT NULL), short_name (text), phone (text NOT NULL), email (text), notes (text), company (text), nip (text), address (text), contact_person (text), contact_phone (text), contact_email (text), source (text DEFAULT 'manual'), billing_street (text), billing_street_line2 (text), billing_city (text), billing_postal_code (text), billing_region (text), billing_country_code (text), country_code (text), default_currency (text DEFAULT 'PLN'), vat_eu_number (text), sales_notes (text), created_at (timestamptz), updated_at (timestamptz)
+- UNIQUE(instance_id, phone)
 
-**`unified_services`**: name, short_name, description, price (numeric), duration_minutes (integer), category_id (FK), is_popular, prices_are_net, active, unit (default 'szt'), sort_order, instance_id, metadata (jsonb), created_at, updated_at
+**`customer_addresses`**:
+- id (uuid PK), customer_id (uuid NOT NULL FK -> customers ON DELETE CASCADE), instance_id (uuid NOT NULL), name (text NOT NULL), street (text), street_line2 (text), city (text), postal_code (text), region (text), country_code (text), lat (double precision), lng (double precision), contact_person (text), contact_phone (text), notes (text), is_default (boolean DEFAULT false), sort_order (integer DEFAULT 0), created_at (timestamptz), updated_at (timestamptz)
 
-RLS: SELECT dla admin/employee/super_admin, ALL dla admin/super_admin. Triggery update_updated_at_column na obu.
+RLS: SELECT dla admin/employee/super_admin, ALL dla admin/super_admin. Triggery `update_updated_at_column` na obu.
 
-## 2. Nowe komponenty
+---
 
-### `src/components/ui/confirm-dialog.tsx`
-Kopia z N2Wash -- wspoldzielony komponent. AlertDialog na desktop, Drawer na mobile. Props: open, onOpenChange, title, description, confirmLabel, cancelLabel, onConfirm, variant, loading.
+## 2. Nowe pliki pomocnicze
 
-### `src/components/admin/ServicesView.tsx` (~600 linii)
-Adaptacja PriceListSettings z N2Wash:
-- **Usuwamy**: useTranslation, useNavigate/useSearchParams/useLocation, reminder template logic (forceAdvancedOpen, searchParams effects), service_type, category_type filtering (w N2Wash jest `.eq('category_type', 'both')` i `.eq('service_type', 'both')` -- u nas tych kolumn nie ma), visibility
-- **Usuwamy z InlineEditablePrice**: logike size prices (hasSizePrices) -- zawsze edytujemy jedno pole `price`
-- **Zmieniamy**: `price_from` -> `price` (nowe pole w naszej tabeli)
-- **Zostawiamy**: DnD sortowanie (desktop), ServiceRow (mobile), InlineEditablePrice (uproszczone do jednego pola), wyszukiwanie, filtrowanie po kategoriach, przycisk kategorie, przycisk dodaj, ConfirmDialog do delete/deactivate
-- **Usuwamy przycisk "Przypomnienia"** z headera
-- Polskie stringi hardcoded zamiast t()
-- Przy delete sprawdzamy `calendar_items` zamiast `reservations`
+### `src/lib/phoneUtils.ts`
+Kopia z N2Wash -- `normalizePhone`, `stripPhone`, `isValidPhone`, `formatPhoneDisplay`.
 
-### `src/components/admin/ServiceFormDialog.tsx` (~400 linii)
-Uproszczona kopia z N2Wash:
-- **Usuwamy**: size prices (price_small/medium/large), size durations (duration_small/medium/large), showSizePrices/showSizeDurations toggle, visibility select, service_type, reminder_template_id (cala sekcja fetch + select + navigate), AI description generation (handleGenerateDescription + Sparkles button), metadata (trwalosc_produktu_w_mesiacach, produkt_do_lakierow), forceAdvancedOpen, useNavigate/useLocation
-- **Zostawiamy**: nazwa, short_name, kategoria (select), cena (jedno pole), opis (textarea bez AI), sekcja zaawansowana z: duration_minutes, is_popular, unit
-- **Zmieniamy**: price_from -> price, net/gross radio zostawiamy
-- Dialog na desktop, Drawer na mobile (jak w N2Wash)
+### `src/lib/textUtils.ts`
+Tylko `normalizeSearchQuery` z N2Wash.
+
+---
+
+## 3. Modyfikacja `src/components/ui/sheet.tsx`
+Dodajemy prop `hideCloseButton` do `SheetContent` -- N2Wash uzywa tego w `CustomerEditDrawer` zeby miec wlasny przycisk X w headerze.
+
+---
+
+## 4. Nowe komponenty
+
+### `src/components/admin/CustomersView.tsx` (~250 linii)
+Adaptacja z N2Wash:
+- **Usuwamy**: tabs myjnia/oferty, vehicles fetch i chips, `useCombinedFeatures`, `useTranslation`, `SendSmsDialog`, `AdminTabsList`, SMS button, `CustomersList` (inline rendering)
+- **Zostawiamy**: lista klientow z wyszukiwaniem (name, phone, email, company, nip), paginacja, przycisk dodaj, delete dialog (uzyje `ConfirmDialog`), przycisk telefon, drawer edycji
+- Pod nazwa klienta: firma (zamiast vehicles)
 - Polskie stringi hardcoded
+- Source nie jest uzywane do filtrowania (brak tabow)
 
-### `src/components/admin/CategoryManagementDialog.tsx` (~400 linii)
-Kopia z N2Wash, minimalne zmiany:
-- **Usuwamy**: `.eq('category_type', 'both')` z queries, `category_type: 'both'` z insert, useTranslation
-- **Zostawiamy**: DnD sortowanie, inline edit, add/delete, service counts
-- Polskie stringi hardcoded (juz prawie sa w N2Wash)
+### `src/components/admin/CustomerEditDrawer.tsx` (~500 linii)
+Adaptacja z N2Wash:
+- **Usuwamy**: vehicles editor (`CustomerVehiclesEditor`), visit history tab, reminders tab, `AdminTabsList`, `SendSmsDialog`, `discount_percent`, `useTranslation`, `normalizePhone` w sync vehicles
+- **Zostawiamy**: Sheet drawer, tryb view/edit/add, formularz (name, phone, email, company, nip, notes), przyciski SMS/telefon w headerze (SMS otwiera natywne sms:), sticky footer (zapisz/anuluj/edytuj)
+- **Dodajemy nowa sekcje w trybie edycji**: "Adresy serwisowe"
+  - Lista `customer_addresses` z CRUD
+  - Kazdy adres: nazwa lokalizacji, ulica, miasto, kod pocztowy, osoba kontaktowa, telefon, notatki
+  - Lat/lng na razie opcjonalne (reczne pola)
+  - Przycisk "Dodaj adres" / "Usun" per adres
+  - Fetch adresow przy otwarciu drawera, zapis razem z klientem
+- **Dodajemy sekcje w trybie view**: lista adresow (read-only) zamiast vehicles
+- **Dane fakturowe**: dodatkowe pola billing_street, billing_city, billing_postal_code w sekcji "Dane do faktury" (collapsible)
 
-## 3. Modyfikacja istniejacych plikow
+---
 
-### `src/pages/Dashboard.tsx`
-- Import ServicesView
-- W `renderContent()`: jesli `currentView === 'uslugi'` i `instanceId`, renderuj `<ServicesView instanceId={instanceId} />`
+## 5. Modyfikacja `src/pages/Dashboard.tsx`
+- Import `CustomersView`
+- W `renderContent()`: jesli `currentView === 'klienci'` i `instanceId`, renderuj `<CustomersView instanceId={instanceId} />`
 
-## 4. Podsumowanie plikow
+---
 
-| Plik | Akcja | Zrodlo N2Wash |
-|------|-------|---------------|
-| Migracja SQL | Nowy | -- |
-| `src/components/ui/confirm-dialog.tsx` | Nowy | `confirm-dialog.tsx` (kopia 1:1) |
-| `src/components/admin/ServicesView.tsx` | Nowy | `PriceListSettings.tsx` (uproszczony) |
-| `src/components/admin/ServiceFormDialog.tsx` | Nowy | `ServiceFormDialog.tsx` (uproszczony) |
-| `src/components/admin/CategoryManagementDialog.tsx` | Nowy | `CategoryManagementDialog.tsx` (bez category_type) |
-| `src/pages/Dashboard.tsx` | Modyfikacja | -- |
+## 6. Podsumowanie plikow
+
+| Plik | Akcja |
+|------|-------|
+| Migracja SQL | Nowy -- customers + customer_addresses + RLS + triggery |
+| `src/lib/phoneUtils.ts` | Nowy -- kopia z N2Wash |
+| `src/lib/textUtils.ts` | Nowy -- normalizeSearchQuery |
+| `src/components/ui/sheet.tsx` | Modyfikacja -- hideCloseButton prop |
+| `src/components/admin/CustomersView.tsx` | Nowy -- lista klientow |
+| `src/components/admin/CustomerEditDrawer.tsx` | Nowy -- drawer edycji + adresy serwisowe |
+| `src/pages/Dashboard.tsx` | Modyfikacja -- podpiecie CustomersView |
+
+---
 
 ## Detale techniczne
 
-- ConfirmDialog jest shared komponentem w `src/components/ui/` -- bedzie uzyty takze w przyszlych widokach (klienci, kalendarz)
-- `unified_services.price` to jedno pole numeric zamiast price_from/price_small/price_medium/price_large
-- `unified_services.duration_minutes` to jedno pole integer zamiast duration_minutes/small/medium/large
-- Brak kolumn `service_type`, `visibility`, `requires_size`, `reminder_template_id`, `default_validity_days`, `default_service_info` w naszej tabeli
-- `unified_categories` nie ma kolumny `category_type` -- wszystkie kategorie sa uniwersalne
-- Przy usuwaniu uslugi sprawdzamy czy ma powiazane `calendar_items` (zamiast `reservations` z N2Wash) -- jesli tak, deaktywujemy zamiast usuwac
-
+- `customer_addresses` ma FK do `customers` z ON DELETE CASCADE
+- `customer_addresses` ma `instance_id` dla RLS (nie trzeba joinowac z customers)
+- Adresy sa fetchowane i zapisywane w ramach `CustomerEditDrawer` (nie jako osobny dialog)
+- Przy dodawaniu nowego klienta sprawdzamy duplikat po telefonie (jak w N2Wash)
+- `ConfirmDialog` (juz istnieje) uzywany do potwierdzenia usuwania klienta
+- Brak SMS dialog na desktopie -- na mobile otwiera natywne `sms:`, na desktop przycisk SMS jest ukryty lub otwiera `sms:` tez
