@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Phone, MessageSquare, Mail, MapPin, X, Plus, Trash2, ChevronDown } from 'lucide-react';
+import { Phone, MessageSquare, Mail, X, ChevronDown } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -11,25 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import CustomerAddressesSection, { type CustomerAddress } from './CustomerAddressesSection';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { normalizePhone } from '@/lib/phoneUtils';
 import type { Customer } from './CustomersView';
 
-interface CustomerAddress {
-  id?: string;
-  name: string;
-  street: string;
-  city: string;
-  postal_code: string;
-  contact_person: string;
-  contact_phone: string;
-  notes: string;
-  is_default: boolean;
-  _isNew?: boolean;
-  _deleted?: boolean;
-}
 
 interface CustomerEditDrawerProps {
   customer: Customer | null;
@@ -122,6 +110,8 @@ const CustomerEditDrawer = ({
         contact_phone: a.contact_phone || '',
         notes: a.notes || '',
         is_default: a.is_default || false,
+        lat: a.lat ?? undefined,
+        lng: a.lng ?? undefined,
       })));
     }
   };
@@ -245,6 +235,8 @@ const CustomerEditDrawer = ({
         notes: addr.notes.trim() || null,
         is_default: addr.is_default,
         sort_order: i,
+        lat: addr.lat ?? null,
+        lng: addr.lng ?? null,
       };
 
       if (addr.id && !addr._isNew) {
@@ -283,38 +275,7 @@ const CustomerEditDrawer = ({
     onClose();
   };
 
-  const addAddress = () => {
-    setAddresses(prev => [...prev, {
-      name: '',
-      street: '',
-      city: '',
-      postal_code: '',
-      contact_person: '',
-      contact_phone: '',
-      notes: '',
-      is_default: false,
-      _isNew: true,
-    }]);
-  };
 
-  const removeAddress = (index: number) => {
-    setAddresses(prev => {
-      const addr = prev[index];
-      if (addr.id && !addr._isNew) {
-        // Mark as deleted
-        return prev.map((a, i) => i === index ? { ...a, _deleted: true } : a);
-      }
-      return prev.filter((_, i) => i !== index);
-    });
-  };
-
-  const updateAddress = (index: number, field: keyof CustomerAddress, value: string | boolean) => {
-    setAddresses(prev => prev.map((a, i) => i === index ? { ...a, [field]: value } : a));
-  };
-
-  if (!customer && !isAddMode) return null;
-
-  const activeAddresses = addresses.filter(a => !a._deleted);
 
   return (
     <Sheet open={open} onOpenChange={handleClose}>
@@ -405,84 +366,11 @@ const CustomerEditDrawer = ({
                   </CollapsibleContent>
                 </Collapsible>
 
-                {/* Addresses section */}
-                <div className="pt-2">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-medium flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Adresy serwisowe
-                    </h3>
-                    <Button variant="outline" size="sm" onClick={addAddress}>
-                      <Plus className="w-3 h-3 mr-1" />
-                      Dodaj adres
-                    </Button>
-                  </div>
-
-                  {activeAddresses.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Brak adresów</p>
-                  ) : (
-                    <div className="space-y-4">
-                      {addresses.map((addr, idx) => {
-                        if (addr._deleted) return null;
-                        return (
-                          <div key={addr.id || `new-${idx}`} className="p-3 border border-border rounded-lg space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-muted-foreground">Adres #{idx + 1}</span>
-                              <Button variant="ghost" size="icon" className="w-6 h-6 text-destructive" onClick={() => removeAddress(idx)}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
-                            <Input
-                              value={addr.name}
-                              onChange={e => updateAddress(idx, 'name', e.target.value)}
-                              placeholder="Nazwa lokalizacji *"
-                              className="text-sm"
-                            />
-                            <Input
-                              value={addr.street}
-                              onChange={e => updateAddress(idx, 'street', e.target.value)}
-                              placeholder="Ulica"
-                              className="text-sm"
-                            />
-                            <div className="grid grid-cols-2 gap-2">
-                              <Input
-                                value={addr.city}
-                                onChange={e => updateAddress(idx, 'city', e.target.value)}
-                                placeholder="Miasto"
-                                className="text-sm"
-                              />
-                              <Input
-                                value={addr.postal_code}
-                                onChange={e => updateAddress(idx, 'postal_code', e.target.value)}
-                                placeholder="Kod pocztowy"
-                                className="text-sm"
-                              />
-                            </div>
-                            <Input
-                              value={addr.contact_person}
-                              onChange={e => updateAddress(idx, 'contact_person', e.target.value)}
-                              placeholder="Osoba kontaktowa"
-                              className="text-sm"
-                            />
-                            <Input
-                              value={addr.contact_phone}
-                              onChange={e => updateAddress(idx, 'contact_phone', e.target.value)}
-                              placeholder="Telefon kontaktowy"
-                              className="text-sm"
-                            />
-                            <Textarea
-                              value={addr.notes}
-                              onChange={e => updateAddress(idx, 'notes', e.target.value)}
-                              placeholder="Notatki do adresu"
-                              rows={2}
-                              className="text-sm"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                <CustomerAddressesSection
+                  addresses={addresses}
+                  onAddressesChange={setAddresses}
+                  isEditing={true}
+                />
               </div>
             ) : (
               // View mode
@@ -516,33 +404,11 @@ const CustomerEditDrawer = ({
                   )}
                 </div>
 
-                {/* Addresses (read-only) */}
-                {activeAddresses.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Adresy serwisowe
-                    </h4>
-                    <div className="space-y-2">
-                      {activeAddresses.map((addr, idx) => (
-                        <div key={addr.id || idx} className="p-3 border border-border rounded-lg text-sm space-y-1">
-                          <div className="font-medium">{addr.name}</div>
-                          {addr.street && <div className="text-muted-foreground">{addr.street}</div>}
-                          {(addr.postal_code || addr.city) && (
-                            <div className="text-muted-foreground">
-                              {addr.postal_code} {addr.city}
-                            </div>
-                          )}
-                          {addr.contact_person && (
-                            <div className="text-muted-foreground">
-                              Kontakt: {addr.contact_person} {addr.contact_phone && `• ${addr.contact_phone}`}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <CustomerAddressesSection
+                  addresses={addresses}
+                  onAddressesChange={setAddresses}
+                  isEditing={false}
+                />
 
                 {customer?.notes && (
                   <div>
