@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole, requiredInstanceId }: ProtectedRouteProps) => {
-  const { user, loading, hasRole, hasInstanceRole } = useAuth();
+  const { user, loading, hasRole, hasInstanceRole, roles } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -25,6 +25,18 @@ const ProtectedRoute = ({ children, requiredRole, requiredInstanceId }: Protecte
 
   if (!user) {
     return <Navigate to={`/login?returnTo=${encodeURIComponent(location.pathname)}`} replace />;
+  }
+
+  // Employee-only users should never reach admin routes — redirect them to /dashboard
+  // which triggers RoleBasedRedirect to send them to their employee calendar
+  const isEmployeeOnly = roles.some(r => r.role === 'employee') &&
+    !roles.some(r => r.role === 'admin' || r.role === 'super_admin');
+  
+  if (isEmployeeOnly && requiredRole === 'admin') {
+    // Allow employee-calendar routes through
+    if (!location.pathname.startsWith('/employee-calendars')) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   if (requiredRole) {
