@@ -23,6 +23,7 @@ import type { Json } from '@/integrations/supabase/types';
 interface NotificationItem {
   months: number;
   service_type: string;
+  trigger_type: 'scheduled' | 'immediate';
 }
 
 const SERVICE_TYPES = [
@@ -31,10 +32,17 @@ const SERVICE_TYPES = [
   { value: 'przeglad', label: 'Przegląd' },
 ];
 
-const SMS_TEMPLATES: Record<string, string> = {
-  serwis: '{short_name}: Zapraszamy na serwis. Kontakt: {reservation_phone}',
-  kontrola: '{short_name}: Zapraszamy na kontrolę. Kontakt: {reservation_phone}',
-  przeglad: '{short_name}: Zapraszamy na przegląd. Kontakt: {reservation_phone}',
+const TRIGGER_TYPES = [
+  { value: 'scheduled', label: 'Po X miesiącach' },
+  { value: 'immediate', label: 'Natychmiast' },
+];
+
+const POLISH_CHARS_REGEX = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/;
+
+const DEFAULT_SMS_TEMPLATES: Record<string, string> = {
+  serwis: 'Zapraszamy na serwis. Kontakt: {reservation_phone}',
+  kontrola: 'Zapraszamy na kontrole. Kontakt: {reservation_phone}',
+  przeglad: 'Zapraszamy na przeglad. Kontakt: {reservation_phone}',
 };
 
 export default function SmsNotificationTemplateEditPage() {
@@ -61,11 +69,36 @@ export default function SmsNotificationTemplateEditPage() {
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [items, setItems] = useState<NotificationItem[]>([{ months: 12, service_type: 'serwis' }]);
+  const [items, setItems] = useState<NotificationItem[]>([{ months: 12, service_type: 'serwis', trigger_type: 'scheduled' }]);
+  const [smsTemplate, setSmsTemplate] = useState('');
+  
+  // Instance data for preview
+  const [instanceShortName, setInstanceShortName] = useState('');
+  const [instancePhone, setInstancePhone] = useState('');
+
+  // Fetch instance short_name and phone
+  useEffect(() => {
+    if (!instanceId) return;
+    const fetchInstance = async () => {
+      const { data } = await (supabase
+        .from('instances') as any)
+        .select('short_name, phone, reservation_phone')
+        .eq('id', instanceId)
+        .single();
+      if (data) {
+        setInstanceShortName(data.short_name || data.name || '');
+        setInstancePhone(data.reservation_phone || data.phone || '');
+      }
+    };
+    fetchInstance();
+  }, [instanceId]);
 
   useEffect(() => {
     if (!authLoading && isNew) {
       setLoading(false);
+      // Set default SMS template
+      const defaultTemplate = DEFAULT_SMS_TEMPLATES['serwis'];
+      setSmsTemplate(defaultTemplate);
     }
   }, [authLoading, isNew]);
 
@@ -96,7 +129,17 @@ export default function SmsNotificationTemplateEditPage() {
         const parsedItems = Array.isArray(template.items) 
           ? (template.items as unknown as NotificationItem[])
           : [];
-        setItems(parsedItems.length > 0 ? parsedItems : [{ months: 12, service_type: 'serwis' }]);
+        // Ensure trigger_type exists for backward compatibility
+        const itemsWithTriggerType = parsedItems.map(item => ({
+          ...item,
+          trigger_type: item.trigger_type || 'scheduled' as const,
+        }));
+        setItems(itemsWithTriggerType.length > 0 ? itemsWithTriggerType : [{ months: 12, service_type: 'serwis', trigger_type: 'scheduled' as const }]);
+        
+        // Load sms_template - strip {short_name}: prefix if present
+        const rawTemplate = template.sms_template || '';
+        const stripped = rawTemplate.replace(/^\{short_name\}:\s*/, '');
+        setSmsTemplate(stripped || DEFAULT_SMS_TEMPLATES[parsedItems[0]?.service_type || 'serwis']);
       } else {
         toast.error('Nie znaleziono szablonu');
         navigate(basePath);
@@ -108,6 +151,28 @@ export default function SmsNotificationTemplateEditPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getFullTemplate = () => {
+    return `{short_name}: ${smsTemplate}`;
+  };
+
+  const getSmsPreview = () => {
+    const shortName = instanceShortName || 'FirmaSMS';
+    const phone = instancePhone || '123456789';
+    return `${shortName}: ${smsTemplate.replace('{reservation_phone}', phone)}`;
+  };
+
+  const smsValidationErrors = (): string[] => {
+    const errors: string[] = [];
+    const fullLength = getFullTemplate().length;
+    if (fullLength > 160) {
+      errors.push(`Szablon SMS przekracza 160 znaków (${fullLength}/160)`);
+    }
+    if (POLISH_CHARS_REGEX.test(smsTemplate)) {
+      errors.push('Szablon SMS nie może zawierać polskich znaków (ą, ć, ę, ł, ń, ó, ś, ź, ż)');
+    }
+    return errors;
   };
 
   const handleSave = async () => {
@@ -123,9 +188,15 @@ export default function SmsNotificationTemplateEditPage() {
       return;
     }
 
+    const errors = smsValidationErrors();
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
+
     setSaving(true);
     try {
-      const smsTemplate = SMS_TEMPLATES[items[0]?.service_type] || SMS_TEMPLATES.serwis;
+      const fullTemplate = getFullTemplate();
       const itemsJson = items as unknown as Json;
       
       let newTemplateId: string | null = null;
@@ -138,7 +209,7 @@ export default function SmsNotificationTemplateEditPage() {
             name: name.trim(),
             description: description.trim() || null,
             items: itemsJson,
-            sms_template: smsTemplate,
+            sms_template: fullTemplate,
           })
           .select('id')
           .single();
@@ -153,7 +224,7 @@ export default function SmsNotificationTemplateEditPage() {
             name: name.trim(),
             description: description.trim() || null,
             items: itemsJson,
-            sms_template: smsTemplate,
+            sms_template: fullTemplate,
           })
           .eq('id', templateId);
 
@@ -177,7 +248,7 @@ export default function SmsNotificationTemplateEditPage() {
   };
 
   const addItem = () => {
-    setItems([...items, { months: 12, service_type: 'serwis' }]);
+    setItems([...items, { months: 12, service_type: 'serwis', trigger_type: 'scheduled' }]);
   };
 
   const removeItem = (index: number) => {
@@ -186,17 +257,19 @@ export default function SmsNotificationTemplateEditPage() {
   };
 
   const updateItem = (index: number, field: keyof NotificationItem, value: number | string) => {
-    setItems(items.map((item, i) => 
-      i === index ? { ...item, [field]: value } : item
-    ));
-  };
-
-  const getSmsExample = () => {
-    const serviceType = items[0]?.service_type || 'serwis';
-    const template = SMS_TEMPLATES[serviceType] || SMS_TEMPLATES.serwis;
-    return template
-      .replace('{short_name}', 'N2Serwis')
-      .replace('{reservation_phone}', '123456789');
+    setItems(items.map((item, i) => {
+      if (i !== index) return item;
+      const updated = { ...item, [field]: value };
+      // When switching to immediate, set months to 0
+      if (field === 'trigger_type' && value === 'immediate') {
+        updated.months = 0;
+      }
+      // When switching back to scheduled, set months to default
+      if (field === 'trigger_type' && value === 'scheduled' && updated.months === 0) {
+        updated.months = 12;
+      }
+      return updated;
+    }));
   };
 
   const handleBack = () => {
@@ -207,6 +280,9 @@ export default function SmsNotificationTemplateEditPage() {
       navigate(basePath);
     }
   };
+
+  const validationErrors = smsValidationErrors();
+  const fullTemplateLength = getFullTemplate().length;
 
   if (loading) {
     return (
@@ -292,18 +368,37 @@ export default function SmsNotificationTemplateEditPage() {
                       Powiadomienie #{index + 1} (SMS)
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                      {/* Months input */}
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min={1}
-                          max={120}
-                          value={item.months}
-                          onChange={(e) => updateItem(index, 'months', parseInt(e.target.value) || 1)}
-                          className="w-20"
-                        />
-                        <span className="text-sm text-muted-foreground">mies. po usłudze</span>
-                      </div>
+                      {/* Trigger type dropdown */}
+                      <Select
+                        value={item.trigger_type || 'scheduled'}
+                        onValueChange={(value) => updateItem(index, 'trigger_type', value)}
+                      >
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TRIGGER_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Months input - only for scheduled */}
+                      {(item.trigger_type || 'scheduled') === 'scheduled' && (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={120}
+                            value={item.months}
+                            onChange={(e) => updateItem(index, 'months', parseInt(e.target.value) || 1)}
+                            className="w-20"
+                          />
+                          <span className="text-sm text-muted-foreground">mies. po usłudze</span>
+                        </div>
+                      )}
                       
                       {/* Service type dropdown */}
                       <Select
@@ -347,15 +442,42 @@ export default function SmsNotificationTemplateEditPage() {
               </Button>
             </div>
 
-            {/* SMS Template Preview */}
+            {/* SMS Template - editable */}
             <div className="space-y-2">
-              <Label>Szablon SMS</Label>
-              <div className="p-3 bg-card rounded-lg border">
-                <p className="text-sm text-muted-foreground mb-1">Przykład:</p>
-                <p className="text-sm font-mono">{getSmsExample()}</p>
+              <Label>Treść SMS</Label>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
+                  <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-xs">
+                    {instanceShortName || '{short_name}'}:
+                  </span>
+                  <span className="text-xs">(stały prefix — nie można edytować)</span>
+                </div>
+                <Textarea
+                  value={smsTemplate}
+                  onChange={(e) => setSmsTemplate(e.target.value)}
+                  placeholder="Zapraszamy na serwis. Kontakt: {reservation_phone}"
+                  rows={3}
+                  className={validationErrors.length > 0 ? 'border-destructive' : ''}
+                />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    {validationErrors.map((err, i) => (
+                      <p key={i} className="text-xs text-destructive">{err}</p>
+                    ))}
+                  </div>
+                  <p className={`text-xs ${fullTemplateLength > 160 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                    {fullTemplateLength} / 160
+                  </p>
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="p-3 bg-muted/50 rounded-lg border">
+                <p className="text-xs text-muted-foreground mb-1">Podgląd SMS:</p>
+                <p className="text-sm font-mono">{getSmsPreview()}</p>
               </div>
               <p className="text-xs text-muted-foreground">
-                Szablon SMS jest generowany automatycznie na podstawie typu usługi
+                Dostępne zmienne: {'{reservation_phone}'} — telefon kontaktowy firmy
               </p>
             </div>
           </div>
@@ -387,7 +509,7 @@ export default function SmsNotificationTemplateEditPage() {
             <Button
               onClick={handleSave}
               className="flex-1"
-              disabled={saving}
+              disabled={saving || validationErrors.length > 0}
             >
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Zapisz

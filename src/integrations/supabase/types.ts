@@ -284,6 +284,7 @@ export type Database = {
       }
       customer_sms_notifications: {
         Row: {
+          calendar_item_id: string | null
           created_at: string
           customer_name: string
           customer_phone: string
@@ -298,6 +299,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          calendar_item_id?: string | null
           created_at?: string
           customer_name: string
           customer_phone: string
@@ -312,6 +314,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          calendar_item_id?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string
@@ -627,6 +630,8 @@ export type Database = {
           phone: string | null
           primary_color: string | null
           protocol_email_template: string | null
+          reservation_phone: string | null
+          short_name: string | null
           slug: string
           updated_at: string
           website: string | null
@@ -644,6 +649,8 @@ export type Database = {
           phone?: string | null
           primary_color?: string | null
           protocol_email_template?: string | null
+          reservation_phone?: string | null
+          short_name?: string | null
           slug: string
           updated_at?: string
           website?: string | null
@@ -661,6 +668,8 @@ export type Database = {
           phone?: string | null
           primary_color?: string | null
           protocol_email_template?: string | null
+          reservation_phone?: string | null
+          short_name?: string | null
           slug?: string
           updated_at?: string
           website?: string | null

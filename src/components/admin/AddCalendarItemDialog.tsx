@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { type DateRange } from 'react-day-picker';
-import { Loader2, CalendarIcon, HardHat } from 'lucide-react';
+import { Loader2, CalendarIcon, HardHat, MessageSquare } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
@@ -23,6 +23,7 @@ import AssignedEmployeesChips from './AssignedEmployeesChips';
 import EmployeeSelectionDrawer from './EmployeeSelectionDrawer';
 import CustomerSearchInput, { type SelectedCustomer } from './CustomerSearchInput';
 import CustomerAddressSelect from './CustomerAddressSelect';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface CalendarColumn {
   id: string;
@@ -111,7 +112,46 @@ const AddCalendarItemDialog = ({
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
   const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
-  // Initialize form
+
+  // SMS notification state
+  const [sendImmediateSms, setSendImmediateSms] = useState(false);
+  const [immediateSmsTemplate, setImmediateSmsTemplate] = useState<string | null>(null);
+  const [immediateSmsTemplateId, setImmediateSmsTemplateId] = useState<string | null>(null);
+  const [existingSmsNotification, setExistingSmsNotification] = useState<{ id: string; status: string; sent_at: string | null } | null>(null);
+  const [instanceShortName, setInstanceShortName] = useState('');
+
+  // Fetch instance short_name
+  useEffect(() => {
+    if (!instanceId) return;
+    const fetchInstance = async () => {
+      const { data } = await (supabase.from('instances') as any)
+        .select('short_name, name')
+        .eq('id', instanceId)
+        .single();
+      if (data) setInstanceShortName(data.short_name || data.name || '');
+    };
+    fetchInstance();
+  }, [instanceId]);
+
+  // Check for existing SMS notification in edit mode
+  useEffect(() => {
+    if (!open || !isEditMode || !editingItem?.id) {
+      setExistingSmsNotification(null);
+      return;
+    }
+    const fetchExistingSms = async () => {
+      const { data } = await (supabase.from('customer_sms_notifications') as any)
+        .select('id, status, sent_at')
+        .eq('calendar_item_id', editingItem.id)
+        .limit(1);
+      if (data && data.length > 0) {
+        setExistingSmsNotification(data[0]);
+      } else {
+        setExistingSmsNotification(null);
+      }
+    };
+    fetchExistingSms();
+  }, [open, isEditMode, editingItem?.id]);
   useEffect(() => {
     if (!open) return;
 
@@ -155,6 +195,9 @@ const AddCalendarItemDialog = ({
     setSelectedServiceIds([]);
     setAllServices([]);
     setServiceItems([]);
+    setSendImmediateSms(false);
+    setImmediateSmsTemplate(null);
+    setImmediateSmsTemplateId(null);
   }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns]);
 
   const handleSelectCustomer = (customer: SelectedCustomer) => {
@@ -215,13 +258,48 @@ const AddCalendarItemDialog = ({
       const endH = Math.floor(totalMinutes / 60);
       const endM = totalMinutes % 60;
       const newEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-      const closest = TIME_OPTIONS.reduce((prev, curr) =>
-        Math.abs(curr.localeCompare(newEnd)) <= Math.abs(prev.localeCompare(newEnd)) ? curr : prev
-      );
-      // Find the closest time option that is >= newEnd
       const closestOption = TIME_OPTIONS.find(t => t >= newEnd) || TIME_OPTIONS[TIME_OPTIONS.length - 1];
       setEndTime(closestOption);
     }
+
+    // Check for immediate SMS templates
+    const fetchImmediateTemplates = async () => {
+      const templateIds = services
+        .filter(s => serviceIds.includes(s.id) && (s as any).notification_template_id)
+        .map(s => (s as any).notification_template_id)
+        .filter(Boolean);
+      
+      if (templateIds.length === 0) {
+        setImmediateSmsTemplate(null);
+        setImmediateSmsTemplateId(null);
+        setSendImmediateSms(false);
+        return;
+      }
+
+      const uniqueIds = [...new Set(templateIds)];
+      const { data: templates } = await (supabase
+        .from('sms_notification_templates') as any)
+        .select('id, sms_template, items')
+        .in('id', uniqueIds);
+
+      if (templates) {
+        for (const tmpl of templates) {
+          const tmplItems = Array.isArray(tmpl.items) ? tmpl.items : [];
+          const hasImmediate = tmplItems.some((item: any) => item.trigger_type === 'immediate');
+          if (hasImmediate && tmpl.sms_template) {
+            const preview = tmpl.sms_template.replace(/\{short_name\}/g, instanceShortName);
+            setImmediateSmsTemplate(preview);
+            setImmediateSmsTemplateId(tmpl.id);
+            setSendImmediateSms(true);
+            return;
+          }
+        }
+      }
+      setImmediateSmsTemplate(null);
+      setImmediateSmsTemplateId(null);
+      setSendImmediateSms(false);
+    };
+    fetchImmediateTemplates();
   };
 
   const handleRemoveService = (serviceId: string) => {
@@ -237,6 +315,54 @@ const AddCalendarItemDialog = ({
 
   const handleTotalPriceChange = (newTotal: number) => {
     setPrice(newTotal.toString());
+  };
+
+  const createAndSendSms = async (calendarItemId: string) => {
+    try {
+      const serviceType = allServices.find(s => (s as any).notification_template_id === immediateSmsTemplateId)?.name || 'serwis';
+      
+      // Create notification record
+      const { data: notif, error: notifError } = await (supabase
+        .from('customer_sms_notifications') as any)
+        .insert({
+          instance_id: instanceId,
+          notification_template_id: immediateSmsTemplateId,
+          customer_name: customerName.trim(),
+          customer_phone: customerPhone.trim(),
+          service_type: serviceType,
+          months_after: 0,
+          scheduled_date: format(dateRange!.from!, 'yyyy-MM-dd'),
+          status: 'pending',
+          calendar_item_id: calendarItemId,
+        })
+        .select('id')
+        .single();
+
+      if (notifError) {
+        console.error('Error creating SMS notification:', notifError);
+        return;
+      }
+
+      // Call edge function
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      fetch(`https://${projectId}.supabase.co/functions/v1/send-sms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({
+          phone: customerPhone.trim(),
+          message: immediateSmsTemplate || '',
+          instanceId: instanceId,
+          notificationId: notif?.id,
+        }),
+      }).catch(err => console.error('Error calling send-sms:', err));
+    } catch (err) {
+      console.error('Error in createAndSendSms:', err);
+    }
   };
 
   const handleSubmit = async () => {
@@ -283,12 +409,26 @@ const AddCalendarItemDialog = ({
           .update(data)
           .eq('id', editingItem!.id);
         if (error) throw error;
+
+        // Send immediate SMS in edit mode if checkbox checked and no existing notification
+        if (sendImmediateSms && immediateSmsTemplateId && customerPhone.trim() && !existingSmsNotification) {
+          await createAndSendSms(editingItem!.id);
+        }
+
         toast.success('Zlecenie zaktualizowane');
       } else {
-        const { error } = await supabase
+        const { data: inserted, error } = await supabase
           .from('calendar_items')
-          .insert({ ...data, status: 'confirmed' });
+          .insert({ ...data, status: 'confirmed' })
+          .select('id')
+          .single();
         if (error) throw error;
+
+        // Send immediate SMS if checkbox checked
+        if (sendImmediateSms && immediateSmsTemplateId && customerPhone.trim() && inserted) {
+          await createAndSendSms(inserted.id);
+        }
+
         toast.success('Zlecenie dodane');
       }
 
@@ -501,6 +641,57 @@ const AddCalendarItemDialog = ({
                 {assignedEmployeeIds.length > 0 ? 'Zmień pracowników' : 'Przypisz pracowników'}
               </Button>
             </div>
+
+            {/* SMS Notification */}
+            {(() => {
+              // Edit mode: show status or checkbox
+              if (isEditMode && existingSmsNotification) {
+                if (existingSmsNotification.sent_at) {
+                  return (
+                    <div className="flex items-center gap-2 text-sm text-emerald-600 p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Wysłano SMS — {format(new Date(existingSmsNotification.sent_at), 'd MMM yyyy, HH:mm', { locale: pl })}</span>
+                    </div>
+                  );
+                }
+                if (existingSmsNotification.status === 'pending') {
+                  return (
+                    <div className="flex items-center gap-2 text-sm text-orange-600 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>SMS oczekuje na wysłanie</span>
+                    </div>
+                  );
+                }
+              }
+              // Show checkbox if immediate template available and no existing sent SMS
+              if (immediateSmsTemplate && (!existingSmsNotification || (!existingSmsNotification.sent_at && existingSmsNotification.status !== 'pending'))) {
+                const hasPhone = !!customerPhone.trim();
+                return (
+                  <div className="space-y-2 p-3 border rounded-lg bg-card">
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="send-sms"
+                        checked={sendImmediateSms}
+                        onCheckedChange={(checked) => setSendImmediateSms(!!checked)}
+                        disabled={!hasPhone}
+                        className="mt-0.5"
+                      />
+                      <label htmlFor="send-sms" className={`text-sm cursor-pointer ${!hasPhone ? 'opacity-50' : ''}`}>
+                        <div className="flex items-center gap-1 font-medium">
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          Wyślij powiadomienie SMS
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 font-mono">{immediateSmsTemplate}</p>
+                      </label>
+                    </div>
+                    {!hasPhone && (
+                      <p className="text-xs text-destructive ml-6">Wymagany numer telefonu klienta</p>
+                    )}
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             {/* Notes */}
             <div className="space-y-2">
