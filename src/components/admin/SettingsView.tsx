@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Building2, Grid2X2, Monitor, Users, Loader2, Save, Upload, Trash2, Image as ImageIcon, ChevronDown } from 'lucide-react';
+import { Building2, Grid2X2, Monitor, Users, Loader2, Save, Upload, Trash2, Image as ImageIcon, ChevronDown, Plug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,13 +13,14 @@ import EmployeeCalendarsListView from './employee-calendars/EmployeeCalendarsLis
 import InstanceUsersTab from './users/InstanceUsersTab';
 import AddressSearchInput from './AddressSearchInput';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { IntegrationsSettingsView } from '@/components/invoicing/IntegrationsSettingsView';
 import type { AddressSearchResult } from '@/lib/addressSearch';
 
 interface SettingsViewProps {
   instanceId: string | null;
 }
 
-type SettingsTab = 'company' | 'calendar' | 'employee-calendars' | 'users';
+type SettingsTab = 'company' | 'calendar' | 'employee-calendars' | 'users' | 'integrations';
 
 const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const isMobile = useIsMobile();
@@ -84,6 +85,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
     { key: 'calendar', label: 'Kalendarz', icon: <Grid2X2 className="w-4 h-4" /> },
     { key: 'employee-calendars', label: 'Kalendarze pracowników', icon: <Monitor className="w-4 h-4" /> },
     { key: 'users', label: 'Użytkownicy', icon: <Users className="w-4 h-4" /> },
+    { key: 'integrations', label: 'Integracje', icon: <Plug className="w-4 h-4" /> },
   ];
 
   const handleInputChange = (field: string, value: string) => {
@@ -282,6 +284,9 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
 
       case 'users':
         return instanceId ? <InstanceUsersTab instanceId={instanceId} /> : null;
+
+      case 'integrations':
+        return <IntegrationsSettingsView instanceId={instanceId} />;
 
       default:
         return null;
