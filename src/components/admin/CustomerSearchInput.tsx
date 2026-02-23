@@ -19,9 +19,10 @@ interface CustomerSearchInputProps {
   selectedCustomer: SelectedCustomer | null;
   onSelect: (customer: SelectedCustomer) => void;
   onClear: () => void;
+  onCustomerClick?: (customerId: string) => void;
 }
 
-const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear }: CustomerSearchInputProps) => {
+const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, onCustomerClick }: CustomerSearchInputProps) => {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SelectedCustomer[]>([]);
@@ -51,9 +52,13 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear }
     return (
       <div className="flex items-center gap-2 p-2 rounded-md border border-input bg-muted/30">
         <Search className="w-4 h-4 text-muted-foreground" />
-        <span className="text-sm flex-1">
+        <button
+          type="button"
+          className="text-sm flex-1 text-left text-primary hover:underline cursor-pointer"
+          onClick={() => onCustomerClick?.(selectedCustomer.id)}
+        >
           {selectedCustomer.name}{selectedCustomer.phone ? ` • ${selectedCustomer.phone}` : ''}
-        </span>
+        </button>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClear}>
           <X className="w-3 h-3" />
         </Button>
