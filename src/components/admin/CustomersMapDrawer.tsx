@@ -205,6 +205,8 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
       open={open}
       onOpenChange={v => { if (!v) onClose(); }}
       direction={isMobile ? 'bottom' : 'right'}
+      modal={false}
+      dismissible={false}
     >
       <DrawerContent
         hideHandle
