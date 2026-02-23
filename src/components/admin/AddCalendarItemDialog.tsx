@@ -59,6 +59,12 @@ interface AddCalendarItemDialogProps {
   initialDate?: string;
   initialTime?: string;
   initialColumnId?: string;
+  initialCustomerId?: string;
+  initialCustomerName?: string;
+  initialCustomerPhone?: string;
+  initialCustomerEmail?: string;
+  initialCustomerAddressId?: string;
+  initialServiceIds?: string[];
 }
 
 const generateTimeOptions = () => {
@@ -84,6 +90,12 @@ const AddCalendarItemDialog = ({
   initialDate,
   initialTime,
   initialColumnId,
+  initialCustomerId,
+  initialCustomerName,
+  initialCustomerPhone,
+  initialCustomerEmail,
+  initialCustomerAddressId,
+  initialServiceIds,
 }: AddCalendarItemDialogProps) => {
   const isEditMode = !!editingItem?.id;
   const isMobile = useIsMobile();
@@ -211,11 +223,11 @@ const AddCalendarItemDialog = ({
       loadServices();
     } else {
       setTitle('');
-      setCustomerName('');
-      setCustomerPhone('');
-      setCustomerEmail('');
-      setCustomerId(null);
-      setCustomerAddressId(null);
+      setCustomerName(initialCustomerName || '');
+      setCustomerPhone(initialCustomerPhone || '');
+      setCustomerEmail(initialCustomerEmail || '');
+      setCustomerId(initialCustomerId || null);
+      setCustomerAddressId(initialCustomerAddressId || null);
       setColumnId(initialColumnId || columns[0]?.id || '');
       const initDate = initialDate ? parseISO(initialDate) : new Date();
       setDateRange({ from: initDate, to: initDate });
@@ -226,14 +238,48 @@ const AddCalendarItemDialog = ({
       setAdminNotes('');
       setPrice('');
       setAssignedEmployeeIds([]);
-      setSelectedServiceIds([]);
-      setAllServices([]);
-      setServiceItems([]);
+
+      // Pre-fill services if provided
+      if (initialServiceIds && initialServiceIds.length > 0) {
+        const loadInitialServices = async () => {
+          const { data: svcData } = await supabase
+            .from('unified_services')
+            .select('id, name, short_name, price, duration_minutes, category_id, notification_template_id')
+            .in('id', initialServiceIds);
+          if (svcData && svcData.length > 0) {
+            setAllServices(svcData as ServiceWithCategory[]);
+            setSelectedServiceIds(initialServiceIds);
+            setServiceItems(initialServiceIds.map(id => {
+              const svc = svcData.find(s => s.id === id);
+              return {
+                service_id: id,
+                custom_price: null,
+                name: svc?.name,
+                short_name: svc?.short_name,
+                price: svc?.price,
+              };
+            }));
+            // Auto-generate title
+            const names = initialServiceIds.map(id => {
+              const s = svcData.find(sv => sv.id === id);
+              return s?.short_name || s?.name || '';
+            }).filter(Boolean);
+            if (names.length > 0) {
+              setTitle(names.join(', '));
+            }
+          }
+        };
+        loadInitialServices();
+      } else {
+        setSelectedServiceIds([]);
+        setAllServices([]);
+        setServiceItems([]);
+      }
     }
     setSendImmediateSms(false);
     setImmediateSmsTemplate(null);
     setImmediateSmsTemplateId(null);
-  }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns]);
+  }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns, initialCustomerId, initialCustomerName, initialCustomerPhone, initialCustomerEmail, initialCustomerAddressId, initialServiceIds]);
 
   const handleSelectCustomer = (customer: SelectedCustomer) => {
     setCustomerId(customer.id);

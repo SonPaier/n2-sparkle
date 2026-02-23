@@ -49,7 +49,7 @@ const ITEMS_PER_PAGE = 10;
 const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [addressMap, setAddressMap] = useState<Map<string, { name: string; city: string | null; lat: number | null; lng: number | null }[]>>(new Map());
+  const [addressMap, setAddressMap] = useState<Map<string, { id: string; name: string; city: string | null; lat: number | null; lng: number | null }[]>>(new Map());
   const [mapOpen, setMapOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +59,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [clickedAddressId, setClickedAddressId] = useState<string | null>(null);
 
   // Map filter state
   const [mapFilters, setMapFilters] = useState<MapFilters>({ customer: null, serviceIds: [], serviceNames: [] });
@@ -70,18 +71,18 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     
     const [customersRes, addressesRes] = await Promise.all([
       supabase.from('customers').select('*').eq('instance_id', instanceId).order('name'),
-      supabase.from('customer_addresses').select('customer_id, name, city, lat, lng').eq('instance_id', instanceId),
+      supabase.from('customer_addresses').select('id, customer_id, name, city, lat, lng').eq('instance_id', instanceId),
     ]);
 
     if (!customersRes.error && customersRes.data) {
       setCustomers(customersRes.data as Customer[]);
     }
 
-    const map = new Map<string, { name: string; city: string | null; lat: number | null; lng: number | null }[]>();
+    const map = new Map<string, { id: string; name: string; city: string | null; lat: number | null; lng: number | null }[]>();
     if (!addressesRes.error && addressesRes.data) {
       for (const addr of addressesRes.data) {
         const list = map.get(addr.customer_id) || [];
-        list.push({ name: addr.name, city: addr.city, lat: addr.lat, lng: addr.lng });
+        list.push({ id: addr.id, name: addr.name, city: addr.city, lat: addr.lat, lng: addr.lng });
         map.set(addr.customer_id, list);
       }
     }
@@ -186,6 +187,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
             addressName: addr.name,
             city: addr.city,
             customerId: customer.id,
+            addressId: addr.id,
           });
         }
       }
@@ -400,6 +402,13 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         onClose={handleCloseDrawer}
         onCustomerUpdated={fetchCustomers}
         isAddMode={isAddMode}
+        prefilledAddressId={clickedAddressId || undefined}
+        prefilledServiceIds={mapFilters.serviceIds.length > 0 ? mapFilters.serviceIds : undefined}
+        prefilledServiceNames={mapFilters.serviceNames.length > 0 ? mapFilters.serviceNames : undefined}
+        onNewOrderCreated={() => {
+          handleCloseDrawer();
+          fetchCustomers();
+        }}
       />
 
       {/* Customers Map Drawer */}
@@ -410,12 +419,12 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         instanceId={instanceId || ''}
         filters={mapFilters}
         onFiltersChange={setMapFilters}
-        onCustomerClick={(customerId) => {
-          setMapOpen(false);
+        onCustomerClick={(customerId, addressId) => {
           const customer = customers.find(c => c.id === customerId);
           if (customer) {
             setIsAddMode(false);
             setSelectedCustomer(customer);
+            setClickedAddressId(addressId);
           }
         }}
       />
