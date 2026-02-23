@@ -769,7 +769,7 @@ const AdminCalendar = ({
                     <span className="hidden sm:inline">Data</span>
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-[60]" align="start">
                   <Calendar mode="single" selected={currentDate} onSelect={(date) => {
                     if (date) { setCurrentDate(date); setViewMode('day'); setDatePickerOpen(false); }
                   }} initialFocus className="pointer-events-auto" locale={pl} />
@@ -796,7 +796,7 @@ const AdminCalendar = ({
                 <SelectTrigger className="h-9 w-[140px] text-sm">
                   <SelectValue placeholder="Kolumna" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[60]">
                   {columns.map((col) => <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -824,7 +824,7 @@ const AdminCalendar = ({
                   <Settings2 className="w-4 h-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-3">
+              <PopoverContent align="end" className="w-56 p-3 z-[60]">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium text-sm">Widoczność kolumn</h4>
