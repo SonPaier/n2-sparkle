@@ -538,7 +538,7 @@ const CalendarItemDetailsDrawer = ({
           side={isMobile ? 'bottom' : 'right'}
           hideCloseButton
           hideOverlay
-          className={`flex flex-col p-0 gap-0 ${isMobile ? 'h-[85vh]' : 'sm:max-w-lg'}`}
+          className={`flex flex-col p-0 gap-0 z-[60] ${isMobile ? 'h-[85vh]' : 'sm:max-w-lg'}`}
         >
           {/* Accessible title */}
           <SheetTitle className="sr-only">{item.title}</SheetTitle>

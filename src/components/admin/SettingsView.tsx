@@ -184,7 +184,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
     switch (activeTab) {
       case 'company':
         return (
-          <div className="space-y-6">
+          <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
             {/* Logo */}
             <div className="space-y-3">
               <Label>Logo</Label>
@@ -219,22 +219,23 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
 
             <div className="space-y-2">
               <Label htmlFor="name">Nazwa firmy *</Label>
-              <Input id="name" value={companyForm.name} onChange={(e) => handleInputChange('name', e.target.value)} />
+              <Input id="name" className="bg-white" value={companyForm.name} onChange={(e) => handleInputChange('name', e.target.value)} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="phone">Telefon</Label>
-              <Input id="phone" type="tel" value={companyForm.phone} onChange={(e) => handleInputChange('phone', e.target.value)} />
+              <Input id="phone" type="tel" className="bg-white" value={companyForm.phone} onChange={(e) => handleInputChange('phone', e.target.value)} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={companyForm.email} onChange={(e) => handleInputChange('email', e.target.value)} />
+              <Input id="email" type="email" className="bg-white" value={companyForm.email} onChange={(e) => handleInputChange('email', e.target.value)} />
             </div>
 
             <div className="space-y-2">
               <Label>Adres siedziby</Label>
               <AddressSearchInput
+                className="bg-white"
                 placeholder="Szukaj adresu siedziby..."
                 defaultValue={
                   [companyForm.address_street, companyForm.address_postal_code, companyForm.address_city]
@@ -258,12 +259,12 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
 
             <div className="space-y-2">
               <Label htmlFor="contact_person">Osoba kontaktowa</Label>
-              <Input id="contact_person" value={companyForm.contact_person} onChange={(e) => handleInputChange('contact_person', e.target.value)} />
+              <Input id="contact_person" className="bg-white" value={companyForm.contact_person} onChange={(e) => handleInputChange('contact_person', e.target.value)} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="website">Strona www</Label>
-              <Input id="website" type="url" value={companyForm.website} onChange={(e) => handleInputChange('website', e.target.value)} />
+              <Input id="website" type="url" className="bg-white" value={companyForm.website} onChange={(e) => handleInputChange('website', e.target.value)} />
             </div>
 
             <Button onClick={handleSaveCompany} disabled={loading} className="w-full">
