@@ -1,39 +1,71 @@
 
-
-# Mapa lokalizacji klientow
+# Taby "Dane" i "Zlecenia" w drawerze klienta
 
 ## Co robimy
 
-Dodajemy przycisk "Mapa" w widoku Klienci, ktory otwiera drawer z mapa Leaflet pokazujaca wszystkie adresy klientow (z tabeli `customer_addresses` ktore maja lat/lng).
+Dodajemy dwa taby w drawerze szczegulow klienta (`CustomerEditDrawer`):
+- **Dane** -- obecna zawartosc (formularz edycji / podglad danych)
+- **Zlecenia** -- lista wszystkich zlecen (calendar_items) powiazanych z tym klientem, od najnowszych
 
-## UI
+Taby widoczne tylko przy podgladzie/edycji istniejacego klienta (nie w trybie dodawania nowego).
 
-- Przycisk "Mapa" obok przycisku "Dodaj" w headerze
-- Drawer: na mobile 100% width, na desktop 80% width z pelnym overlay
-- Tooltip na markerze: linia 1 = nazwa klienta, linia 2 = nazwa obiektu + miasto
-- Klikniecie markera otwiera drawer edycji klienta (ten sam co teraz)
+## Karta zlecenia
+
+Kazda karta zawiera:
+- Data zlecenia
+- Nazwa adresu (z customer_addresses)
+- Adres (ulica, miasto)
+- Lista uslug (z calendar_item_services + unified_services)
+- Kwota (price)
+- Status (badge kolorowy)
+- Link do protokolu publicznego (jesli istnieje)
+
+Sortowanie: od najnowszych (item_date DESC).
 
 ## Plan techniczny
 
-### 1. Nowy komponent `CustomersMapDrawer.tsx`
+### 1. Nowy komponent `CustomerOrderCard.tsx`
 
-- Drawer (vaul) z props: `open`, `onClose`, `addresses` (tablica z lat, lng, customerName, addressName, city, customerId), `onCustomerClick(customerId)`
-- Wewnatrz: mapa Leaflet (ten sam wzorzec co CalendarMap -- init map, markery, fitBounds)
-- Markery z jednym kolorem (np. indigo `#6366f1`)
-- Tooltip: linia 1 = nazwa klienta, linia 2 = nazwa obiektu + miasto
-- Na mobile: drawer direction="bottom" z h-[100dvh], na desktop: direction="right" z w-[80vw]
-- Reuse tych samych CSS klas tooltipow co CalendarMap
+Osobny komponent karty zlecenia.
 
-### 2. Zmiana w `CustomersView.tsx`
+Props:
+- `itemDate: string` -- data zlecenia
+- `status: string` -- status zlecenia
+- `addressName?: string` -- nazwa obiektu
+- `addressStreet?: string` -- ulica
+- `addressCity?: string` -- miasto
+- `services: { name: string; price?: number }[]` -- lista uslug
+- `price?: number` -- kwota calkowita
+- `protocolPublicToken?: string` -- token do publicznego linku protokolu
 
-- Dodanie przycisku "Mapa" (ikona MapPin) w headerze obok "Dodaj"
-- Stan `mapOpen` do kontroli drawera
-- Przygotowanie danych adresow: join `addressMap` + `customers` aby miec nazwe klienta przy kazdym adresie
-- Fetch adresow rozszerzony o `lat, lng` (obecnie pobieramy tylko `name, city`)
-- `onCustomerClick` -> zamkniecie mapy + otwarcie CustomerEditDrawer
+Wyglad:
+- Gora: data (sformatowana) + badge statusu (kolorowy wg statusu)
+- Srodek: nazwa adresu, adres (ulica, miasto), lista uslug
+- Dol: kwota + link "Protokol" (otwiera w nowej karcie)
 
-### Pliki do zmiany/utworzenia
+### 2. Nowy komponent `CustomerOrdersTab.tsx`
 
-- **Nowy**: `src/components/admin/CustomersMapDrawer.tsx`
-- **Edycja**: `src/components/admin/CustomersView.tsx` (przycisk, stan, dane adresow z lat/lng)
+Props: `customerId: string`, `instanceId: string`
 
+Logika:
+- Fetch `calendar_items` where `customer_id = customerId`, order by `item_date DESC`
+- Fetch powiazane `calendar_item_services` + `unified_services` (nazwy uslug)
+- Fetch `customer_addresses` po `customer_address_id` (nazwa, ulica, miasto)
+- Fetch `protocols` po `calendar_item_id` (public_token)
+- Renderowanie listy komponentow `CustomerOrderCard`
+
+### 3. Zmiana w `CustomerEditDrawer.tsx`
+
+- Gdy `!isAddMode`:
+  - Header (nazwa klienta, przyciski sms/tel, X) zostaje nad tabami
+  - Pod headerem: Tabs z dwoma tabami "Dane" i "Zlecenia" (uzycie `AdminTabsList` / `AdminTabsTrigger`)
+  - Tab "Dane": obecna zawartosc (view mode + edit mode)
+  - Tab "Zlecenia": komponent `CustomerOrdersTab`
+  - Footer (Edytuj/Zapisz/Anuluj) widoczny tylko gdy aktywny tab "Dane"
+- Gdy `isAddMode`: bez tabow, dzialanie jak dotychczas
+
+### Pliki
+
+- **Nowy**: `src/components/admin/CustomerOrderCard.tsx`
+- **Nowy**: `src/components/admin/CustomerOrdersTab.tsx`
+- **Edycja**: `src/components/admin/CustomerEditDrawer.tsx`
