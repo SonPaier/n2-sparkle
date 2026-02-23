@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ExternalLink, MapPin, Pencil } from 'lucide-react';
+import { ExternalLink, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface CustomerOrderCardProps {
@@ -12,7 +12,7 @@ interface CustomerOrderCardProps {
   services: { name: string; price?: number }[];
   price?: number;
   protocolPublicToken?: string;
-  onEdit?: () => void;
+  onClick?: () => void;
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -31,7 +31,7 @@ const CustomerOrderCard = ({
   services,
   price,
   protocolPublicToken,
-  onEdit,
+  onClick,
 }: CustomerOrderCardProps) => {
   const statusInfo = statusConfig[status] || { label: status, className: 'bg-muted text-muted-foreground' };
 
@@ -43,24 +43,16 @@ const CustomerOrderCard = ({
   const hasAddress = addressName || addressStreet || addressCity;
 
   return (
-    <div className="bg-white border rounded-lg p-3 space-y-2 shadow-sm">
-      {/* Top: date + edit + status */}
+    <div
+      className="bg-white border rounded-lg p-3 space-y-2 shadow-sm cursor-pointer hover:border-primary/30 transition-colors"
+      onClick={onClick}
+    >
+      {/* Top: date + status */}
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{formattedDate}</span>
-        <div className="flex items-center gap-2">
-          {onEdit && (
-            <button
-              onClick={onEdit}
-              className="p-1 rounded hover:bg-muted transition-colors"
-              aria-label="Edytuj zlecenie"
-            >
-              <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
-            </button>
-          )}
-          <Badge variant="outline" className={statusInfo.className}>
-            {statusInfo.label}
-          </Badge>
-        </div>
+        <Badge variant="outline" className={statusInfo.className}>
+          {statusInfo.label}
+        </Badge>
       </div>
 
       {/* Address */}

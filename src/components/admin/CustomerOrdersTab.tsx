@@ -5,7 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import CustomerOrderCard from './CustomerOrderCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import AddCalendarItemDialog, { type EditingCalendarItem } from './AddCalendarItemDialog';
+import CalendarItemDetailsDrawer from './CalendarItemDetailsDrawer';
+import type { CalendarItem, CalendarColumn } from './AdminCalendar';
 
 interface CustomerOrdersTabProps {
   customerId: string;
@@ -24,18 +25,13 @@ interface OrderData {
   protocolPublicToken?: string;
 }
 
-interface CalendarColumn {
-  id: string;
-  name: string;
-}
-
 const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) => {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPast, setShowPast] = useState(false);
   const [columns, setColumns] = useState<CalendarColumn[]>([]);
-  const [editingItem, setEditingItem] = useState<EditingCalendarItem | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState<CalendarItem | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -128,15 +124,15 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
     }
   };
 
-  const handleEditClick = async (orderId: string) => {
+  const handleCardClick = async (orderId: string) => {
     const { data } = await supabase
       .from('calendar_items')
-      .select('id, title, item_date, end_date, start_time, end_time, column_id, admin_notes, price, customer_id, customer_address_id, assigned_employee_ids, customer_name, customer_phone, customer_email')
+      .select('id, title, item_date, end_date, start_time, end_time, column_id, status, admin_notes, price, customer_id, customer_address_id, assigned_employee_ids, customer_name, customer_phone, customer_email, photo_urls')
       .eq('id', orderId)
       .single();
 
     if (data) {
-      setEditingItem({
+      const calendarItem: CalendarItem = {
         id: data.id,
         title: data.title,
         item_date: data.item_date,
@@ -144,6 +140,7 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
         start_time: data.start_time,
         end_time: data.end_time,
         column_id: data.column_id,
+        status: data.status,
         admin_notes: data.admin_notes,
         price: data.price,
         customer_id: data.customer_id,
@@ -152,9 +149,17 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
         customer_name: data.customer_name,
         customer_phone: data.customer_phone,
         customer_email: data.customer_email,
-      });
-      setEditOpen(true);
+        photo_urls: Array.isArray(data.photo_urls) ? data.photo_urls as string[] : [],
+      };
+      setDetailItem(calendarItem);
+      setDetailOpen(true);
     }
+  };
+
+  const handleDetailClose = () => {
+    setDetailOpen(false);
+    setDetailItem(null);
+    fetchOrders();
   };
 
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -192,7 +197,7 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
           addressCity={order.addressCity}
           services={order.services}
           protocolPublicToken={order.protocolPublicToken}
-          onEdit={() => handleEditClick(order.id)}
+          onClick={() => handleCardClick(order.id)}
         />
       ))}
 
@@ -219,19 +224,18 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
               addressCity={order.addressCity}
               services={order.services}
               protocolPublicToken={order.protocolPublicToken}
-              onEdit={() => handleEditClick(order.id)}
+              onClick={() => handleCardClick(order.id)}
             />
           ))}
         </>
       )}
 
-      <AddCalendarItemDialog
-        open={editOpen}
-        onClose={() => { setEditOpen(false); setEditingItem(null); }}
-        instanceId={instanceId}
+      <CalendarItemDetailsDrawer
+        item={detailItem}
+        open={detailOpen}
+        onClose={handleDetailClose}
         columns={columns}
-        onSuccess={() => { setEditOpen(false); setEditingItem(null); fetchOrders(); }}
-        editingItem={editingItem}
+        instanceId={instanceId}
       />
     </div>
   );
