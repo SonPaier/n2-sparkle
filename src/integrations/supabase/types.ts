@@ -169,6 +169,7 @@ export type Database = {
           id: string
           instance_id: string
           item_date: string
+          payment_status: string | null
           photo_urls: Json | null
           price: number | null
           start_time: string
@@ -192,6 +193,7 @@ export type Database = {
           id?: string
           instance_id: string
           item_date: string
+          payment_status?: string | null
           photo_urls?: Json | null
           price?: number | null
           start_time: string
@@ -215,6 +217,7 @@ export type Database = {
           id?: string
           instance_id?: string
           item_date?: string
+          payment_status?: string | null
           photo_urls?: Json | null
           price?: number | null
           start_time?: string
@@ -743,6 +746,159 @@ export type Database = {
           working_hours?: Json | null
         }
         Relationships: []
+      }
+      invoices: {
+        Row: {
+          buyer_email: string | null
+          buyer_name: string | null
+          buyer_tax_no: string | null
+          calendar_item_id: string | null
+          created_at: string | null
+          currency: string | null
+          customer_id: string | null
+          external_client_id: string | null
+          external_invoice_id: string | null
+          id: string
+          instance_id: string
+          invoice_number: string | null
+          issue_date: string | null
+          kind: string | null
+          notes: string | null
+          oid: string | null
+          payment_to: string | null
+          pdf_url: string | null
+          positions: Json | null
+          provider: string
+          sell_date: string | null
+          status: string | null
+          total_gross: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          buyer_tax_no?: string | null
+          calendar_item_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          external_client_id?: string | null
+          external_invoice_id?: string | null
+          id?: string
+          instance_id: string
+          invoice_number?: string | null
+          issue_date?: string | null
+          kind?: string | null
+          notes?: string | null
+          oid?: string | null
+          payment_to?: string | null
+          pdf_url?: string | null
+          positions?: Json | null
+          provider: string
+          sell_date?: string | null
+          status?: string | null
+          total_gross?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          buyer_email?: string | null
+          buyer_name?: string | null
+          buyer_tax_no?: string | null
+          calendar_item_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_id?: string | null
+          external_client_id?: string | null
+          external_invoice_id?: string | null
+          id?: string
+          instance_id?: string
+          invoice_number?: string | null
+          issue_date?: string | null
+          kind?: string | null
+          notes?: string | null
+          oid?: string | null
+          payment_to?: string | null
+          pdf_url?: string | null
+          positions?: Json | null
+          provider?: string
+          sell_date?: string | null
+          status?: string | null
+          total_gross?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_calendar_item_id_fkey"
+            columns: ["calendar_item_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoicing_settings: {
+        Row: {
+          active: boolean | null
+          auto_send_email: boolean | null
+          created_at: string | null
+          default_currency: string | null
+          default_document_kind: string | null
+          default_payment_days: number | null
+          default_vat_rate: number | null
+          instance_id: string
+          provider: string | null
+          provider_config: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          auto_send_email?: boolean | null
+          created_at?: string | null
+          default_currency?: string | null
+          default_document_kind?: string | null
+          default_payment_days?: number | null
+          default_vat_rate?: number | null
+          instance_id: string
+          provider?: string | null
+          provider_config?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          auto_send_email?: boolean | null
+          created_at?: string | null
+          default_currency?: string | null
+          default_document_kind?: string | null
+          default_payment_days?: number | null
+          default_vat_rate?: number | null
+          instance_id?: string
+          provider?: string | null
+          provider_config?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoicing_settings_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: true
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
