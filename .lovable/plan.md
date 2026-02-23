@@ -1,20 +1,39 @@
 
 
-# Wyszukiwanie klientów po adresach (name, city)
+# Mapa lokalizacji klientow
 
-## Zmiana
+## Co robimy
 
-Rozszerzenie wyszukiwarki klientów o dane z tabeli `customer_addresses` -- pola `name` i `city`.
+Dodajemy przycisk "Mapa" w widoku Klienci, ktory otwiera drawer z mapa Leaflet pokazujaca wszystkie adresy klientow (z tabeli `customer_addresses` ktore maja lat/lng).
 
-## Szczegóły techniczne
+## UI
 
-### Plik: `src/components/admin/CustomersView.tsx`
+- Przycisk "Mapa" obok przycisku "Dodaj" w headerze
+- Drawer: na mobile 100% width, na desktop 80% width z pelnym overlay
+- Tooltip na markerze: linia 1 = nazwa klienta, linia 2 = nazwa obiektu + miasto
+- Klikniecie markera otwiera drawer edycji klienta (ten sam co teraz)
 
-1. Dodanie stanu `addressMap` typu `Map<string, {name: string, city: string | null}[]>` -- mapowanie customer_id na listę adresów.
+## Plan techniczny
 
-2. W `fetchCustomers` -- drugi query do `customer_addresses` pobierający `customer_id, name, city` dla danego `instance_id`. Wynik zapisany do mapy.
+### 1. Nowy komponent `CustomersMapDrawer.tsx`
 
-3. W `filteredCustomers` useMemo -- dodanie warunku: jeśli fraza pasuje do `address.name.toLowerCase()` lub `address.city?.toLowerCase()` któregokolwiek adresu klienta, klient jest uwzględniony w wynikach.
+- Drawer (vaul) z props: `open`, `onClose`, `addresses` (tablica z lat, lng, customerName, addressName, city, customerId), `onCustomerClick(customerId)`
+- Wewnatrz: mapa Leaflet (ten sam wzorzec co CalendarMap -- init map, markery, fitBounds)
+- Markery z jednym kolorem (np. indigo `#6366f1`)
+- Tooltip: linia 1 = nazwa klienta, linia 2 = nazwa obiektu + miasto
+- Na mobile: drawer direction="bottom" z h-[100dvh], na desktop: direction="right" z w-[80vw]
+- Reuse tych samych CSS klas tooltipow co CalendarMap
 
-4. Placeholder inputa zmieniony na: `"Szukaj po nazwie, telefonie, email, firmie, NIP, adresie..."`.
+### 2. Zmiana w `CustomersView.tsx`
+
+- Dodanie przycisku "Mapa" (ikona MapPin) w headerze obok "Dodaj"
+- Stan `mapOpen` do kontroli drawera
+- Przygotowanie danych adresow: join `addressMap` + `customers` aby miec nazwe klienta przy kazdym adresie
+- Fetch adresow rozszerzony o `lat, lng` (obecnie pobieramy tylko `name, city`)
+- `onCustomerClick` -> zamkniecie mapy + otwarcie CustomerEditDrawer
+
+### Pliki do zmiany/utworzenia
+
+- **Nowy**: `src/components/admin/CustomersMapDrawer.tsx`
+- **Edycja**: `src/components/admin/CustomersView.tsx` (przycisk, stan, dane adresow z lat/lng)
 
