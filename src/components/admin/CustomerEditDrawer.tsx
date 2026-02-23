@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Phone, MessageSquare, Mail, X, ChevronDown } from 'lucide-react';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
+import CustomerOrdersTab from './CustomerOrdersTab';
 import {
   Sheet,
   SheetContent,
@@ -40,6 +43,7 @@ const CustomerEditDrawer = ({
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(isAddMode);
+  const [activeTab, setActiveTab] = useState('dane');
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
@@ -308,8 +312,10 @@ const CustomerEditDrawer = ({
             </div>
           </SheetHeader>
 
-          <div className="mt-6">
-            {isAddMode || isEditing ? (
+
+          {isAddMode ? (
+            /* Add mode: no tabs */
+            <div className="mt-6">
               <div className="space-y-4">
                 <div>
                   <Label className="mb-1.5 block">Nazwa *</Label>
@@ -344,7 +350,6 @@ const CustomerEditDrawer = ({
                   <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notatki..." rows={3} />
                 </div>
 
-                {/* Billing data - collapsible */}
                 <Collapsible open={billingOpen} onOpenChange={setBillingOpen}>
                   <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium w-full py-2">
                     <ChevronDown className={`w-4 h-4 transition-transform ${billingOpen ? 'rotate-180' : ''}`} />
@@ -372,56 +377,136 @@ const CustomerEditDrawer = ({
                   isEditing={true}
                 />
               </div>
-            ) : (
-              // View mode
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-lg">
-                  <Phone className="w-5 h-5 text-muted-foreground" />
-                  <span className="font-medium">{customer?.phone}</span>
-                </div>
+            </div>
+          ) : (
+            /* View/Edit mode: with tabs */
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+              <AdminTabsList columns={2}>
+                <AdminTabsTrigger value="dane">Dane</AdminTabsTrigger>
+                <AdminTabsTrigger value="zlecenia">Zlecenia</AdminTabsTrigger>
+              </AdminTabsList>
 
-                <div className="space-y-2 text-sm">
-                  {customer?.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-muted-foreground" />
-                      <span>{customer.email}</span>
+              <TabsContent value="dane">
+                {isEditing ? (
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label className="mb-1.5 block">Nazwa *</Label>
+                      <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Imię i nazwisko / firma" />
                     </div>
-                  )}
-                  {customer?.company && (
-                    <div className="text-muted-foreground">
-                      <span className="font-medium text-foreground">Firma:</span> {customer.company}
+                    <div>
+                      <Label className="mb-1.5 block">Telefon *</Label>
+                      <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+48..." />
                     </div>
-                  )}
-                  {customer?.nip && (
-                    <div className="text-muted-foreground">
-                      <span className="font-medium text-foreground">NIP:</span> {customer.nip}
+                    <div>
+                      <Label className="mb-1.5 block">Email</Label>
+                      <Input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" />
                     </div>
-                  )}
-                  {customer?.contact_person && (
-                    <div className="text-muted-foreground">
-                      <span className="font-medium text-foreground">Osoba kontaktowa:</span> {customer.contact_person}
+                    <div>
+                      <Label className="mb-1.5 block">Firma</Label>
+                      <Input value={editCompany} onChange={e => setEditCompany(e.target.value)} placeholder="Nazwa firmy" />
                     </div>
-                  )}
-                </div>
+                    <div>
+                      <Label className="mb-1.5 block">NIP</Label>
+                      <Input value={editNip} onChange={e => setEditNip(e.target.value)} placeholder="NIP" />
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">Osoba kontaktowa</Label>
+                      <Input value={editContactPerson} onChange={e => setEditContactPerson(e.target.value)} placeholder="Osoba kontaktowa" />
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">Telefon kontaktowy</Label>
+                      <Input value={editContactPhone} onChange={e => setEditContactPhone(e.target.value)} placeholder="Telefon kontaktowy" />
+                    </div>
+                    <div>
+                      <Label className="mb-1.5 block">Notatki</Label>
+                      <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notatki..." rows={3} />
+                    </div>
 
-                <CustomerAddressesSection
-                  addresses={addresses}
-                  onAddressesChange={setAddresses}
-                  isEditing={false}
-                />
+                    <Collapsible open={billingOpen} onOpenChange={setBillingOpen}>
+                      <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium w-full py-2">
+                        <ChevronDown className={`w-4 h-4 transition-transform ${billingOpen ? 'rotate-180' : ''}`} />
+                        Dane do faktury
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-3 pt-2">
+                        <div>
+                          <Label className="mb-1.5 block text-xs">Ulica</Label>
+                          <Input value={editBillingStreet} onChange={e => setEditBillingStreet(e.target.value)} placeholder="Ulica" />
+                        </div>
+                        <div>
+                          <Label className="mb-1.5 block text-xs">Miasto</Label>
+                          <Input value={editBillingCity} onChange={e => setEditBillingCity(e.target.value)} placeholder="Miasto" />
+                        </div>
+                        <div>
+                          <Label className="mb-1.5 block text-xs">Kod pocztowy</Label>
+                          <Input value={editBillingPostalCode} onChange={e => setEditBillingPostalCode(e.target.value)} placeholder="00-000" />
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
 
-                {customer?.notes && (
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Notatki</h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes}</p>
+                    <CustomerAddressesSection
+                      addresses={addresses}
+                      onAddressesChange={setAddresses}
+                      isEditing={true}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4 mt-4">
+                    <div className="flex items-center gap-3 text-lg">
+                      <Phone className="w-5 h-5 text-muted-foreground" />
+                      <span className="font-medium">{customer?.phone}</span>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      {customer?.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <span>{customer.email}</span>
+                        </div>
+                      )}
+                      {customer?.company && (
+                        <div className="text-muted-foreground">
+                          <span className="font-medium text-foreground">Firma:</span> {customer.company}
+                        </div>
+                      )}
+                      {customer?.nip && (
+                        <div className="text-muted-foreground">
+                          <span className="font-medium text-foreground">NIP:</span> {customer.nip}
+                        </div>
+                      )}
+                      {customer?.contact_person && (
+                        <div className="text-muted-foreground">
+                          <span className="font-medium text-foreground">Osoba kontaktowa:</span> {customer.contact_person}
+                        </div>
+                      )}
+                    </div>
+
+                    <CustomerAddressesSection
+                      addresses={addresses}
+                      onAddressesChange={setAddresses}
+                      isEditing={false}
+                    />
+
+                    {customer?.notes && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Notatki</h4>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes}</p>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
-            )}
-          </div>
+              </TabsContent>
+
+              <TabsContent value="zlecenia">
+                {customer && instanceId && (
+                  <CustomerOrdersTab customerId={customer.id} instanceId={instanceId} />
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
         </div>
 
-        {/* Sticky footer */}
+      {/* Sticky footer - only show for add mode or when on "dane" tab */}
+      {(isAddMode || activeTab === 'dane') && (
         <div className="p-4 bg-background border-t shrink-0">
           {isAddMode || isEditing ? (
             <div className="flex gap-2">
@@ -438,8 +523,9 @@ const CustomerEditDrawer = ({
             </Button>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      )}
+    </SheetContent>
+  </Sheet>
   );
 };
 
