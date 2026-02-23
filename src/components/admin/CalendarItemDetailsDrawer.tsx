@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat, MessageSquare, MoreVertical, ChevronDown, Plus, ClipboardCheck, Send, Loader2 } from 'lucide-react';
+import CustomerEditDrawer from './CustomerEditDrawer';
+import type { Customer } from './CustomersView';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -96,6 +98,10 @@ const CalendarItemDetailsDrawer = ({
 
   // Employee management
   const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
+
+  // Customer detail drawer
+  const [customerDetailOpen, setCustomerDetailOpen] = useState(false);
+  const [customerDetailData, setCustomerDetailData] = useState<Customer | null>(null);
   const { data: allEmployees = [] } = useEmployees(instanceId || null);
 
   useEffect(() => {
@@ -573,7 +579,27 @@ const CalendarItemDetailsDrawer = ({
                 {item.customer_name && (
                   <div className="flex items-center gap-2 text-sm">
                     <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span className="font-medium">{item.customer_name}</span>
+                    {item.customer_id ? (
+                      <button
+                        type="button"
+                        className="font-medium text-primary hover:underline cursor-pointer text-left"
+                        onClick={async () => {
+                          const { data } = await supabase
+                            .from('customers')
+                            .select('*')
+                            .eq('id', item.customer_id!)
+                            .single();
+                          if (data) {
+                            setCustomerDetailData(data as Customer);
+                            setCustomerDetailOpen(true);
+                          }
+                        }}
+                      >
+                        {item.customer_name}
+                      </button>
+                    ) : (
+                      <span className="font-medium">{item.customer_name}</span>
+                    )}
                     {item.customer_phone && (
                       <a href={`tel:${item.customer_phone}`} className="ml-auto p-1 rounded hover:bg-muted">
                         <Phone className="w-4 h-4 text-primary" />
@@ -793,6 +819,14 @@ const CalendarItemDetailsDrawer = ({
           onConfirm={handleEmployeesConfirmed}
         />
       )}
+
+      {/* Customer Detail Drawer */}
+      <CustomerEditDrawer
+        customer={customerDetailData}
+        instanceId={instanceId || null}
+        open={customerDetailOpen}
+        onClose={() => { setCustomerDetailOpen(false); setCustomerDetailData(null); }}
+      />
     </>
   );
 };
