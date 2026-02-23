@@ -1,72 +1,54 @@
 
-# Tworzenie zlecenia z pinezki na mapie
+# Zlecenia tab - edycja, zwijanie przeszlych, biala karta
 
-## Co robimy
+## Zmiany
 
-1. Klikniecie pinezki na mapie **nie zamyka mapy** -- otwiera drawer klienta nad mapa
-2. W headerze drawera klienta dodajemy ikone **nowego zlecenia** (CalendarPlus) obok SMS i telefon
-3. Klikniecie ikony otwiera drawer `AddCalendarItemDialog` nad drawerem klienta z pre-wypelnionymi danymi:
-   - Klient (id, name, phone, email) -- z kliknietej pinezki
-   - Adres serwisowy (customer_address_id) -- z kliknietej pinezki
-   - Uslugi -- z aktywnego filtra mapy (jesli sa)
-4. Po dodaniu zlecenia: toast, zamkniecie drawera zlecenia, zamkniecie drawera klienta
+### 1. CustomerOrderCard - biala karta + ikona edycji
 
-## Plan techniczny
+- Zmiana tla karty z domyslnego `border rounded-lg p-3` na `bg-white border rounded-lg p-3 shadow-sm`
+- Nowy prop `onEdit?: () => void` - jesli podany, wyswietla ikone olowka (Pencil) w prawym gornym rogu obok badge statusu
+- Nowy prop `calendarItemId: string` - potrzebny do identyfikacji zlecenia
 
-### 1. `CustomerMapAddress` -- dodanie `addressId`
+### 2. CustomerOrdersTab - podzial na przyszle/przeszle + edycja zlecenia
 
-Rozszerzamy interface w `CustomersMapDrawer.tsx` o `addressId: string`. Aktualizujemy builder `allMapAddresses` w `CustomersView.tsx` aby przekazywac `addr.id`.
+- Podzial `orders` na dwie listy: `futureOrders` (item_date >= dzis) i `pastOrders` (item_date < dzis)
+- Przyszle zlecenia wyswietlane zawsze
+- Przeszle zlecenia domyslnie zwiniete, pod przyszlymi przycisk "Zobacz przeszle (N)" z chevronem - klikniecie rozwija/zwija
+- Nowy state `showPast: boolean` (domyslnie false)
+- Nowy state `editingOrderId: string | null` - otwiera `AddCalendarItemDialog` w trybie edycji
+- Fetch `calendar_columns` i danych zlecenia do edycji (editingItem) po kliknieciu olowka
+- Po zapisie (`onSuccess`): odswiezenie listy zlecen (`fetchOrders()`)
+- Nowe propsy potrzebne: `instanceId` (juz jest)
 
-### 2. `CustomersMapDrawer` -- zmiana sygnatury `onCustomerClick`
+### 3. Integracja z AddCalendarItemDialog
 
-Z `(customerId: string)` na `(customerId: string, addressId: string)`. Marker click i tooltip click przekazuja oba parametry.
+- CustomerOrdersTab importuje `AddCalendarItemDialog` i `EditingCalendarItem`
+- Po kliknieciu olowka na karcie: fetch pelnych danych zlecenia z `calendar_items` (title, item_date, start_time, end_time, column_id, admin_notes, price, customer_id, customer_address_id, assigned_employee_ids, status, customer_name, customer_phone, customer_email)
+- Fetch `calendar_columns` (active, ordered)
+- Otwarcie drawera edycji z pre-wypelnionym `editingItem`
+- `onSuccess` -> `fetchOrders()` aby odswiezyc liste
 
-### 3. `CustomersView` -- nie zamykamy mapy, zapamietujemy addressId
+## Pliki do edycji
 
-- Zmiana handlera `onCustomerClick`: **nie** wywolujemy `setMapOpen(false)`, otwieramy drawer klienta, zapamietujemy `clickedAddressId` w nowym stanie
-- Przekazujemy do `CustomerEditDrawer` nowe propsy: `prefilledAddressId`, `prefilledServiceIds`, `prefilledServiceNames`, `onNewOrderCreated`
-- `onNewOrderCreated`: zamyka drawer klienta (i opcjonalnie refreshuje dane)
+- `src/components/admin/CustomerOrderCard.tsx` - biala karta, prop onEdit, ikona olowka
+- `src/components/admin/CustomerOrdersTab.tsx` - podzial przyszle/przeszle, przycisk zwijania, integracja z AddCalendarItemDialog
 
-### 4. `CustomerEditDrawer` -- ikona nowego zlecenia + AddCalendarItemDialog
+## Szczegoly techniczne
 
-Nowe propsy:
-- `prefilledAddressId?: string`
-- `prefilledServiceIds?: string[]`
-- `prefilledServiceNames?: string[]`
-- `onNewOrderCreated?: () => void`
+### CustomerOrderCard
+```
+interface CustomerOrderCardProps {
+  // ... istniejace
+  onEdit?: () => void;  // nowy
+}
+```
+- Klasa karty: `bg-white border rounded-lg p-3 space-y-2 shadow-sm`
+- Ikona Pencil w wierszu z data i statusem (miedzy data a badge)
 
-Zmiany:
-- Import `CalendarPlus` z lucide-react
-- W headerze (obok SMS i Phone, wiersz 298-306): nowa ikona `CalendarPlus` -- otwiera `newOrderOpen` state
-- Nowy state: `newOrderOpen: boolean`, `columns: CalendarColumn[]`
-- Fetch `calendar_columns` (active, ordered) po otwarciu drawera klienta
-- Renderowanie `AddCalendarItemDialog` z:
-  - `open={newOrderOpen}`
-  - `instanceId`, `columns`
-  - Nowe optional propsy do pre-fill (patrz punkt 5)
-  - `onSuccess`: toast "Zlecenie dodane", `setNewOrderOpen(false)`, `onNewOrderCreated?.()`
-- Ikona widoczna tylko gdy `!isAddMode && !isEditing`
-
-### 5. `AddCalendarItemDialog` -- nowe optional propsy do pre-fill
-
-Nowe propsy w interfejsie:
-- `initialCustomerId?: string`
-- `initialCustomerName?: string`
-- `initialCustomerPhone?: string`
-- `initialCustomerEmail?: string`
-- `initialCustomerAddressId?: string`
-- `initialServiceIds?: string[]`
-
-W bloku inicjalizacji (linie 212-232, `else` branch gdy `!isEditMode`):
-- Jesli `initialCustomerId` -- ustawiamy `customerId`, `customerName`, `customerPhone`, `customerEmail`
-- Jesli `initialCustomerAddressId` -- ustawiamy `customerAddressId`
-- Jesli `initialServiceIds?.length > 0` -- fetch `unified_services` po tych ID, ustawiamy `allServices`, `selectedServiceIds`, `serviceItems`, auto-generujemy `title`
-
-Dodajemy te propsy do dependency array `useEffect`.
-
-### Pliki do zmiany
-
-- **Edycja**: `src/components/admin/CustomersMapDrawer.tsx` -- `addressId` w interface, zmiana callback
-- **Edycja**: `src/components/admin/CustomersView.tsx` -- `addressId` w builderze, nie zamykaj mapy, nowe propsy
-- **Edycja**: `src/components/admin/CustomerEditDrawer.tsx` -- ikona CalendarPlus, fetch columns, AddCalendarItemDialog
-- **Edycja**: `src/components/admin/AddCalendarItemDialog.tsx` -- nowe optional propsy do pre-fill
+### CustomerOrdersTab
+- `const today = format(new Date(), 'yyyy-MM-dd')`
+- `futureOrders = orders.filter(o => o.itemDate >= today)`
+- `pastOrders = orders.filter(o => o.itemDate < today)`
+- Render: futureOrders karty -> (jesli pastOrders.length > 0) przycisk "Zobacz przeszle (count)" -> warunkowo pastOrders karty
+- Po kliknieciu olowka: fetch danych zlecenia, otwarcie AddCalendarItemDialog z editingItem
+- Columns fetchowane raz przy uzyciu useEffect
