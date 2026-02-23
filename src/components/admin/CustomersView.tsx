@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, Plus, Trash2, MapPin } from 'lucide-react';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CustomerEditDrawer from './CustomerEditDrawer';
+import CustomersMapDrawer, { type CustomerMapAddress } from './CustomersMapDrawer';
 import { toast } from 'sonner';
 
 interface Customer {
@@ -48,7 +49,8 @@ const ITEMS_PER_PAGE = 10;
 const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [addressMap, setAddressMap] = useState<Map<string, { name: string; city: string | null }[]>>(new Map());
+  const [addressMap, setAddressMap] = useState<Map<string, { name: string; city: string | null; lat: number | null; lng: number | null }[]>>(new Map());
+  const [mapOpen, setMapOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,18 +66,18 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     
     const [customersRes, addressesRes] = await Promise.all([
       supabase.from('customers').select('*').eq('instance_id', instanceId).order('name'),
-      supabase.from('customer_addresses').select('customer_id, name, city').eq('instance_id', instanceId),
+      supabase.from('customer_addresses').select('customer_id, name, city, lat, lng').eq('instance_id', instanceId),
     ]);
 
     if (!customersRes.error && customersRes.data) {
       setCustomers(customersRes.data as Customer[]);
     }
 
-    const map = new Map<string, { name: string; city: string | null }[]>();
+    const map = new Map<string, { name: string; city: string | null; lat: number | null; lng: number | null }[]>();
     if (!addressesRes.error && addressesRes.data) {
       for (const addr of addressesRes.data) {
         const list = map.get(addr.customer_id) || [];
-        list.push({ name: addr.name, city: addr.city });
+        list.push({ name: addr.name, city: addr.city, lat: addr.lat, lng: addr.lng });
         map.set(addr.customer_id, list);
       }
     }
@@ -126,6 +128,27 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
+
+  const mapAddresses = useMemo<CustomerMapAddress[]>(() => {
+    const result: CustomerMapAddress[] = [];
+    for (const customer of customers) {
+      const addrs = addressMap.get(customer.id);
+      if (!addrs) continue;
+      for (const addr of addrs) {
+        if (addr.lat != null && addr.lng != null) {
+          result.push({
+            lat: addr.lat,
+            lng: addr.lng,
+            customerName: customer.name,
+            addressName: addr.name,
+            city: addr.city,
+            customerId: customer.id,
+          });
+        }
+      }
+    }
+    return result;
+  }, [customers, addressMap]);
 
   const handleCall = (phone: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -190,10 +213,16 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Klienci</h1>
-        <Button onClick={handleAddCustomer}>
-          <Plus className="w-4 h-4 mr-1" />
-          Dodaj
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setMapOpen(true)}>
+            <MapPin className="w-4 h-4 mr-1" />
+            Mapa
+          </Button>
+          <Button onClick={handleAddCustomer}>
+            <Plus className="w-4 h-4 mr-1" />
+            Dodaj
+          </Button>
+        </div>
       </div>
       
       {/* Search */}
@@ -311,6 +340,21 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         onClose={handleCloseDrawer}
         onCustomerUpdated={fetchCustomers}
         isAddMode={isAddMode}
+      />
+
+      {/* Customers Map Drawer */}
+      <CustomersMapDrawer
+        open={mapOpen}
+        onClose={() => setMapOpen(false)}
+        addresses={mapAddresses}
+        onCustomerClick={(customerId) => {
+          setMapOpen(false);
+          const customer = customers.find(c => c.id === customerId);
+          if (customer) {
+            setIsAddMode(false);
+            setSelectedCustomer(customer);
+          }
+        }}
       />
 
       {/* Delete Confirmation Dialog */}
