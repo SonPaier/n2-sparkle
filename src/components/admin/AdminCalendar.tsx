@@ -1,7 +1,8 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin, DollarSign } from 'lucide-react';
+import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -49,6 +50,7 @@ export interface CalendarItem {
   admin_notes?: string | null;
   price?: number | null;
   photo_urls?: string[] | null;
+  payment_status?: string | null;
 }
 
 export interface Break {
@@ -623,23 +625,28 @@ const AdminCalendar = ({
               <span className="truncate">{item.address_name}</span>
             </div>
           )}
-          {/* Line 5: Assigned employees chips */}
-          {item.assigned_employees && item.assigned_employees.length > 0 && (
-            <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
-              {item.assigned_employees.slice(0, 3).map(emp => (
-                <div key={emp.id} className="flex items-center gap-0.5 bg-black/10 rounded-full pl-0.5 pr-1.5 py-0">
-                  <Avatar className="w-3.5 h-3.5">
-                    {emp.photo_url && <AvatarImage src={emp.photo_url} />}
-                    <AvatarFallback className="text-[6px] bg-black/20">{emp.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-[9px] md:text-[10px] truncate max-w-[50px]">{emp.name.split(' ')[0]}</span>
-                </div>
-              ))}
-              {item.assigned_employees.length > 3 && (
-                <span className="text-[9px] md:text-[10px] opacity-70">+{item.assigned_employees.length - 3}</span>
-              )}
-            </div>
-          )}
+          {/* Line 5: Payment status + Assigned employees chips */}
+          <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
+            {item.payment_status && item.payment_status !== 'not_invoiced' && (
+              <InvoiceStatusBadge status={item.payment_status} size="sm" />
+            )}
+            {item.assigned_employees && item.assigned_employees.length > 0 && (
+              <>
+                {item.assigned_employees.slice(0, 3).map(emp => (
+                  <div key={emp.id} className="flex items-center gap-0.5 bg-black/10 rounded-full pl-0.5 pr-1.5 py-0">
+                    <Avatar className="w-3.5 h-3.5">
+                      {emp.photo_url && <AvatarImage src={emp.photo_url} />}
+                      <AvatarFallback className="text-[6px] bg-black/20">{emp.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-[9px] md:text-[10px] truncate max-w-[50px]">{emp.name.split(' ')[0]}</span>
+                  </div>
+                ))}
+                {item.assigned_employees.length > 3 && (
+                  <span className="text-[9px] md:text-[10px] opacity-70">+{item.assigned_employees.length - 3}</span>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
