@@ -637,7 +637,7 @@ const CalendarItemDetailsDrawer = ({
                       )}
                     </div>
                     {addressStreet && (
-                      <div className="text-xs text-muted-foreground ml-6">{addressStreet}</div>
+                      <div className="text-sm text-foreground ml-6">{addressStreet}</div>
                     )}
                   </div>
                 )}
