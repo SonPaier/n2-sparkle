@@ -351,12 +351,6 @@ const CalendarItemDetailsDrawer = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {onAddProtocol && (
-            <DropdownMenuItem onClick={() => onAddProtocol(item)}>
-              <ClipboardCheck className="w-4 h-4 mr-2" />
-              Dodaj protokół
-            </DropdownMenuItem>
-          )}
           {onDelete && (
             <DropdownMenuItem onClick={() => setDeleteDialogOpen(true)} className="text-destructive">
               <Trash2 className="w-4 h-4 mr-2" />
@@ -777,6 +771,18 @@ const CalendarItemDetailsDrawer = ({
                 }}
               />
             </div>
+
+            {/* Add Protocol button */}
+            {onAddProtocol && (
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => onAddProtocol(item)}
+              >
+                <ClipboardCheck className="w-4 h-4 mr-2" />
+                Dodaj protokół
+              </Button>
+            )}
 
             {(smsNotifications.length > 0 || unsent.length > 0) && (
               <div className="space-y-2">
