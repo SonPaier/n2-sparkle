@@ -326,13 +326,13 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       </div>
 
       {/* Customer list */}
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div>
         {paginatedCustomers.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             {searchQuery ? 'Brak wyników' : 'Brak klientów'}
           </div>
         ) : (
-          <div className="divide-y divide-border/50">
+          <div className="flex flex-col gap-2">
             {paginatedCustomers.map(customer => (
               <div
                 key={customer.id}
@@ -340,7 +340,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                   setIsAddMode(false);
                   setSelectedCustomer(customer);
                 }}
-                className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer hover:bg-accent/30"
+                className="p-4 flex items-center justify-between gap-4 transition-colors cursor-pointer hover:border-primary/30 bg-card rounded-lg border border-border shadow-sm"
               >
                 <div className="min-w-0 flex-1 space-y-0.5">
                   <div className="font-medium text-foreground">
