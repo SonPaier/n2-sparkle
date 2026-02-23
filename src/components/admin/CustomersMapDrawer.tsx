@@ -18,6 +18,7 @@ export interface CustomerMapAddress {
   city: string | null;
   customerId: string;
   addressId: string;
+  futureOrdersCount?: number;
 }
 
 export interface MapFilters {
@@ -38,18 +39,24 @@ interface CustomersMapDrawerProps {
 
 const MARKER_COLOR = '#6366f1';
 
-const markerSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">
-  <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 26 16 26s16-14 16-26C32 7.16 24.84 0 16 0z" fill="${MARKER_COLOR}" stroke="#fff" stroke-width="2.5"/>
-  <circle cx="16" cy="16" r="7" fill="#fff"/>
-</svg>`;
+const createMarkerIcon = (count?: number) => {
+  const badge = count && count > 0
+    ? `<g transform="translate(22, 0)"><circle cx="5" cy="5" r="8" fill="#16a34a" stroke="#fff" stroke-width="1.5"/><text x="5" y="9" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="sans-serif">${count > 9 ? '9+' : count}</text></g>`
+    : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="-2 0 36 42">
+    <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 26 16 26s16-14 16-26C32 7.16 24.84 0 16 0z" fill="${MARKER_COLOR}" stroke="#fff" stroke-width="2.5"/>
+    <circle cx="16" cy="16" r="7" fill="#fff"/>
+    ${badge}
+  </svg>`;
 
-const markerIcon = L.divIcon({
-  html: markerSvg,
-  className: '',
-  iconSize: [32, 42],
-  iconAnchor: [16, 42],
-  tooltipAnchor: [0, -42],
-});
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [36, 42],
+    iconAnchor: [18, 42],
+    tooltipAnchor: [0, -42],
+  });
+};
 
 // Active filter chips bar
 const ActiveFiltersBar = ({ filters, onFiltersChange }: { filters: MapFilters; onFiltersChange: (f: MapFilters) => void }) => {
@@ -137,7 +144,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
       const line2Parts = [addr.addressName, addr.city].filter(Boolean).join(', ');
       const tooltipHtml = `<div class="calendar-map-tooltip-content"><div class="cmt-line1">${addr.customerName}</div>${line2Parts ? `<div class="cmt-line2">${line2Parts}</div>` : ''}</div>`;
 
-      const marker = L.marker([addr.lat, addr.lng], { icon: markerIcon })
+      const marker = L.marker([addr.lat, addr.lng], { icon: createMarkerIcon(addr.futureOrdersCount) })
         .bindTooltip(tooltipHtml, {
           permanent: true,
           direction: 'top',

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { format } from 'date-fns';
 import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, Plus, Trash2, MapPin } from 'lucide-react';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
@@ -64,6 +65,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   // Map filter state
   const [mapFilters, setMapFilters] = useState<MapFilters>({ customer: null, serviceIds: [], serviceNames: [] });
   const [serviceCustomerIds, setServiceCustomerIds] = useState<Set<string> | null>(null);
+  const [futureOrdersCounts, setFutureOrdersCounts] = useState<Map<string, number>>(new Map());
 
   const fetchCustomers = async () => {
     if (!instanceId) return;
@@ -92,6 +94,28 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
 
   useEffect(() => {
     fetchCustomers();
+  }, [instanceId]);
+
+  // Fetch future orders count per address
+  useEffect(() => {
+    if (!instanceId) return;
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const fetchFutureCounts = async () => {
+      const { data } = await supabase
+        .from('calendar_items')
+        .select('customer_address_id')
+        .eq('instance_id', instanceId)
+        .not('customer_address_id', 'is', null)
+        .gt('item_date', today);
+      const counts = new Map<string, number>();
+      data?.forEach(item => {
+        if (item.customer_address_id) {
+          counts.set(item.customer_address_id, (counts.get(item.customer_address_id) || 0) + 1);
+        }
+      });
+      setFutureOrdersCounts(counts);
+    };
+    fetchFutureCounts();
   }, [instanceId]);
 
   // Fetch customer IDs associated with selected services
@@ -188,12 +212,13 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
             city: addr.city,
             customerId: customer.id,
             addressId: addr.id,
+            futureOrdersCount: futureOrdersCounts.get(addr.id) || 0,
           });
         }
       }
     }
     return result;
-  }, [customers, addressMap]);
+  }, [customers, addressMap, futureOrdersCounts]);
 
   // Filtered map addresses
   const filteredMapAddresses = useMemo<CustomerMapAddress[]>(() => {
