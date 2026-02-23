@@ -66,16 +66,8 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
 
   return (
     <div className="flex flex-col h-full bg-background border-l border-border">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-        <h3 className="text-sm font-semibold text-foreground">Mapa zleceń</h3>
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-border">
+      {/* Filters - matching calendar header height (py-2 lg:py-3 + gap-2 px-[16px]) */}
+      <div className="flex flex-wrap items-center gap-2 py-2 lg:py-3 px-[16px] bg-background sticky top-0 z-50">
         <div className="flex border border-border rounded-lg overflow-hidden">
           {(['today', 'week', 'month'] as DateFilter[]).map(f => (
             <Button
@@ -83,7 +75,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
               variant={dateFilter === f && !customDate ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => handleDateFilterChange(f)}
-              className="rounded-none border-0 px-2.5 h-8 text-xs"
+              className="rounded-none border-0 px-2.5 h-9 text-xs"
             >
               {f === 'today' ? 'Dziś' : f === 'week' ? 'Tydzień' : 'Miesiąc'}
             </Button>
@@ -95,7 +87,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
             <Button
               variant={customDate ? 'secondary' : 'outline'}
               size="sm"
-              className="h-8 gap-1 text-xs"
+              className="h-9 gap-1 text-xs"
             >
               <CalendarIcon className="w-3.5 h-3.5" />
               {customDate ? format(customDate, 'd MMM', { locale: pl }) : 'Data'}
@@ -114,7 +106,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
         </Popover>
 
         <Select value={columnFilter} onValueChange={setColumnFilter}>
-          <SelectTrigger className="h-8 w-[130px] text-xs">
+          <SelectTrigger className="h-9 w-[130px] text-xs">
             <SelectValue placeholder="Kolumna" />
           </SelectTrigger>
           <SelectContent className="z-[60]">
@@ -135,6 +127,10 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
         <span className="text-xs text-muted-foreground ml-auto">
           {filteredItems.length} {filteredItems.length === 1 ? 'punkt' : 'punktów'}
         </span>
+
+        <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 shrink-0">
+          <X className="w-4 h-4" />
+        </Button>
       </div>
 
       {/* Map */}
