@@ -1,68 +1,31 @@
 
-# Zdjecia do zlecen (calendar items) z rysikiem
+
+# Karta zlecenia klikalna - otwiera drawer szczegolow
 
 ## Co robimy
-Dodajemy mozliwosc dodawania zdjec do zlecen (calendar_items) - identyczna funkcjonalnosc jak w protokolach: upload zdjec, podglad fullscreen z karuzelą, rysik do adnotacji.
+- Cala karta zlecenia (`CustomerOrderCard`) staje sie klikalna i otwiera `CalendarItemDetailsDrawer`
+- Usuwamy olowek (Pencil) - edycja dostepna z poziomu drawera szczegolow
+- Usuwamy `AddCalendarItemDialog` z `CustomerOrdersTab` - niepotrzebny
 
 ## Zmiany
 
-### 1. Migracja bazy danych
-Dodanie kolumny `photo_urls` (jsonb, default `'[]'`) do tabeli `calendar_items`.
+### 1. CustomerOrderCard.tsx
+- Dodac prop `onClick?: () => void`
+- Usunac prop `onEdit` i przycisk olowka
+- Caly div karty: `cursor-pointer`, `hover:border-primary/30`, `onClick`
 
-```sql
-ALTER TABLE public.calendar_items ADD COLUMN photo_urls jsonb DEFAULT '[]'::jsonb;
-```
+### 2. CustomerOrdersTab.tsx
+- Usunac import i uzycie `AddCalendarItemDialog`, `editingItem`, `editOpen`, `handleEditClick`
+- Dodac state: `detailItem: CalendarItem | null`, `detailOpen: boolean`
+- Po kliknieciu karty: fetch pelnych danych z `calendar_items` (id, title, item_date, end_date, start_time, end_time, column_id, status, admin_notes, price, customer_id, customer_address_id, assigned_employee_ids, customer_name, customer_phone, customer_email, photo_urls), zmapowac na `CalendarItem`, otworzyc drawer
+- Dodac renderowanie `CalendarItemDetailsDrawer` z odpowiednimi propsami
+- Po zamknieciu drawera odswiezyc liste zlecen (`fetchOrders`)
 
-### 2. Reużywalny komponent zdjec
-Komponenty `PhotoFullscreenDialog` i `PhotoAnnotationDialog` z folderu `protocols/` sa juz w pelni reuzywalne - nie trzeba ich zmieniac. Komponent `ProtocolPhotosUploader` jest prawie reuzywalny, ale ma zakodowany na sztywno bucket `protocol-photos` i auto-zapis do tabeli `protocols`. Stworzymy nowy, generyczny komponent lub dodamy propsy do istniejacego.
-
-**Podejscie**: Dodamy do `ProtocolPhotosUploader` nowe propsy:
-- `storageBucket?: string` (domyslnie `'protocol-photos'`)
-- `filePrefix?: string` (domyslnie `'protokol'`)
-- `onAutoSave?: (photos: string[]) => void` - zastapi zakodowany zapis do tabeli protocols
-
-To pozwoli reuzywac ten sam komponent zarowno w protokolach jak i w zleceniach.
-
-### 3. CalendarItemDetailsDrawer - sekcja zdjec
-Dodanie sekcji "Zdjecia" w drawerze szczegolow zlecenia (miedzy notatkami a SMS):
-- Fetch `photo_urls` z `calendar_items` przy otwarciu
-- Wyswietlenie `ProtocolPhotosUploader` z odpowiednimi propsami
-- Auto-zapis do `calendar_items.photo_urls` po kazdej zmianie (upload/delete/annotacja)
-
-### 4. AddCalendarItemDialog - obsluga photo_urls
-Dodanie `photo_urls` do `EditingCalendarItem` interface i logiki zapisu, aby zdjecia nie byly tracone przy edycji zlecenia.
+### 3. CalendarItemDetailsDrawer.tsx
+- Zmiana stylu `addressStreet`: z `text-xs text-muted-foreground` na `text-sm text-foreground`
 
 ## Pliki do edycji
+1. `src/components/admin/CustomerOrderCard.tsx`
+2. `src/components/admin/CustomerOrdersTab.tsx`
+3. `src/components/admin/CalendarItemDetailsDrawer.tsx`
 
-1. **Migracja SQL** - nowa kolumna `photo_urls` w `calendar_items`
-2. **`src/components/protocols/ProtocolPhotosUploader.tsx`** - dodanie propsow `storageBucket`, `filePrefix`, `onAutoSave` dla reużywalnosci
-3. **`src/components/admin/CalendarItemDetailsDrawer.tsx`** - sekcja zdjec z uploaderem i rysikiem
-4. **`src/components/admin/AddCalendarItemDialog.tsx`** - interface `EditingCalendarItem` + obsluga `photo_urls`
-5. **`src/components/admin/AdminCalendar.tsx`** - interface `CalendarItem` + fetch `photo_urls`
-
-## Szczegoly techniczne
-
-### ProtocolPhotosUploader - nowe propsy
-```typescript
-interface ProtocolPhotosUploaderProps {
-  photos: string[];
-  onPhotosChange: (photos: string[]) => void;
-  onPhotoUploaded?: (url: string) => void;
-  maxPhotos?: number;
-  label?: string;
-  disabled?: boolean;
-  protocolId?: string | null;      // zachowane dla kompatybilnosci
-  storageBucket?: string;           // nowe, default 'protocol-photos'
-  filePrefix?: string;              // nowe, default 'protokol'
-  onAutoSave?: (photos: string[]) => void;  // nowe, generyczny auto-save
-}
-```
-
-### CalendarItemDetailsDrawer
-- Nowy state: `itemPhotos: string[]`
-- Fetch photo_urls z calendar_items przy otwarciu (item juz ma dane, trzeba sprawdzic czy photo_urls jest w typie CalendarItem)
-- Sekcja z ikona Camera i tytul "Zdjecia"
-- ProtocolPhotosUploader z `storageBucket="protocol-photos"`, `filePrefix="zlecenie"`, `onAutoSave` zapisujacy do `calendar_items.photo_urls`
-
-### Bucket storage
-Reuzywamy istniejacy bucket `protocol-photos` (publiczny, juz istnieje) - nie trzeba tworzyc nowego.
