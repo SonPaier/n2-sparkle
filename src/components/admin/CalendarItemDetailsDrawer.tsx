@@ -390,8 +390,8 @@ const CalendarItemDetailsDrawer = ({
 
     return (
       <div className="flex-shrink-0 border-t border-border px-6 py-4 flex items-center gap-2">
-        {editBtn}
         {item.status !== 'completed' && moreMenu}
+        {editBtn}
 
         {item.status === 'pending' && statusDropdown(
           'Potwierdź',

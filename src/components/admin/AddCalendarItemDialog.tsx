@@ -582,7 +582,7 @@ const AddCalendarItemDialog = ({
           side={isMobile ? 'bottom' : 'right'}
           hideCloseButton
           hideOverlay
-          className={`flex flex-col p-0 gap-0 ${isMobile ? 'h-[90vh]' : 'sm:max-w-lg'}`}
+          className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-[90vh]' : 'sm:max-w-lg'}`}
         >
           {/* Header */}
           <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">

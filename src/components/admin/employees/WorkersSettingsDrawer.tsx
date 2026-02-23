@@ -52,7 +52,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col" hideCloseButton>
+      <SheetContent className="w-full sm:max-w-md p-0 flex flex-col z-[1000]" hideCloseButton>
         <div className="sticky top-0 z-10 bg-background border-b p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Ustawienia czasu pracy</h2>

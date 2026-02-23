@@ -315,7 +315,7 @@ const CustomerEditDrawer = ({
     <>
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent
-        className="w-full sm:max-w-md p-0 flex flex-col"
+        className="w-full sm:max-w-md p-0 flex flex-col z-[1000]"
         hideCloseButton
         onFocusOutside={(e) => e.preventDefault()}
       >
