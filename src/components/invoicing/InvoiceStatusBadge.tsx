@@ -11,8 +11,6 @@ export function InvoiceStatusBadge({ status, className, size = 'default' }: Invo
   const key = (status || 'not_invoiced') as PaymentStatus;
   const config = PAYMENT_STATUS_CONFIG[key] || PAYMENT_STATUS_CONFIG.not_invoiced;
 
-  if (key === 'not_invoiced') return null;
-
   return (
     <span
       className={cn(

@@ -565,7 +565,7 @@ const CalendarItemDetailsDrawer = ({
                    <Badge className={statusColors[item.status] || 'bg-muted'}>
                      {statusLabels[item.status] || item.status}
                    </Badge>
-                   <InvoiceStatusBadge status={(item as any).payment_status} />
+                   <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
                    {column && (
                      <span className="text-xs text-muted-foreground">{column.name}</span>
                    )}
