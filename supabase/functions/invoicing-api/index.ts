@@ -21,6 +21,7 @@ async function fakturowniaCreateInvoice(
       sell_date: invoiceData.sell_date,
       issue_date: invoiceData.issue_date,
       payment_to: invoiceData.payment_to,
+      seller_name: invoiceData.seller_name || config.seller_name || "",
       buyer_name: invoiceData.buyer_name,
       buyer_tax_no: invoiceData.buyer_tax_no || "",
       buyer_email: invoiceData.buyer_email || "",
@@ -32,9 +33,9 @@ async function fakturowniaCreateInvoice(
       oid_unique: invoiceData.oid ? "yes" : undefined,
       positions: invoiceData.positions.map((p: any) => ({
         name: p.name,
-        tax: p.vat_rate === -1 ? "disabled" : p.vat_rate,
-        total_price_gross: p.unit_price_gross * p.quantity,
-        quantity: p.quantity,
+        tax: p.vat_rate === -1 ? "disabled" : String(p.vat_rate),
+        total_price_gross: Number(p.unit_price_gross) * Number(p.quantity),
+        quantity: Number(p.quantity),
       })),
       ...(invoiceData.client_id ? { client_id: invoiceData.client_id } : {}),
     },
@@ -255,6 +256,19 @@ Deno.serve(async (req) => {
 
     if (action === "create_invoice") {
       const { invoiceData, calendarItemId, customerId } = params;
+
+      // Fetch instance name for seller_name if not provided
+      if (!invoiceData.seller_name) {
+        const { data: inst } = await supabase
+          .from("instances")
+          .select("name")
+          .eq("id", instanceId)
+          .single();
+        if (inst?.name) {
+          invoiceData.seller_name = inst.name;
+        }
+      }
+
       let result: any;
 
       if (provider === "fakturownia") {
