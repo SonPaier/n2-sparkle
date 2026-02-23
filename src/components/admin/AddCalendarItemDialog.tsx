@@ -49,6 +49,7 @@ export interface EditingCalendarItem {
   column_id: string | null;
   admin_notes?: string | null;
   price?: number | null;
+  photo_urls?: string[] | null;
 }
 
 interface AddCalendarItemDialogProps {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat, MessageSquare, MoreVertical, ChevronDown, Plus, ClipboardCheck, Send, Loader2 } from 'lucide-react';
+import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat, MessageSquare, MoreVertical, ChevronDown, Plus, ClipboardCheck, Send, Loader2, Camera } from 'lucide-react';
 import CustomerEditDrawer from './CustomerEditDrawer';
 import type { Customer } from './CustomersView';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -16,6 +16,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmployees } from '@/hooks/useEmployees';
 import EmployeeSelectionDrawer from './EmployeeSelectionDrawer';
+import { ProtocolPhotosUploader } from '@/components/protocols/ProtocolPhotosUploader';
 import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
 
 interface SmsNotificationInfo {
@@ -99,6 +100,8 @@ const CalendarItemDetailsDrawer = ({
   // Employee management
   const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
 
+  // Photos state
+  const [itemPhotos, setItemPhotos] = useState<string[]>([]);
   // Customer detail drawer
   const [customerDetailOpen, setCustomerDetailOpen] = useState(false);
   const [customerDetailData, setCustomerDetailData] = useState<Customer | null>(null);
@@ -108,6 +111,9 @@ const CalendarItemDetailsDrawer = ({
     if (item) {
       setNotesValue(item.admin_notes || '');
       setEditingNotes(false);
+      // Load photos from item
+      const photos = Array.isArray(item.photo_urls) ? item.photo_urls : [];
+      setItemPhotos(photos as string[]);
     }
   }, [item?.id, item?.admin_notes]);
 
@@ -738,7 +744,40 @@ const CalendarItemDetailsDrawer = ({
               )}
             </div>
 
-            {/* SMS Notification Status */}
+            {/* Photos */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Camera className="w-4 h-4 text-muted-foreground" />
+                Zdjęcia
+              </div>
+              <ProtocolPhotosUploader
+                photos={itemPhotos}
+                onPhotosChange={(newPhotos) => {
+                  setItemPhotos(newPhotos);
+                  // Auto-save to calendar_items
+                  supabase
+                    .from('calendar_items')
+                    .update({ photo_urls: newPhotos } as any)
+                    .eq('id', item.id)
+                    .then(({ error }) => {
+                      if (error) console.error('Error saving photos:', error);
+                    });
+                }}
+                storageBucket="protocol-photos"
+                filePrefix="zlecenie"
+                onAutoSave={(newPhotos) => {
+                  setItemPhotos(newPhotos);
+                  supabase
+                    .from('calendar_items')
+                    .update({ photo_urls: newPhotos } as any)
+                    .eq('id', item.id)
+                    .then(({ error }) => {
+                      if (error) console.error('Error saving photo annotation:', error);
+                    });
+                }}
+              />
+            </div>
+
             {(smsNotifications.length > 0 || unsent.length > 0) && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">

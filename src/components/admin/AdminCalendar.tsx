@@ -48,6 +48,7 @@ export interface CalendarItem {
   status: string;
   admin_notes?: string | null;
   price?: number | null;
+  photo_urls?: string[] | null;
 }
 
 export interface Break {
