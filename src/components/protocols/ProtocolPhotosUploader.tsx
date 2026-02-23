@@ -24,6 +24,9 @@ interface ProtocolPhotosUploaderProps {
   label?: string;
   disabled?: boolean;
   protocolId?: string | null;
+  storageBucket?: string;
+  filePrefix?: string;
+  onAutoSave?: (photos: string[]) => void;
 }
 
 const compressImage = async (file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> => {
@@ -74,6 +77,9 @@ export const ProtocolPhotosUploader = ({
   label = 'Zrób zdjęcie lub wybierz z galerii',
   disabled = false,
   protocolId,
+  storageBucket = 'protocol-photos',
+  filePrefix = 'protokol',
+  onAutoSave,
 }: ProtocolPhotosUploaderProps) => {
   const [uploading, setUploading] = useState(false);
   const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
@@ -98,10 +104,10 @@ export const ProtocolPhotosUploader = ({
 
       for (const file of filesToUpload) {
         const compressed = await compressImage(file);
-        const fileName = `protokol-${format(new Date(), 'yyyyMMdd-HHmmss')}-${Math.random().toString(36).slice(2, 6)}.jpg`;
+        const fileName = `${filePrefix}-${format(new Date(), 'yyyyMMdd-HHmmss')}-${Math.random().toString(36).slice(2, 6)}.jpg`;
 
         const { error: uploadError } = await supabase.storage
-          .from('protocol-photos')
+          .from(storageBucket)
           .upload(fileName, compressed, {
             contentType: 'image/jpeg',
             cacheControl: '3600',
@@ -110,7 +116,7 @@ export const ProtocolPhotosUploader = ({
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage
-          .from('protocol-photos')
+          .from(storageBucket)
           .getPublicUrl(fileName);
 
         uploadedUrls.push(urlData.publicUrl);
@@ -140,7 +146,7 @@ export const ProtocolPhotosUploader = ({
       const urlParts = photoUrl.split('/');
       const fileName = urlParts[urlParts.length - 1];
       if (fileName) {
-        await supabase.storage.from('protocol-photos').remove([fileName]);
+        await supabase.storage.from(storageBucket).remove([fileName]);
       }
     } catch (error) {
       console.error('Error deleting photo from storage:', error);
@@ -213,7 +219,9 @@ export const ProtocolPhotosUploader = ({
           onPhotosChange(newPhotos);
           setFullscreenPhoto(newUrl);
           // Auto-persist to database
-          if (protocolId) {
+          if (onAutoSave) {
+            onAutoSave(newPhotos);
+          } else if (protocolId) {
             try {
               await supabase
                 .from('protocols')

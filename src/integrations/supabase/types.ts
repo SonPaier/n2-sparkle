@@ -169,6 +169,7 @@ export type Database = {
           id: string
           instance_id: string
           item_date: string
+          photo_urls: Json | null
           price: number | null
           start_time: string
           status: string
@@ -191,6 +192,7 @@ export type Database = {
           id?: string
           instance_id: string
           item_date: string
+          photo_urls?: Json | null
           price?: number | null
           start_time: string
           status?: string
@@ -213,6 +215,7 @@ export type Database = {
           id?: string
           instance_id?: string
           item_date?: string
+          photo_urls?: Json | null
           price?: number | null
           start_time?: string
           status?: string

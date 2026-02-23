@@ -1,0 +1,1 @@
+ALTER TABLE public.calendar_items ADD COLUMN photo_urls jsonb DEFAULT '[]'::jsonb;
