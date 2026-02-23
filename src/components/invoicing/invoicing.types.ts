@@ -86,8 +86,8 @@ export const DOCUMENT_KINDS: { value: DocumentKind; label: string }[] = [
 export const CURRENCIES = ['PLN', 'EUR', 'USD'];
 
 export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { label: string; color: string }> = {
-  not_invoiced: { label: 'Brak FV', color: 'bg-muted text-muted-foreground' },
-  invoice_sent: { label: 'Wysłano FV', color: 'bg-blue-100 text-blue-700' },
-  paid: { label: 'Opłacony', color: 'bg-green-100 text-green-700' },
-  overdue: { label: 'Przeterminowana', color: 'bg-red-100 text-red-700' },
+  not_invoiced: { label: 'Brak FV', color: 'bg-gray-900 text-white' },
+  invoice_sent: { label: 'Wysłano FV', color: 'bg-yellow-400 text-gray-900' },
+  paid: { label: 'Opłacony', color: 'bg-emerald-600 text-white' },
+  overdue: { label: 'Przeterminowana', color: 'bg-red-600 text-white' },
 };
