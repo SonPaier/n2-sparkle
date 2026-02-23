@@ -93,7 +93,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
               {customDate ? format(customDate, 'd MMM', { locale: pl }) : 'Data'}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 z-[60]" align="start">
+          <PopoverContent className="w-auto p-0 z-[1000]" align="start">
             <Calendar
               mode="single"
               selected={customDate}
@@ -109,7 +109,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
           <SelectTrigger className="h-9 w-[130px] text-xs">
             <SelectValue placeholder="Kolumna" />
           </SelectTrigger>
-          <SelectContent className="z-[60]">
+          <SelectContent className="z-[1000]">
             <SelectItem value="all">Wszystkie</SelectItem>
             {columns.map(col => (
               <SelectItem key={col.id} value={col.id}>

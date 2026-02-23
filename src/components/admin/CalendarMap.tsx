@@ -127,10 +127,9 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation }: CalendarMapPro
         const km = Math.round(haversineKm(hqLocation.lat, hqLocation.lng, item.address_lat, item.address_lng) * 1.35);
         distPart = `~${km} km`;
       }
-      const parts = [city, distPart, dateStr].filter(Boolean).join(' · ');
-      const line1 = parts;
       const title = item.title || '';
-      const tooltipHtml = `<div class="calendar-map-tooltip-content"><div class="cmt-line1">${line1}</div>${title ? `<div class="cmt-line2">${title}</div>` : ''}</div>`;
+      const line2Parts = [city, distPart, dateStr].filter(Boolean).join(' · ');
+      const tooltipHtml = `<div class="calendar-map-tooltip-content">${title ? `<div class="cmt-line1">${title}</div>` : ''}<div class="cmt-line2">${line2Parts}</div></div>`;
 
       const marker = L.marker([item.address_lat!, item.address_lng!], {
         icon: getIcon(color),
