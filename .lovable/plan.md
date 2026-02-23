@@ -1,71 +1,77 @@
 
-# Taby "Dane" i "Zlecenia" w drawerze klienta
+# Filtry mapy klientow
 
 ## Co robimy
 
-Dodajemy dwa taby w drawerze szczegulow klienta (`CustomerEditDrawer`):
-- **Dane** -- obecna zawartosc (formularz edycji / podglad danych)
-- **Zlecenia** -- lista wszystkich zlecen (calendar_items) powiazanych z tym klientem, od najnowszych
+Dodajemy filtry do widoku mapy klientow. Filtry pozwalaja zawezic pinezki na mapie wg:
+1. **Klient** -- wyszukiwarka klienta (istniejacy `CustomerSearchInput`), pokazuje tylko jego lokalizacje
+2. **Uslugi** -- wybor uslug (istniejacy `ServiceSelectionDrawer`), pokazuje adresy klientow ktorzy mieli te uslugi w rezerwacjach
 
-Taby widoczne tylko przy podgladzie/edycji istniejacego klienta (nie w trybie dodawania nowego).
+Nad mapa wyswietlamy aktywne filtry jako chipy. Tooltip na markerach bez zmian.
 
-## Karta zlecenia
+## Uklad UI
 
-Kazda karta zawiera:
-- Data zlecenia
-- Nazwa adresu (z customer_addresses)
-- Adres (ulica, miasto)
-- Lista uslug (z calendar_item_services + unified_services)
-- Kwota (price)
-- Status (badge kolorowy)
-- Link do protokolu publicznego (jesli istnieje)
+### Desktop
+- Drawer mapy: **100% width** (zmiana z 80vw), h-full, direction right
+- Wewnatrz: **flex-row** -- lewy panel filtrow (min-w-[250px], w-[20%]) + prawa czesc z mapa (flex-1)
+- Nad mapa: pasek z aktywnymi filtrami (chipy z X do usuwania)
 
-Sortowanie: od najnowszych (item_date DESC).
+### Mobile
+- Drawer mapy: 100dvh jak dotychczas
+- W headerze mapy: przycisk "Filtry" otwierajacy **osobny drawer** (direction right, 100% height)
+- Drawer filtrow: header "Filtry" z X, zawartosc filtrow, footer z przyciskiem "Zapisz" (fixed bottom)
+- Po kliknieciu "Zapisz" drawer filtrow sie zamyka, mapa jest przefiltrowana
+- Nad mapa: pasek z aktywnymi filtrami (chipy)
 
 ## Plan techniczny
 
-### 1. Nowy komponent `CustomerOrderCard.tsx`
+### 1. Nowy komponent `CustomerMapFilters.tsx`
 
-Osobny komponent karty zlecenia.
+Komponent z filtrami -- uzyty zarowno w panelu bocznym (desktop) jak i w drawerze (mobile).
 
 Props:
-- `itemDate: string` -- data zlecenia
-- `status: string` -- status zlecenia
-- `addressName?: string` -- nazwa obiektu
-- `addressStreet?: string` -- ulica
-- `addressCity?: string` -- miasto
-- `services: { name: string; price?: number }[]` -- lista uslug
-- `price?: number` -- kwota calkowita
-- `protocolPublicToken?: string` -- token do publicznego linku protokolu
+- `instanceId: string`
+- `selectedCustomer: SelectedCustomer | null`
+- `onCustomerSelect: (customer: SelectedCustomer) => void`
+- `onCustomerClear: () => void`
+- `selectedServiceIds: string[]`
+- `onServicesConfirm: (ids: string[], duration: number, services: ServiceWithCategory[]) => void`
+- `selectedServiceNames: string[]` -- nazwy wybranych uslug do wyswietlenia
 
-Wyglad:
-- Gora: data (sformatowana) + badge statusu (kolorowy wg statusu)
-- Srodek: nazwa adresu, adres (ulica, miasto), lista uslug
-- Dol: kwota + link "Protokol" (otwiera w nowej karcie)
+Zawartosc:
+- Sekcja "Klient": `CustomerSearchInput`
+- Sekcja "Uslugi": przycisk otwierajacy `ServiceSelectionDrawer`, pod spodem chipy wybranych uslug z X
 
-### 2. Nowy komponent `CustomerOrdersTab.tsx`
+### 2. Nowy komponent `CustomerMapFiltersDrawer.tsx` (mobile)
 
-Props: `customerId: string`, `instanceId: string`
+Drawer (vaul, direction right, h-full) z:
+- Header: "Filtry" + X
+- Content: `CustomerMapFilters` (ze stanem tymczasowym)
+- Footer: przycisk "Zapisz" (fixed bottom)
 
-Logika:
-- Fetch `calendar_items` where `customer_id = customerId`, order by `item_date DESC`
-- Fetch powiazane `calendar_item_services` + `unified_services` (nazwy uslug)
-- Fetch `customer_addresses` po `customer_address_id` (nazwa, ulica, miasto)
-- Fetch `protocols` po `calendar_item_id` (public_token)
-- Renderowanie listy komponentow `CustomerOrderCard`
+Stan filtrow jest tymczasowy -- kopia aktualnych filtrow, dopiero po "Zapisz" aplikuje sie do mapy.
 
-### 3. Zmiana w `CustomerEditDrawer.tsx`
+### 3. Zmiana w `CustomersMapDrawer.tsx`
 
-- Gdy `!isAddMode`:
-  - Header (nazwa klienta, przyciski sms/tel, X) zostaje nad tabami
-  - Pod headerem: Tabs z dwoma tabami "Dane" i "Zlecenia" (uzycie `AdminTabsList` / `AdminTabsTrigger`)
-  - Tab "Dane": obecna zawartosc (view mode + edit mode)
-  - Tab "Zlecenia": komponent `CustomerOrdersTab`
-  - Footer (Edytuj/Zapisz/Anuluj) widoczny tylko gdy aktywny tab "Dane"
-- Gdy `isAddMode`: bez tabow, dzialanie jak dotychczas
+- Desktop: drawer width zmiana na `w-full` (z `w-[80vw]`)
+- Desktop: layout flex-row -- lewy panel `CustomerMapFilters` (min-w-[250px] w-[20%] border-r) + prawa czesc (flex-1 flex-col) z headerem, paskiem filtrow i mapa
+- Mobile: przycisk "Filtry" w headerze otwiera `CustomerMapFiltersDrawer`
+- Nad mapa: pasek z aktywnymi filtrami (chipy -- nazwa klienta, nazwy uslug)
+- Nowe props: filtrowane `addresses` (juz przefiltrowane z CustomersView), plus stan filtrow i callbacki
+
+### 4. Zmiana w `CustomersView.tsx`
+
+- Nowy stan: `mapFilterCustomer: SelectedCustomer | null`, `mapFilterServiceIds: string[]`, `mapFilterServiceNames: string[]`
+- Nowa logika: gdy `mapFilterServiceIds` niepuste -- fetch `calendar_item_services` + `calendar_items` aby znalezc `customer_id` powiazanych z tymi uslugami
+- Filtrowanie `mapAddresses` przed przekazaniem do `CustomersMapDrawer`:
+  - Jesli wybrany klient -- tylko jego adresy
+  - Jesli wybrane uslugi -- tylko adresy klientow z tymi uslugami
+  - Oba filtry laczone AND
+- Przekazanie filtrow i callbackow do `CustomersMapDrawer`
 
 ### Pliki
 
-- **Nowy**: `src/components/admin/CustomerOrderCard.tsx`
-- **Nowy**: `src/components/admin/CustomerOrdersTab.tsx`
-- **Edycja**: `src/components/admin/CustomerEditDrawer.tsx`
+- **Nowy**: `src/components/admin/CustomerMapFilters.tsx`
+- **Nowy**: `src/components/admin/CustomerMapFiltersDrawer.tsx`
+- **Edycja**: `src/components/admin/CustomersMapDrawer.tsx`
+- **Edycja**: `src/components/admin/CustomersView.tsx`
