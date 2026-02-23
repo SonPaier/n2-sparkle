@@ -17,6 +17,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEmployees } from '@/hooks/useEmployees';
 import EmployeeSelectionDrawer from './EmployeeSelectionDrawer';
 import { ProtocolPhotosUploader } from '@/components/protocols/ProtocolPhotosUploader';
+import { CreateInvoiceDrawer } from '@/components/invoicing/CreateInvoiceDrawer';
+import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
+import { useInvoicingSettings } from '@/components/invoicing/useInvoicingSettings';
+import { useInvoices } from '@/components/invoicing/useInvoices';
 import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
 
 interface SmsNotificationInfo {
@@ -106,7 +110,11 @@ const CalendarItemDetailsDrawer = ({
   // Customer detail drawer
   const [customerDetailOpen, setCustomerDetailOpen] = useState(false);
   const [customerDetailData, setCustomerDetailData] = useState<Customer | null>(null);
+  // Invoice drawer
+  const [invoiceDrawerOpen, setInvoiceDrawerOpen] = useState(false);
   const { data: allEmployees = [] } = useEmployees(instanceId || null);
+  const { settings: invoicingSettings } = useInvoicingSettings(instanceId || null);
+  const { data: itemInvoices = [], refetch: refetchInvoices } = useInvoices(instanceId || null, item?.id);
 
   useEffect(() => {
     if (item) {
@@ -554,13 +562,14 @@ const CalendarItemDetailsDrawer = ({
                   <span className="text-sm text-muted-foreground">{formattedDate}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className={statusColors[item.status] || 'bg-muted'}>
-                    {statusLabels[item.status] || item.status}
-                  </Badge>
-                  {column && (
-                    <span className="text-xs text-muted-foreground">{column.name}</span>
-                  )}
-                </div>
+                   <Badge className={statusColors[item.status] || 'bg-muted'}>
+                     {statusLabels[item.status] || item.status}
+                   </Badge>
+                   <InvoiceStatusBadge status={(item as any).payment_status} />
+                   {column && (
+                     <span className="text-xs text-muted-foreground">{column.name}</span>
+                   )}
+                 </div>
                 <h3 className="text-base font-semibold mt-1">{item.title}</h3>
               </div>
               <button
@@ -653,34 +662,55 @@ const CalendarItemDetailsDrawer = ({
             )}
 
             {/* Completed: FV + SMS buttons */}
-            {item.status === 'completed' && (
+            {(item.status === 'completed' || item.status === 'in_progress') && (
               <div className="space-y-2 pt-2 border-t border-border">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => toast.info('Wkrótce dostępne')}
-                >
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  Wyślij FV
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  disabled={!item.customer_phone}
-                  onClick={() => {
-                    const phone = item.customer_phone || '';
-                    let message = `Prośba o rozliczenie "${item.title}"`;
-                    if (item.price != null) message += ` w kwocie ${item.price.toFixed(2)} PLN`;
-                    message += '.';
-                    if (protocolToken) {
-                      message += ` Link do protokołu: ${window.location.origin}/protocol/${protocolToken}`;
-                    }
-                    window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
-                  }}
-                >
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Wyślij SMS o rozliczeniu
-                </Button>
+                {invoicingSettings?.active && itemInvoices.length === 0 && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setInvoiceDrawerOpen(true)}
+                  >
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Wystaw FV
+                  </Button>
+                )}
+                {itemInvoices.length > 0 && (
+                  <div className="space-y-1">
+                    {itemInvoices.map(inv => (
+                      <div key={inv.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-lg px-3 py-2">
+                        <div>
+                          <span className="font-medium">{inv.invoice_number || 'Faktura'}</span>
+                          <span className="text-muted-foreground ml-2">{inv.total_gross?.toFixed(2)} {inv.currency}</span>
+                        </div>
+                        {inv.pdf_url && (
+                          <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">
+                            PDF
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {item.status === 'completed' && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={!item.customer_phone}
+                    onClick={() => {
+                      const phone = item.customer_phone || '';
+                      let message = `Prośba o rozliczenie "${item.title}"`;
+                      if (item.price != null) message += ` w kwocie ${item.price.toFixed(2)} PLN`;
+                      message += '.';
+                      if (protocolToken) {
+                        message += ` Link do protokołu: ${window.location.origin}/protocol/${protocolToken}`;
+                      }
+                      window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Wyślij SMS o rozliczeniu
+                  </Button>
+                )}
               </div>
             )}
             {/* Assigned Employees - N2Wash style pills */}
@@ -873,6 +903,23 @@ const CalendarItemDetailsDrawer = ({
         open={customerDetailOpen}
         onClose={() => { setCustomerDetailOpen(false); setCustomerDetailData(null); }}
       />
+
+      {/* Invoice Drawer */}
+      {instanceId && (
+        <CreateInvoiceDrawer
+          open={invoiceDrawerOpen}
+          onClose={() => setInvoiceDrawerOpen(false)}
+          instanceId={instanceId}
+          calendarItemId={item.id}
+          customerId={item.customer_id}
+          customerName={item.customer_name}
+          customerEmail={item.customer_email}
+          onSuccess={() => {
+            refetchInvoices();
+            onStatusChange?.(item.id, item.status); // refresh parent
+          }}
+        />
+      )}
     </>
   );
 };
