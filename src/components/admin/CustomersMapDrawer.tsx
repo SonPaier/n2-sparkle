@@ -17,6 +17,7 @@ export interface CustomerMapAddress {
   addressName: string;
   city: string | null;
   customerId: string;
+  addressId: string;
 }
 
 export interface MapFilters {
@@ -29,7 +30,7 @@ interface CustomersMapDrawerProps {
   open: boolean;
   onClose: () => void;
   addresses: CustomerMapAddress[];
-  onCustomerClick: (customerId: string) => void;
+  onCustomerClick: (customerId: string, addressId: string) => void;
   instanceId: string;
   filters: MapFilters;
   onFiltersChange: (filters: MapFilters) => void;
@@ -144,14 +145,14 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
           className: 'calendar-map-tooltip',
           interactive: true,
         })
-        .on('click', () => onCustomerClick(addr.customerId))
+        .on('click', () => onCustomerClick(addr.customerId, addr.addressId))
         .addTo(map);
 
       marker.on('tooltipopen', () => {
         const el = marker.getTooltip()?.getElement();
         if (el) {
           el.style.cursor = 'pointer';
-          el.onclick = (e) => { e.stopPropagation(); onCustomerClick(addr.customerId); };
+          el.onclick = (e) => { e.stopPropagation(); onCustomerClick(addr.customerId, addr.addressId); };
         }
       });
 

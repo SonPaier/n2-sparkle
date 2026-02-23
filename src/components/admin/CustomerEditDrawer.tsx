@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Phone, MessageSquare, Mail, X, ChevronDown } from 'lucide-react';
+import { Phone, MessageSquare, Mail, X, ChevronDown, CalendarPlus } from 'lucide-react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
 import CustomerOrdersTab from './CustomerOrdersTab';
@@ -20,7 +20,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { normalizePhone } from '@/lib/phoneUtils';
 import type { Customer } from './CustomersView';
+import AddCalendarItemDialog from './AddCalendarItemDialog';
 
+interface CalendarColumn {
+  id: string;
+  name: string;
+}
 
 interface CustomerEditDrawerProps {
   customer: Customer | null;
@@ -29,6 +34,10 @@ interface CustomerEditDrawerProps {
   onClose: () => void;
   onCustomerUpdated?: () => void;
   isAddMode?: boolean;
+  prefilledAddressId?: string;
+  prefilledServiceIds?: string[];
+  prefilledServiceNames?: string[];
+  onNewOrderCreated?: () => void;
 }
 
 const CustomerEditDrawer = ({
@@ -38,8 +47,14 @@ const CustomerEditDrawer = ({
   onClose,
   onCustomerUpdated,
   isAddMode = false,
+  prefilledAddressId,
+  prefilledServiceIds,
+  prefilledServiceNames,
+  onNewOrderCreated,
 }: CustomerEditDrawerProps) => {
   const isMobile = useIsMobile();
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
+  const [columns, setColumns] = useState<CalendarColumn[]>([]);
 
   // Edit mode state
   const [isEditing, setIsEditing] = useState(isAddMode);
@@ -59,6 +74,21 @@ const CustomerEditDrawer = ({
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [saving, setSaving] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
+
+  // Fetch calendar columns for new order dialog
+  useEffect(() => {
+    if (!open || !instanceId || isAddMode) return;
+    const fetchColumns = async () => {
+      const { data } = await supabase
+        .from('calendar_columns')
+        .select('id, name')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .order('sort_order');
+      if (data) setColumns(data);
+    };
+    fetchColumns();
+  }, [open, instanceId, isAddMode]);
 
   useEffect(() => {
     if (open) {
@@ -282,6 +312,7 @@ const CustomerEditDrawer = ({
 
 
   return (
+    <>
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent
         className="w-full sm:max-w-md p-0 flex flex-col"
@@ -297,6 +328,9 @@ const CustomerEditDrawer = ({
                 </div>
                 {!isAddMode && !isEditing && (
                   <div className="flex items-center gap-1 ml-2">
+                    <Button variant="ghost" size="icon" onClick={() => setNewOrderOpen(true)} className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted">
+                      <CalendarPlus className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={handleSms} className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted">
                       <MessageSquare className="w-4 h-4" />
                     </Button>
@@ -526,6 +560,28 @@ const CustomerEditDrawer = ({
       )}
     </SheetContent>
   </Sheet>
+
+  {/* New Order Dialog */}
+  {customer && instanceId && (
+    <AddCalendarItemDialog
+      open={newOrderOpen}
+      onClose={() => setNewOrderOpen(false)}
+      instanceId={instanceId}
+      columns={columns}
+      onSuccess={() => {
+        setNewOrderOpen(false);
+        toast.success('Zlecenie dodane');
+        onNewOrderCreated?.();
+      }}
+      initialCustomerId={customer.id}
+      initialCustomerName={customer.name}
+      initialCustomerPhone={customer.phone}
+      initialCustomerEmail={customer.email || undefined}
+      initialCustomerAddressId={prefilledAddressId}
+      initialServiceIds={prefilledServiceIds}
+    />
+  )}
+  </>
   );
 };
 
