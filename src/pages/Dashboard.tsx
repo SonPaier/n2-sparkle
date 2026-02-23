@@ -313,7 +313,7 @@ const Dashboard = () => {
     }
 
     if (currentView === 'uslugi' && instanceId) {
-      return <div className="max-w-4xl"><ServicesView instanceId={instanceId} /></div>;
+      return <div className="max-w-4xl mx-auto"><ServicesView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'klienci' && instanceId) {
@@ -325,7 +325,7 @@ const Dashboard = () => {
     }
 
     if (currentView === 'protokoly' && instanceId) {
-      return <div className="max-w-4xl"><ProtocolsView instanceId={instanceId} /></div>;
+      return <div className="max-w-4xl mx-auto"><ProtocolsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'powiadomienia-sms') {
