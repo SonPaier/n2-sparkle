@@ -87,7 +87,7 @@ const CustomerAddressesSection = ({
         </h4>
         <div className="space-y-2">
           {activeAddresses.map((addr, idx) => (
-            <div key={addr.id || idx} className="p-3 border border-border rounded-lg text-sm space-y-1">
+            <div key={addr.id || idx} className="bg-white p-3 border border-border rounded-lg text-sm space-y-1 shadow-sm">
               <div className="font-medium">{addr.name}</div>
               {addr.street && <div className="text-muted-foreground">{addr.street}</div>}
               {(addr.postal_code || addr.city) && (
