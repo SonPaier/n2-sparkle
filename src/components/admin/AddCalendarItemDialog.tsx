@@ -24,6 +24,8 @@ import EmployeeSelectionDrawer from './EmployeeSelectionDrawer';
 import CustomerSearchInput, { type SelectedCustomer } from './CustomerSearchInput';
 import CustomerAddressSelect from './CustomerAddressSelect';
 import { Checkbox } from '@/components/ui/checkbox';
+import CustomerEditDrawer from './CustomerEditDrawer';
+import type { Customer } from './CustomersView';
 
 interface CalendarColumn {
   id: string;
@@ -65,6 +67,7 @@ interface AddCalendarItemDialogProps {
   initialCustomerEmail?: string;
   initialCustomerAddressId?: string;
   initialServiceIds?: string[];
+  onCustomerClick?: (customerId: string) => void;
 }
 
 const generateTimeOptions = () => {
@@ -96,6 +99,7 @@ const AddCalendarItemDialog = ({
   initialCustomerEmail,
   initialCustomerAddressId,
   initialServiceIds,
+  onCustomerClick,
 }: AddCalendarItemDialogProps) => {
   const isEditMode = !!editingItem?.id;
   const isMobile = useIsMobile();
@@ -124,6 +128,10 @@ const AddCalendarItemDialog = ({
   const [serviceItems, setServiceItems] = useState<ServiceItem[]>([]);
   const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
   const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
+
+  // Customer detail drawer state
+  const [customerDetailOpen, setCustomerDetailOpen] = useState(false);
+  const [customerDetailData, setCustomerDetailData] = useState<Customer | null>(null);
 
   // SMS notification state
   const [sendImmediateSms, setSendImmediateSms] = useState(false);
@@ -294,6 +302,22 @@ const AddCalendarItemDialog = ({
     setCustomerName('');
     setCustomerPhone('');
     setCustomerEmail('');
+  };
+
+  const handleCustomerClick = async (clickedCustomerId: string) => {
+    if (onCustomerClick) {
+      onCustomerClick(clickedCustomerId);
+      return;
+    }
+    const { data } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('id', clickedCustomerId)
+      .single();
+    if (data) {
+      setCustomerDetailData(data as Customer);
+      setCustomerDetailOpen(true);
+    }
   };
 
   // Handle service selection confirmed
@@ -587,6 +611,7 @@ const AddCalendarItemDialog = ({
                 selectedCustomer={customerId ? { id: customerId, name: customerName, phone: customerPhone, email: customerEmail || null, company: null } : null}
                 onSelect={handleSelectCustomer}
                 onClear={handleClearCustomer}
+                onCustomerClick={handleCustomerClick}
               />
             </div>
 
@@ -818,6 +843,14 @@ const AddCalendarItemDialog = ({
         employees={allEmployees}
         selectedIds={assignedEmployeeIds}
         onConfirm={setAssignedEmployeeIds}
+      />
+
+      {/* Customer Detail Drawer */}
+      <CustomerEditDrawer
+        customer={customerDetailData}
+        instanceId={instanceId}
+        open={customerDetailOpen}
+        onClose={() => { setCustomerDetailOpen(false); setCustomerDetailData(null); }}
       />
     </>
   );
