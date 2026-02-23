@@ -32,7 +32,7 @@ const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConf
 
   return (
     <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <SheetContent side={isMobile ? 'bottom' : 'right'} className={isMobile ? 'h-[70vh] overflow-y-auto' : 'sm:max-w-sm overflow-y-auto'}>
+      <SheetContent side={isMobile ? 'bottom' : 'right'} className={`z-[1000] ${isMobile ? 'h-[70vh] overflow-y-auto' : 'sm:max-w-sm overflow-y-auto'}`}>
         <SheetHeader>
           <SheetTitle>Przypisz pracowników</SheetTitle>
         </SheetHeader>

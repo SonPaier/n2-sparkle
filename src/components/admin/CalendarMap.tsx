@@ -220,8 +220,8 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation }: CalendarMapPro
         }
         .cmt-line2 {
           font-size: 11px;
-          font-weight: 400;
-          color: hsl(var(--muted-foreground));
+          font-weight: 600;
+          color: hsl(var(--foreground));
           line-height: 1.3;
           margin-top: 1px;
           max-width: 180px;
