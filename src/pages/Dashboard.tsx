@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
@@ -18,19 +18,21 @@ import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/co
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { EmployeesView } from '@/components/admin/employees';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
+import SettlementsView from '@/components/admin/SettlementsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 
-const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'powiadomienia-sms', 'ustawienia'];
+const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'powiadomienia-sms', 'ustawienia'];
 
 const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; description: string }> = {
   kalendarz: { label: 'Kalendarz', icon: Calendar, description: 'Zarządzaj harmonogramem i rezerwacjami' },
   klienci: { label: 'Klienci', icon: Users, description: 'Przeglądaj i zarządzaj bazą klientów' },
   pracownicy: { label: 'Pracownicy', icon: HardHat, description: 'Zarządzaj pracownikami i czasem pracy' },
   protokoly: { label: 'Protokoły', icon: ClipboardCheck, description: 'Protokoły serwisowe zakończenia prac' },
+  rozliczenia: { label: 'Rozliczenia', icon: Receipt, description: 'Rozliczenia i statusy płatności zleceń' },
   uslugi: { label: 'Usługi', icon: BadgeDollarSign, description: 'Konfiguruj usługi i cennik' },
   'powiadomienia-sms': { label: 'Powiadomienia SMS', icon: MessageSquare, description: 'Szablony powiadomień SMS dla klientów' },
   ustawienia: { label: 'Ustawienia', icon: Settings, description: 'Ustawienia systemu i konfiguracja' },
@@ -326,6 +328,10 @@ const Dashboard = () => {
 
     if (currentView === 'protokoly' && instanceId) {
       return <div className="max-w-4xl mx-auto"><ProtocolsView instanceId={instanceId} /></div>;
+    }
+
+    if (currentView === 'rozliczenia' && instanceId) {
+      return <SettlementsView instanceId={instanceId} />;
     }
 
     if (currentView === 'powiadomienia-sms') {
