@@ -1,0 +1,98 @@
+import { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { Button } from '@/components/ui/button';
+import CustomerMapFilters from './CustomerMapFilters';
+import type { SelectedCustomer } from './CustomerSearchInput';
+import type { ServiceWithCategory } from './ServiceSelectionDrawer';
+
+interface CustomerMapFiltersDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  instanceId: string;
+  // Current applied filters
+  selectedCustomer: SelectedCustomer | null;
+  selectedServiceIds: string[];
+  selectedServiceNames: string[];
+  // Callbacks to apply
+  onApply: (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[]) => void;
+}
+
+const CustomerMapFiltersDrawer = ({
+  open,
+  onClose,
+  instanceId,
+  selectedCustomer,
+  selectedServiceIds,
+  selectedServiceNames,
+  onApply,
+}: CustomerMapFiltersDrawerProps) => {
+  // Temporary state — copy of current filters
+  const [tempCustomer, setTempCustomer] = useState<SelectedCustomer | null>(selectedCustomer);
+  const [tempServiceIds, setTempServiceIds] = useState<string[]>(selectedServiceIds);
+  const [tempServiceNames, setTempServiceNames] = useState<string[]>(selectedServiceNames);
+
+  // Reset temp state when drawer opens
+  useEffect(() => {
+    if (open) {
+      setTempCustomer(selectedCustomer);
+      setTempServiceIds(selectedServiceIds);
+      setTempServiceNames(selectedServiceNames);
+    }
+  }, [open, selectedCustomer, selectedServiceIds, selectedServiceNames]);
+
+  const handleServicesConfirm = (ids: string[], _duration: number, services: ServiceWithCategory[]) => {
+    setTempServiceIds(ids);
+    setTempServiceNames(services.map(s => s.short_name || s.name));
+  };
+
+  const handleRemoveService = (serviceId: string) => {
+    const idx = tempServiceIds.indexOf(serviceId);
+    setTempServiceIds(prev => prev.filter(id => id !== serviceId));
+    if (idx !== -1) {
+      setTempServiceNames(prev => prev.filter((_, i) => i !== idx));
+    }
+  };
+
+  const handleSave = () => {
+    onApply(tempCustomer, tempServiceIds, tempServiceNames);
+    onClose();
+  };
+
+  return (
+    <Drawer open={open} onOpenChange={v => { if (!v) onClose(); }} direction="right">
+      <DrawerContent className="ml-auto h-full w-full sm:max-w-sm max-w-none rounded-none">
+        {/* Header */}
+        <div className="flex items-center justify-between p-3 border-b border-border">
+          <h2 className="text-lg font-semibold">Filtry</h2>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          <CustomerMapFilters
+            instanceId={instanceId}
+            selectedCustomer={tempCustomer}
+            onCustomerSelect={setTempCustomer}
+            onCustomerClear={() => setTempCustomer(null)}
+            selectedServiceIds={tempServiceIds}
+            onServicesConfirm={handleServicesConfirm}
+            selectedServiceNames={tempServiceNames}
+            onRemoveService={handleRemoveService}
+          />
+        </div>
+
+        {/* Footer */}
+        <div className="border-t p-4 bg-background">
+          <Button onClick={handleSave} className="w-full" size="lg">
+            Zapisz
+          </Button>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+};
+
+export default CustomerMapFiltersDrawer;
