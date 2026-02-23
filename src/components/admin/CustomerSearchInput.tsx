@@ -67,7 +67,7 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal">
           <Search className="w-4 h-4 mr-2" />
