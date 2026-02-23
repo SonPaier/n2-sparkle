@@ -83,6 +83,7 @@ const CalendarItemDetailsDrawer = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [addressLabel, setAddressLabel] = useState<string | null>(null);
+  const [addressStreet, setAddressStreet] = useState<string>('');
   const [addressCoords, setAddressCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [smsNotifications, setSmsNotifications] = useState<SmsNotificationInfo[]>([]);
   const [protocolToken, setProtocolToken] = useState<string | null>(null);
@@ -119,17 +120,17 @@ const CalendarItemDetailsDrawer = ({
 
   // Fetch address
   useEffect(() => {
-    if (!item?.customer_address_id) { setAddressLabel(null); setAddressCoords(null); return; }
-    const fetchAddr = async () => {
+    if (!item?.customer_address_id) { setAddressLabel(null); setAddressStreet(''); setAddressCoords(null); return; }
+   const fetchAddr = async () => {
       const { data } = await supabase
         .from('customer_addresses')
         .select('name, street, city, lat, lng')
         .eq('id', item.customer_address_id!)
         .single();
       if (data) {
-        const parts = [data.name, data.street, data.city].filter(Boolean);
-        setAddressLabel(parts.join(', '));
+        setAddressLabel(data.name || '');
         setAddressCoords(data.lat && data.lng ? { lat: data.lat, lng: data.lng } : null);
+        setAddressStreet([data.street, data.city].filter(Boolean).join(', '));
       }
     };
     fetchAddr();
@@ -612,31 +613,31 @@ const CalendarItemDetailsDrawer = ({
                     )}
                   </div>
                 )}
-                {item.customer_phone && (
-                  <div className="flex items-center gap-2 text-sm ml-6">
-                    <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <a href={`tel:${item.customer_phone}`} className="text-primary hover:underline">{item.customer_phone}</a>
-                  </div>
-                )}
-                {item.customer_email && (
-                  <div className="flex items-center gap-2 text-sm ml-6">
-                    <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <a href={`mailto:${item.customer_email}`} className="text-primary hover:underline">{item.customer_email}</a>
-                  </div>
-                )}
                 {addressLabel && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                    <span>{addressLabel}</span>
-                    {addressCoords && (
-                      <a
-                        href={`https://www.google.com/maps?q=${addressCoords.lat},${addressCoords.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ml-auto text-xs text-primary hover:underline"
-                      >
-                        Lokalizacja
-                      </a>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="font-medium">{addressLabel}</span>
+                      {addressCoords && (
+                        <a
+                          href={`https://www.google.com/maps?q=${addressCoords.lat},${addressCoords.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-auto p-1 rounded hover:bg-muted"
+                          title="Otwórz w Google Maps"
+                        >
+                          <svg viewBox="0 0 92.3 132.3" className="w-5 h-5">
+                            <path fill="#1a73e8" d="M60.2 2.2C55.8.8 51 0 46.1 0 32 0 19.3 6.4 10.8 16.5l21.8 18.3L60.2 2.2z"/>
+                            <path fill="#ea4335" d="M10.8 16.5C4.1 24.5 0 34.9 0 46.1c0 8.7 1.7 15.7 4.6 22l28-32.4L10.8 16.5z"/>
+                            <path fill="#4285f4" d="M46.2 28.5c9.8 0 17.7 7.9 17.7 17.7 0 4.3-1.6 8.3-4.2 11.4 0 0 13.9-16.1 27.7-32.1-5.6-10.8-15.3-19-27.2-22.7L32.6 34.8c3.3-3.8 8.1-6.3 13.6-6.3"/>
+                            <path fill="#fbbc04" d="M46.2 63.8c-9.8 0-17.7-7.9-17.7-17.7 0-4.3 1.6-8.3 4.2-11.4L4.6 68.1c5.5 11.9 13.6 21.5 19.8 29.7l35.3-40.9c-3.2 3.9-8.1 6.3-13.5 6.9"/>
+                            <path fill="#34a853" d="M59.1 109.2c15.4-24.1 33.3-35 33.3-63 0-7.7-1.9-14.9-5.2-21.3L24.4 97.8c2.6 3.4 5 6.7 7 9.9 6.5 10.4 11 21.2 14.8 24.6 3.8-3.4 8.3-14.2 12.9-23.1"/>
+                          </svg>
+                        </a>
+                      )}
+                    </div>
+                    {addressStreet && (
+                      <div className="text-xs text-muted-foreground ml-6">{addressStreet}</div>
                     )}
                   </div>
                 )}
@@ -731,7 +732,7 @@ const CalendarItemDetailsDrawer = ({
               ) : (
                 <p
                   onClick={() => setEditingNotes(true)}
-                  className="text-sm text-muted-foreground ml-6 whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem]"
+                  className={`text-sm ml-6 whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
                 >
                   {notesValue || 'Kliknij, aby dodać notatkę...'}
                 </p>

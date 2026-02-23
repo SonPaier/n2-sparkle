@@ -18,7 +18,8 @@ const SignatureDialog = ({ open, onClose, onSave }: SignatureDialogProps) => {
 
   const handleSave = () => {
     if (sigRef.current?.isEmpty()) return;
-    const dataUrl = sigRef.current?.getTrimmedCanvas().toDataURL('image/png');
+    // Use getCanvas() instead of getTrimmedCanvas() to avoid trim-canvas import bug
+    const dataUrl = sigRef.current?.getCanvas().toDataURL('image/png');
     if (dataUrl) onSave(dataUrl);
   };
 
