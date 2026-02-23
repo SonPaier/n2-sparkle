@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Phone, MessageSquare, ChevronLeft, ChevronRight, Plus, Trash2, MapPin } from 'lucide-react';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CustomerEditDrawer from './CustomerEditDrawer';
-import CustomersMapDrawer, { type CustomerMapAddress } from './CustomersMapDrawer';
+import CustomersMapDrawer, { type CustomerMapAddress, type MapFilters } from './CustomersMapDrawer';
 import { toast } from 'sonner';
 
 interface Customer {
@@ -60,6 +60,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Map filter state
+  const [mapFilters, setMapFilters] = useState<MapFilters>({ customer: null, serviceIds: [], serviceNames: [] });
+  const [serviceCustomerIds, setServiceCustomerIds] = useState<Set<string> | null>(null);
+
   const fetchCustomers = async () => {
     if (!instanceId) return;
     setLoading(true);
@@ -88,6 +92,44 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   useEffect(() => {
     fetchCustomers();
   }, [instanceId]);
+
+  // Fetch customer IDs associated with selected services
+  useEffect(() => {
+    if (!instanceId || mapFilters.serviceIds.length === 0) {
+      setServiceCustomerIds(null);
+      return;
+    }
+
+    const fetchServiceCustomers = async () => {
+      // Find calendar_item_ids that have any of the selected services
+      const { data: cisData } = await supabase
+        .from('calendar_item_services')
+        .select('calendar_item_id')
+        .eq('instance_id', instanceId)
+        .in('service_id', mapFilters.serviceIds);
+
+      if (!cisData || cisData.length === 0) {
+        setServiceCustomerIds(new Set());
+        return;
+      }
+
+      const calendarItemIds = [...new Set(cisData.map(r => r.calendar_item_id))];
+
+      // Fetch customer_ids from those calendar items
+      const { data: ciData } = await supabase
+        .from('calendar_items')
+        .select('customer_id')
+        .eq('instance_id', instanceId)
+        .in('id', calendarItemIds)
+        .not('customer_id', 'is', null);
+
+      const ids = new Set<string>();
+      ciData?.forEach(r => { if (r.customer_id) ids.add(r.customer_id); });
+      setServiceCustomerIds(ids);
+    };
+
+    fetchServiceCustomers();
+  }, [instanceId, mapFilters.serviceIds]);
 
   const filteredCustomers = useMemo(() => {
     let result = [...customers];
@@ -129,7 +171,8 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  const mapAddresses = useMemo<CustomerMapAddress[]>(() => {
+  // All map addresses (unfiltered)
+  const allMapAddresses = useMemo<CustomerMapAddress[]>(() => {
     const result: CustomerMapAddress[] = [];
     for (const customer of customers) {
       const addrs = addressMap.get(customer.id);
@@ -149,6 +192,23 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     }
     return result;
   }, [customers, addressMap]);
+
+  // Filtered map addresses
+  const filteredMapAddresses = useMemo<CustomerMapAddress[]>(() => {
+    let result = allMapAddresses;
+
+    // Filter by customer
+    if (mapFilters.customer) {
+      result = result.filter(a => a.customerId === mapFilters.customer!.id);
+    }
+
+    // Filter by services (customer IDs who had those services)
+    if (serviceCustomerIds !== null) {
+      result = result.filter(a => serviceCustomerIds.has(a.customerId));
+    }
+
+    return result;
+  }, [allMapAddresses, mapFilters.customer, serviceCustomerIds]);
 
   const handleCall = (phone: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -346,7 +406,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       <CustomersMapDrawer
         open={mapOpen}
         onClose={() => setMapOpen(false)}
-        addresses={mapAddresses}
+        addresses={filteredMapAddresses}
+        instanceId={instanceId || ''}
+        filters={mapFilters}
+        onFiltersChange={setMapFilters}
         onCustomerClick={(customerId) => {
           setMapOpen(false);
           const customer = customers.find(c => c.id === customerId);
