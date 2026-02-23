@@ -207,6 +207,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
       direction={isMobile ? 'bottom' : 'right'}
     >
       <DrawerContent
+        hideHandle
         className={
           isMobile
             ? 'h-[100dvh] rounded-none'
