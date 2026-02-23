@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { format } from 'date-fns';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import CustomerOrderCard from './CustomerOrderCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import AddCalendarItemDialog, { type EditingCalendarItem } from './AddCalendarItemDialog';
 
 interface CustomerOrdersTabProps {
   customerId: string;
@@ -20,18 +24,37 @@ interface OrderData {
   protocolPublicToken?: string;
 }
 
+interface CalendarColumn {
+  id: string;
+  name: string;
+}
+
 const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) => {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPast, setShowPast] = useState(false);
+  const [columns, setColumns] = useState<CalendarColumn[]>([]);
+  const [editingItem, setEditingItem] = useState<EditingCalendarItem | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     fetchOrders();
+    fetchColumns();
   }, [customerId]);
+
+  const fetchColumns = async () => {
+    const { data } = await supabase
+      .from('calendar_columns')
+      .select('id, name')
+      .eq('instance_id', instanceId)
+      .eq('active', true)
+      .order('sort_order');
+    if (data) setColumns(data);
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      // Fetch calendar items for this customer
       const { data: items } = await supabase
         .from('calendar_items')
         .select('id, item_date, status, price, customer_address_id')
@@ -47,22 +70,15 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
       const itemIds = items.map(i => i.id);
       const addressIds = items.map(i => i.customer_address_id).filter(Boolean) as string[];
 
-      // Fetch services, addresses, protocols in parallel
       const [servicesRes, addressesRes, protocolsRes] = await Promise.all([
         supabase
           .from('calendar_item_services')
           .select('calendar_item_id, custom_price, service_id, unified_services(name, price)')
           .in('calendar_item_id', itemIds),
         addressIds.length > 0
-          ? supabase
-              .from('customer_addresses')
-              .select('id, name, street, city')
-              .in('id', addressIds)
+          ? supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds)
           : Promise.resolve({ data: [] }),
-        supabase
-          .from('protocols')
-          .select('calendar_item_id, public_token')
-          .in('calendar_item_id', itemIds),
+        supabase.from('protocols').select('calendar_item_id, public_token').in('calendar_item_id', itemIds),
       ]);
 
       const servicesMap = new Map<string, { name: string; price?: number }[]>();
@@ -70,10 +86,7 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
         for (const s of servicesRes.data) {
           const list = servicesMap.get(s.calendar_item_id) || [];
           const svc = s.unified_services as any;
-          list.push({
-            name: svc?.name || '—',
-            price: s.custom_price ?? svc?.price ?? undefined,
-          });
+          list.push({ name: svc?.name || '—', price: s.custom_price ?? svc?.price ?? undefined });
           servicesMap.set(s.calendar_item_id, list);
         }
       }
@@ -88,9 +101,7 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
       const protocolMap = new Map<string, string>();
       if (protocolsRes.data) {
         for (const p of protocolsRes.data) {
-          if (p.calendar_item_id && p.public_token) {
-            protocolMap.set(p.calendar_item_id, p.public_token);
-          }
+          if (p.calendar_item_id && p.public_token) protocolMap.set(p.calendar_item_id, p.public_token);
         }
       }
 
@@ -117,6 +128,39 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
     }
   };
 
+  const handleEditClick = async (orderId: string) => {
+    const { data } = await supabase
+      .from('calendar_items')
+      .select('id, title, item_date, end_date, start_time, end_time, column_id, admin_notes, price, customer_id, customer_address_id, assigned_employee_ids, customer_name, customer_phone, customer_email')
+      .eq('id', orderId)
+      .single();
+
+    if (data) {
+      setEditingItem({
+        id: data.id,
+        title: data.title,
+        item_date: data.item_date,
+        end_date: data.end_date,
+        start_time: data.start_time,
+        end_time: data.end_time,
+        column_id: data.column_id,
+        admin_notes: data.admin_notes,
+        price: data.price,
+        customer_id: data.customer_id,
+        customer_address_id: data.customer_address_id,
+        assigned_employee_ids: data.assigned_employee_ids,
+        customer_name: data.customer_name,
+        customer_phone: data.customer_phone,
+        customer_email: data.customer_email,
+      });
+      setEditOpen(true);
+    }
+  };
+
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const futureOrders = useMemo(() => orders.filter(o => o.itemDate >= today), [orders, today]);
+  const pastOrders = useMemo(() => orders.filter(o => o.itemDate < today), [orders, today]);
+
   if (loading) {
     return (
       <div className="space-y-3 mt-4">
@@ -137,7 +181,7 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
 
   return (
     <div className="space-y-3 mt-4">
-      {orders.map(order => (
+      {futureOrders.map(order => (
         <CustomerOrderCard
           key={order.id}
           itemDate={order.itemDate}
@@ -148,8 +192,47 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
           addressCity={order.addressCity}
           services={order.services}
           protocolPublicToken={order.protocolPublicToken}
+          onEdit={() => handleEditClick(order.id)}
         />
       ))}
+
+      {pastOrders.length > 0 && (
+        <>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full text-muted-foreground"
+            onClick={() => setShowPast(!showPast)}
+          >
+            Zobacz przeszłe ({pastOrders.length})
+            {showPast ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
+          </Button>
+
+          {showPast && pastOrders.map(order => (
+            <CustomerOrderCard
+              key={order.id}
+              itemDate={order.itemDate}
+              status={order.status}
+              price={order.price ?? undefined}
+              addressName={order.addressName}
+              addressStreet={order.addressStreet}
+              addressCity={order.addressCity}
+              services={order.services}
+              protocolPublicToken={order.protocolPublicToken}
+              onEdit={() => handleEditClick(order.id)}
+            />
+          ))}
+        </>
+      )}
+
+      <AddCalendarItemDialog
+        open={editOpen}
+        onClose={() => { setEditOpen(false); setEditingItem(null); }}
+        instanceId={instanceId}
+        columns={columns}
+        onSuccess={() => { setEditOpen(false); setEditingItem(null); fetchOrders(); }}
+        editingItem={editingItem}
+      />
     </div>
   );
 };
