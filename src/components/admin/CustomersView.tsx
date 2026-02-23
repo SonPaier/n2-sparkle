@@ -48,6 +48,7 @@ const ITEMS_PER_PAGE = 10;
 const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const isMobile = useIsMobile();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [addressMap, setAddressMap] = useState<Map<string, { name: string; city: string | null }[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,15 +62,24 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     if (!instanceId) return;
     setLoading(true);
     
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('instance_id', instanceId)
-      .order('name');
+    const [customersRes, addressesRes] = await Promise.all([
+      supabase.from('customers').select('*').eq('instance_id', instanceId).order('name'),
+      supabase.from('customer_addresses').select('customer_id, name, city').eq('instance_id', instanceId),
+    ]);
 
-    if (!error && data) {
-      setCustomers(data as Customer[]);
+    if (!customersRes.error && customersRes.data) {
+      setCustomers(customersRes.data as Customer[]);
     }
+
+    const map = new Map<string, { name: string; city: string | null }[]>();
+    if (!addressesRes.error && addressesRes.data) {
+      for (const addr of addressesRes.data) {
+        const list = map.get(addr.customer_id) || [];
+        list.push({ name: addr.name, city: addr.city });
+        map.set(addr.customer_id, list);
+      }
+    }
+    setAddressMap(map);
     setLoading(false);
   };
 
@@ -83,18 +93,29 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       const normalizedQuery = normalizeSearchQuery(query);
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(query) ||
-        normalizeSearchQuery(c.phone).includes(normalizedQuery) ||
-        (c.email && c.email.toLowerCase().includes(query)) ||
-        (c.company && c.company.toLowerCase().includes(query)) ||
-        (c.nip && normalizeSearchQuery(c.nip).includes(normalizedQuery))
-      );
+      result = result.filter(c => {
+        if (
+          c.name.toLowerCase().includes(query) ||
+          normalizeSearchQuery(c.phone).includes(normalizedQuery) ||
+          (c.email && c.email.toLowerCase().includes(query)) ||
+          (c.company && c.company.toLowerCase().includes(query)) ||
+          (c.nip && normalizeSearchQuery(c.nip).includes(normalizedQuery))
+        ) return true;
+
+        const addrs = addressMap.get(c.id);
+        if (addrs) {
+          return addrs.some(a =>
+            a.name.toLowerCase().includes(query) ||
+            (a.city && a.city.toLowerCase().includes(query))
+          );
+        }
+        return false;
+      });
     }
 
     result.sort((a, b) => a.name.localeCompare(b.name, 'pl'));
     return result;
-  }, [customers, searchQuery]);
+  }, [customers, searchQuery, addressMap]);
 
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
   const paginatedCustomers = useMemo(() => {
@@ -180,7 +201,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Szukaj po nazwie, telefonie, email, firmie, NIP..."
+            placeholder="Szukaj po nazwie, telefonie, email, firmie, NIP, adresie..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="pl-10"
