@@ -31,6 +31,7 @@ interface CalendarItemRow {
   customer_name: string | null;
   customer_id: string | null;
   customer_email: string | null;
+  customer_address_id: string | null;
   created_at: string;
   status: string;
   payment_status: string | null;
@@ -78,6 +79,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [servicesCache, setServicesCache] = useState<Record<string, ServiceRow[]>>({});
+  const [addressCache, setAddressCache] = useState<Record<string, { name: string; street?: string | null; city?: string | null; postal_code?: string | null } | null>>({});
   const [invoiceDrawerOpen, setInvoiceDrawerOpen] = useState(false);
   const [invoiceTarget, setInvoiceTarget] = useState<CalendarItemRow | null>(null);
   const queryClient = useQueryClient();
@@ -88,7 +90,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('calendar_items')
-        .select('id, item_date, customer_name, customer_id, customer_email, created_at, status, payment_status, price, admin_notes')
+        .select('id, item_date, customer_name, customer_id, customer_email, customer_address_id, created_at, status, payment_status, price, admin_notes')
         .eq('instance_id', instanceId)
         .order('item_date', { ascending: false });
       if (error) throw error;
@@ -154,6 +156,20 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         .eq('calendar_item_id', id);
       if (!error && data) {
         setServicesCache((prev) => ({ ...prev, [id]: data as unknown as ServiceRow[] }));
+      }
+    }
+
+    if (!(id in addressCache)) {
+      const item = items.find((i) => i.id === id);
+      if (item?.customer_address_id) {
+        const { data } = await supabase
+          .from('customer_addresses')
+          .select('name, street, city, postal_code')
+          .eq('id', item.customer_address_id)
+          .maybeSingle();
+        setAddressCache((prev) => ({ ...prev, [id]: data }));
+      } else {
+        setAddressCache((prev) => ({ ...prev, [id]: null }));
       }
     }
   };
@@ -382,6 +398,11 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                       <TableRow key={`${order.id}-expanded`} className="hover:bg-transparent">
                         <TableCell colSpan={7} className="p-0">
                           <div className="bg-background px-6 py-4 border-t border-border/50">
+                            {addressCache[order.id] && (
+                              <p className="text-sm text-muted-foreground mb-3">
+                                📍 {[addressCache[order.id]!.name, addressCache[order.id]!.street, addressCache[order.id]!.postal_code, addressCache[order.id]!.city].filter(Boolean).join(', ')}
+                              </p>
+                            )}
                             {order.admin_notes && (
                               <p className="text-sm text-muted-foreground mb-3">{order.admin_notes}</p>
                             )}
