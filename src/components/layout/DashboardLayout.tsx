@@ -15,10 +15,10 @@ type ViewType = 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' 
 
 const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
+  { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
   { id: 'klienci', label: 'Klienci', icon: Users },
   { id: 'pracownicy', label: 'Pracownicy', icon: HardHat },
   { id: 'protokoly', label: 'Protokoły', icon: ClipboardCheck },
-  { id: 'rozliczenia', label: 'Rozliczenia', icon: Receipt },
   { id: 'uslugi', label: 'Usługi', icon: BadgeDollarSign },
   { id: 'powiadomienia-sms', label: 'Powiadomienia SMS', icon: MessageSquare },
   { id: 'ustawienia', label: 'Ustawienia', icon: Settings },
