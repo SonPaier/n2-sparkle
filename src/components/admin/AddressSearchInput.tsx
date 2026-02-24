@@ -25,6 +25,7 @@ const AddressSearchInput = ({
   const [searching, setSearching] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const search = useCallback(async (q: string) => {
     if (q.length < 3) {
@@ -65,6 +66,16 @@ const AddressSearchInput = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const timer = window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [open]);
+
   const handleSelect = (result: AddressSearchResult) => {
     const label = [result.street, result.postal_code, result.city]
       .filter(Boolean)
@@ -77,7 +88,7 @@ const AddressSearchInput = ({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -87,9 +98,14 @@ const AddressSearchInput = ({
           <span className="truncate">{displayValue || placeholder}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+      <PopoverContent
+        className="z-[1200] p-0 w-[--radix-popover-trigger-width] pointer-events-auto"
+        align="start"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <Command shouldFilter={false}>
           <CommandInput
+            ref={inputRef}
             placeholder="Wpisz adres, ulicę lub miasto..."
             value={query}
             onValueChange={setQuery}
