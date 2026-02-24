@@ -114,8 +114,8 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
       zoom: 7,
       scrollWheelZoom: true,
     });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">HOT</a>',
     }).addTo(mapRef.current);
   }, []);
 
