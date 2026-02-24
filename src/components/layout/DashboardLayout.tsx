@@ -88,30 +88,20 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Logo */}
-          <div className={cn("border-b border-border/50 flex items-center justify-between", sidebarCollapsed ? "p-3" : "p-6")}>
+          <div className={cn("border-b border-border/50 flex items-center", sidebarCollapsed ? "p-3 justify-center" : "p-6 justify-center relative")}>
             <button
               onClick={() => handleNavClick('kalendarz')}
-              className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", sidebarCollapsed ? "justify-center" : "gap-3")}
+              className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
             >
               {instanceLogo ? (
-                <img src={instanceLogo} alt={instanceName || 'Logo'} className={cn("object-contain shrink-0", sidebarCollapsed ? "h-8 w-10" : "h-10 max-w-[140px]")} />
+                <img src={instanceLogo} alt={instanceName || 'Logo'} className={cn("object-contain", sidebarCollapsed ? "h-8" : "h-10 max-w-[180px]")} />
               ) : (
-                <div className={cn("rounded-xl bg-primary flex items-center justify-center shrink-0", "w-10 h-10")}>
+                <div className="rounded-xl bg-primary flex items-center justify-center w-10 h-10 shrink-0">
                   <span className="text-primary-foreground font-bold text-lg">N2</span>
                 </div>
               )}
-              {!sidebarCollapsed && !instanceLogo && (
-                <div className="text-left min-w-0 flex-1">
-                  <h1 className="font-bold text-foreground truncate">N2Serwis</h1>
-                </div>
-              )}
-              {!sidebarCollapsed && instanceLogo && instanceName && (
-                <div className="text-left min-w-0 flex-1">
-                  <h1 className="font-bold text-foreground truncate">{instanceName}</h1>
-                </div>
-              )}
             </button>
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
+            <Button variant="ghost" size="icon" className="lg:hidden absolute right-3 top-1/2 -translate-y-1/2" onClick={() => setSidebarOpen(false)}>
               <X className="w-4 h-4" />
             </Button>
           </div>
