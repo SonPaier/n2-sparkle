@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, X, Loader2 } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -28,9 +28,14 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
   const [results, setResults] = useState<SelectedCustomer[]>([]);
   const [searching, setSearching] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const search = useCallback(async (q: string) => {
-    if (q.length < 2) { setResults([]); return; }
+    if (q.length < 2) {
+      setResults([]);
+      return;
+    }
+
     setSearching(true);
     const { data } = await supabase
       .from('customers')
@@ -38,6 +43,7 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
       .eq('instance_id', instanceId)
       .or(`name.ilike.%${q}%,phone.ilike.%${q}%,company.ilike.%${q}%`)
       .limit(10);
+
     setResults(data || []);
     setSearching(false);
   }, [instanceId]);
@@ -45,8 +51,21 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => search(query), 300);
-    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, [query, search]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const timer = window.setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [open]);
 
   if (selectedCustomer) {
     return (
@@ -57,7 +76,8 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
           className="text-sm flex-1 text-left text-primary hover:underline cursor-pointer"
           onClick={() => onCustomerClick?.(selectedCustomer.id)}
         >
-          {selectedCustomer.name}{selectedCustomer.phone ? ` • ${selectedCustomer.phone}` : ''}
+          {selectedCustomer.name}
+          {selectedCustomer.phone ? ` • ${selectedCustomer.phone}` : ''}
         </button>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClear}>
           <X className="w-3 h-3" />
@@ -74,9 +94,14 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
           Szukaj klienta w bazie...
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+      <PopoverContent
+        align="start"
+        className="z-[1200] p-0 w-[--radix-popover-trigger-width] pointer-events-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <Command shouldFilter={false}>
           <CommandInput
+            ref={inputRef}
             placeholder="Wpisz imię, telefon lub firmę..."
             value={query}
             onValueChange={setQuery}
@@ -87,11 +112,20 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
             </CommandEmpty>
             <CommandGroup>
               {results.map((c) => (
-                <CommandItem key={c.id} onSelect={() => { onSelect(c); setOpen(false); setQuery(''); }} className="cursor-pointer">
+                <CommandItem
+                  key={c.id}
+                  onSelect={() => {
+                    onSelect(c);
+                    setOpen(false);
+                    setQuery('');
+                  }}
+                  className="cursor-pointer"
+                >
                   <div>
                     <div className="font-medium">{c.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {c.phone}{c.company ? ` • ${c.company}` : ''}
+                      {c.phone}
+                      {c.company ? ` • ${c.company}` : ''}
                     </div>
                   </div>
                 </CommandItem>
