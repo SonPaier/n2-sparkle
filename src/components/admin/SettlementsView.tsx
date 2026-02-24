@@ -60,7 +60,7 @@ const formatCurrency = (value: number | null) => {
 };
 
 const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
-  pending: { label: 'Do potwierdzenia', badgeClass: 'border-amber-500 text-amber-600' },
+  pending: { label: 'Do potw.', badgeClass: 'border-amber-500 text-amber-600' },
   confirmed: { label: 'Potwierdzony', badgeClass: 'border-amber-500 text-amber-600' },
   in_progress: { label: 'W realizacji', badgeClass: 'bg-blue-600 hover:bg-blue-700 text-white' },
   completed: { label: 'Zakończony', badgeClass: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
@@ -228,8 +228,8 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-border bg-card">
-        <Table>
+      <div className="rounded-lg border border-border bg-card overflow-x-auto">
+        <Table className="table-fixed w-full min-w-[900px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[100px]">Nr</TableHead>
