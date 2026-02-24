@@ -539,6 +539,17 @@ const CalendarItemDetailsDrawer = ({
     );
   };
 
+  if (!item) {
+    return (
+      <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <SheetContent side={isMobile ? 'bottom' : 'right'} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-[85vh]' : 'sm:max-w-lg'}`}>
+          <SheetTitle className="sr-only">Szczegóły</SheetTitle>
+          <SheetDescription className="sr-only">Brak danych</SheetDescription>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
