@@ -96,13 +96,12 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
       </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="z-[1200] p-0 w-[--radix-popover-trigger-width] pointer-events-auto"
+        className="z-[1200] p-0 w-[--radix-popover-trigger-width] pointer-events-auto bg-white"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <Command shouldFilter={false}>
           <CommandInput
             ref={inputRef}
-            placeholder="Wpisz imię, telefon lub firmę..."
             value={query}
             onValueChange={setQuery}
           />
@@ -122,10 +121,9 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
                   className="cursor-pointer"
                 >
                   <div>
-                    <div className="font-medium">{c.name}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className="font-semibold text-[15px] text-foreground">{c.name}</div>
+                    <div className="text-sm text-foreground">
                       {c.phone}
-                      {c.company ? ` • ${c.company}` : ''}
                     </div>
                   </div>
                 </CommandItem>
