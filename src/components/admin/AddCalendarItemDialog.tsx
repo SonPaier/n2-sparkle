@@ -590,7 +590,7 @@ const AddCalendarItemDialog = ({
           side={isMobile ? 'bottom' : 'right'}
           hideCloseButton
           hideOverlay
-          className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-[90vh]' : 'sm:max-w-lg'}`}
+          className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-full' : 'sm:max-w-lg'}`}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Header */}
@@ -610,7 +610,7 @@ const AddCalendarItemDialog = ({
             {/* Title */}
             <div className="space-y-2">
               <Label>Tytuł zlecenia</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Np. Wymiana oleju, Przegląd... (opcjonalne)" className="bg-white" />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-white" />
             </div>
 
             {/* Customer Search */}
@@ -767,14 +767,14 @@ const AddCalendarItemDialog = ({
 
             {/* Price */}
             <div className="space-y-2">
-              <Label>Cena (PLN)</Label>
-              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" className="bg-white" />
+              <Label>Cena netto</Label>
+              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} min="0" step="0.01" className="bg-white" />
             </div>
 
             {/* Notes */}
             <div className="space-y-2">
               <Label>Notatki</Label>
-              <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} placeholder="Dodatkowe informacje..." rows={3} className="bg-white" />
+              <Textarea value={adminNotes} onChange={(e) => setAdminNotes(e.target.value)} rows={3} className="bg-white" />
             </div>
 
             {/* SMS Notification */}
