@@ -472,9 +472,17 @@ const AddCalendarItemDialog = ({
   };
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      toast.error('Podaj tytuł zlecenia');
-      return;
+    // Auto-fill title from first service if empty
+    let finalTitle = title.trim();
+    if (!finalTitle) {
+      if (serviceItems.length > 0) {
+        const firstSvc = serviceItems[0];
+        finalTitle = firstSvc.short_name || firstSvc.name || '';
+      }
+      if (!finalTitle) {
+        toast.error('Podaj tytuł zlecenia lub dodaj usługę');
+        return;
+      }
     }
     if (!columnId) {
       toast.error('Wybierz kolumnę');
@@ -494,7 +502,7 @@ const AddCalendarItemDialog = ({
       const data: any = {
         instance_id: instanceId,
         column_id: columnId,
-        title: title.trim(),
+        title: finalTitle,
         customer_name: customerName.trim() || null,
         customer_phone: customerPhone.trim() || null,
         customer_email: customerEmail.trim() || null,
@@ -601,8 +609,8 @@ const AddCalendarItemDialog = ({
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {/* Title */}
             <div className="space-y-2">
-              <Label>Tytuł zlecenia *</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Np. Wymiana oleju, Przegląd..." className="bg-white" />
+              <Label>Tytuł zlecenia</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Np. Wymiana oleju, Przegląd... (opcjonalne)" className="bg-white" />
             </div>
 
             {/* Customer Search */}
