@@ -80,6 +80,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [servicesCache, setServicesCache] = useState<Record<string, ServiceRow[]>>({});
   const [addressCache, setAddressCache] = useState<Record<string, { name: string; street?: string | null; city?: string | null; postal_code?: string | null } | null>>({});
+  const [loadingRows, setLoadingRows] = useState<Set<string>>(new Set());
   const [invoiceDrawerOpen, setInvoiceDrawerOpen] = useState(false);
   const [invoiceTarget, setInvoiceTarget] = useState<CalendarItemRow | null>(null);
   const queryClient = useQueryClient();
@@ -142,6 +143,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   };
 
   const toggleExpand = async (id: string) => {
+    const isCollapsing = expandedRows.has(id);
     setExpandedRows((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -149,28 +151,45 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       return next;
     });
 
-    if (!servicesCache[id]) {
-      const { data, error } = await supabase
-        .from('calendar_item_services')
-        .select('id, custom_price, service:unified_services(name, price, unit)')
-        .eq('calendar_item_id', id);
-      if (!error && data) {
-        setServicesCache((prev) => ({ ...prev, [id]: data as unknown as ServiceRow[] }));
-      }
-    }
+    if (isCollapsing) return;
 
-    if (!(id in addressCache)) {
-      const item = items.find((i) => i.id === id);
-      if (item?.customer_address_id) {
-        const { data } = await supabase
-          .from('customer_addresses')
-          .select('name, street, city, postal_code')
-          .eq('id', item.customer_address_id)
-          .maybeSingle();
-        setAddressCache((prev) => ({ ...prev, [id]: data }));
-      } else {
-        setAddressCache((prev) => ({ ...prev, [id]: null }));
+    const needsServices = !servicesCache[id];
+    const needsAddress = !(id in addressCache);
+
+    if (!needsServices && !needsAddress) return;
+
+    setLoadingRows((prev) => new Set(prev).add(id));
+
+    try {
+      if (needsServices) {
+        const { data, error } = await supabase
+          .from('calendar_item_services')
+          .select('id, custom_price, service:unified_services(name, price, unit)')
+          .eq('calendar_item_id', id);
+        if (!error && data) {
+          setServicesCache((prev) => ({ ...prev, [id]: data as unknown as ServiceRow[] }));
+        }
       }
+
+      if (needsAddress) {
+        const item = items.find((i) => i.id === id);
+        if (item?.customer_address_id) {
+          const { data } = await supabase
+            .from('customer_addresses')
+            .select('name, street, city, postal_code')
+            .eq('id', item.customer_address_id)
+            .maybeSingle();
+          setAddressCache((prev) => ({ ...prev, [id]: data }));
+        } else {
+          setAddressCache((prev) => ({ ...prev, [id]: null }));
+        }
+      }
+    } finally {
+      setLoadingRows((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
     }
   };
 
@@ -398,40 +417,49 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                       <TableRow key={`${order.id}-expanded`} className="hover:bg-transparent">
                         <TableCell colSpan={7} className="p-0">
                           <div className="bg-background px-6 py-4 border-t border-border/50">
-                            {addressCache[order.id] && (
-                              <p className="text-sm text-muted-foreground mb-3">
-                                📍 {[addressCache[order.id]!.name, addressCache[order.id]!.street, addressCache[order.id]!.postal_code, addressCache[order.id]!.city].filter(Boolean).join(', ')}
-                              </p>
+                            {loadingRows.has(order.id) ? (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                                <div className="w-4 h-4 border-2 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin" />
+                                Ładowanie szczegółów...
+                              </div>
+                            ) : (
+                              <>
+                                {addressCache[order.id] && (
+                                  <p className="text-sm text-muted-foreground mb-3">
+                                    📍 {[addressCache[order.id]!.name, addressCache[order.id]!.street, addressCache[order.id]!.postal_code, addressCache[order.id]!.city].filter(Boolean).join(', ')}
+                                  </p>
+                                )}
+                                {order.admin_notes && (
+                                  <p className="text-sm text-muted-foreground mb-3">{order.admin_notes}</p>
+                                )}
+                                <div className="space-y-1.5">
+                                  {servicesCache[order.id] ? (
+                                    servicesCache[order.id].length > 0 ? (
+                                      servicesCache[order.id].map((svc) => (
+                                        <div
+                                          key={svc.id}
+                                          className="flex items-center justify-between text-sm gap-4"
+                                        >
+                                          <span className="text-muted-foreground min-w-0 truncate">
+                                            {svc.service?.name || 'Usługa usunięta'}
+                                          </span>
+                                          <div className="flex items-center gap-4 shrink-0 tabular-nums text-xs text-muted-foreground">
+                                            <span>1 {svc.service?.unit || 'szt.'}</span>
+                                            <span className="w-24 text-right">
+                                              {formatCurrency(svc.custom_price ?? svc.service?.price ?? null)}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <p className="text-sm text-muted-foreground">Brak przypisanych usług</p>
+                                    )
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">Brak danych o usługach</p>
+                                  )}
+                                </div>
+                              </>
                             )}
-                            {order.admin_notes && (
-                              <p className="text-sm text-muted-foreground mb-3">{order.admin_notes}</p>
-                            )}
-                            <div className="space-y-1.5">
-                              {servicesCache[order.id] ? (
-                                servicesCache[order.id].length > 0 ? (
-                                  servicesCache[order.id].map((svc) => (
-                                    <div
-                                      key={svc.id}
-                                      className="flex items-center justify-between text-sm gap-4"
-                                    >
-                                      <span className="text-muted-foreground min-w-0 truncate">
-                                        {svc.service?.name || 'Usługa usunięta'}
-                                      </span>
-                                      <div className="flex items-center gap-4 shrink-0 tabular-nums text-xs text-muted-foreground">
-                                        <span>1 {svc.service?.unit || 'szt.'}</span>
-                                        <span className="w-24 text-right">
-                                          {formatCurrency(svc.custom_price ?? svc.service?.price ?? null)}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ))
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">Brak przypisanych usług</p>
-                                )
-                              ) : (
-                                <p className="text-sm text-muted-foreground">Ładowanie usług...</p>
-                              )}
-                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
