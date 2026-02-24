@@ -1,55 +1,46 @@
 
 
-# Dodanie usług dla instancji Water Grass
+# Dodanie 28 klientów do instancji Water Grass
 
-Instancja Water Grass (`c6300bdc-5070-4599-8143-06926578a424`) nie ma jeszcze żadnych kategorii ani usług. Trzeba utworzyć 2 kategorie i 24 usługi.
+Wstawienie danych do tabeli `customers` z `instance_id = c6300bdc-5070-4599-8143-06926578a424`.
 
-## Plan
+## Lista klientów do wstawienia
 
-### 1. Utworzenie kategorii
-Wstawienie dwóch rekordów do `unified_categories`:
+| # | name | phone | email | company |
+|---|---|---|---|---|
+| 1 | Dariusz Bocianowski | 512272286 | - | - |
+| 2 | Marcin Rogala | 881978182 | marcin.rogala@aldi.pl | ALDI Kowale |
+| 3 | Joanna Pienkowska | 606950316 | - | - |
+| 4 | Monika Bocianowska | 518615666 | - | - |
+| 5 | Borkowo Sadowa 12 | 511648914 | - | - |
+| 6 | Borkowo Kalinowa 6 | 500331221 | aginkab@wp.pl | - |
+| 7 | Magda Twardowska | 511442106 | twardowski.marcin@gmail.com | - |
+| 8 | Wiślinka Błękitna 20 | 794691740 | - | - |
+| 9 | Magdalena Salgut | 886789065 | - | - |
+| 10 | Rafał Redlak | 531470780 | - | - |
+| 11 | Robert Kobiela | 601657670 | - | - |
+| 12 | Gdańsk Internetowa | 504098523 | - | - |
+| 13 | Marek S. | 510243456 | rolety.ekspert@wp.pl | - |
+| 14 | Jakub Lesiński | 601222313 | j.lesinski@draco.com.pl | - |
+| 15 | Krzysztof Blacharski | 519107614 | krzysztofblacharski1@gmail.com | - |
+| 16 | Gdańsk Wyczółkowskiego 31A | 607880960 | - | - |
+| 17 | Krzysztof Brzyszcz | 784006508 | - | - |
+| 18 | Tomasz | 602295103 | - | - |
+| 19 | Gdańsk Na Zboczu 87 | 503167595 | - | - |
+| 20 | Gdańsk Charzykowska | 725300154 | - | - |
+| 21 | Gdańsk Sulęczyńska 45 | 697516146 | - | - |
+| 22 | Paweł Tyrkin | 515042332 | - | - |
+| 23 | Jerzy Batog | 601755459 | - | - |
+| 24 | Gdańsk Myśliwska | 535771551 | - | - |
+| 25 | Aleksander Bielecki | 503771085 | - | - |
+| 26 | Sabina Żarnowska | 502502007 | - | - |
+| 27 | Gdańsk Zenitowa 34 | 792247992 | - | - |
+| 28 | Daniel Banaś | 501666002 | banas.prv@gmail.com | - |
 
-| Kategoria | sort_order |
-|---|---|
-| System Nawadniania | 0 |
-| Roboty koszące | 1 |
+## Szczegóły techniczne
 
-### 2. Utworzenie usług
-
-**System Nawadniania** (19 usług, sort_order 0-18):
-
-1. Diagnoza awarii
-2. Wymiana zraszacza rotacyjnego
-3. Wymiana dyszy rotacyjnej
-4. Wymiana zraszacza statycznego
-5. Wymiana elektrozaworu
-6. Wymiana cewki elektromagnetycznej
-7. Wymiana membrany elektrozaworowej
-8. Montaż studzienki elektrozaworowej
-9. Wymiana studzienki elektrozaworowej
-10. Uszczelnienie systemu
-11. Uszczelnienie linii kroplującej
-12. Wymiana sterownika systemu nawadniania
-13. Wymiana zasilacza sterownika
-14. Serwis jesienny
-15. Serwis wiosenny
-16. Kalibracja dysz i zraszaczy
-17. Montaż linii kroplującej (metry)
-18. Czyszczenie filtrów
-19. Montaż pompy głębinowej
-
-**Roboty koszące** (5 usług, sort_order 0-4):
-
-1. Diagnoza awarii
-2. Naprawa przerwanego przewodu
-3. Wymiana noży
-4. Czyszczenie robota
-5. Kalibracja stacji dokującej
-
-### Szczegóły techniczne
-
-- Dane wstawiane przez SQL INSERT do tabel `unified_categories` i `unified_services`
-- Ceny i czasy trwania ustawione na NULL (do uzupełnienia później przez admina)
-- Jednostka domyślna: `szt` (dla "Montaż linii kroplującej (metry)" można zmienić na `mb` jeśli potrzeba)
-- Wszystkie usługi z `active = true`
+- Operacja: SQL INSERT do tabeli `customers`
+- Bez adresów (customer_addresses) na razie
+- Pole `source` ustawione na `'manual'`
+- Brak zmian w kodzie -- tylko dane w bazie
 
