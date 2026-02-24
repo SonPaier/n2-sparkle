@@ -240,7 +240,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <h2 className="text-xl font-semibold text-foreground">Rozliczenia</h2>
+        <h2 className="text-xl font-semibold text-foreground">Zlecenia</h2>
       </div>
 
       {/* Toolbar */}
