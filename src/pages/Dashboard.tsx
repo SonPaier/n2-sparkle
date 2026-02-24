@@ -468,7 +468,7 @@ const Dashboard = () => {
   };
 
   return (
-    <DashboardLayout currentView={currentView} onViewChange={handleViewChange}>
+    <DashboardLayout currentView={currentView} onViewChange={handleViewChange} instanceId={instanceId}>
       {renderContent()}
       {instanceId && (
         <CreateProtocolForm
