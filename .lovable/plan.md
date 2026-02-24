@@ -1,35 +1,55 @@
 
 
-## Plan: Replace expandable rows with details drawer + add title column
+# Dodanie usług dla instancji Water Grass
 
-### Changes to `src/components/admin/SettlementsView.tsx`
+Instancja Water Grass (`c6300bdc-5070-4599-8143-06926578a424`) nie ma jeszcze żadnych kategorii ani usług. Trzeba utworzyć 2 kategorie i 24 usługi.
 
-**1. Remove expandable row functionality:**
-- Remove `expandedRows`, `servicesCache`, `addressCache`, `loadingRows` states and the `toggleExpand` function
-- Remove `ChevronDown`, `ChevronRight` icon imports
-- Remove the expanded row `<TableRow>` block entirely
-- Remove `onClick={() => toggleExpand(order.id)}` from table rows
+## Plan
 
-**2. Add details drawer state:**
-- Add `detailsItem` state (`CalendarItem | null`) to track which item's drawer is open
-- Add `detailsDrawerOpen` boolean state
+### 1. Utworzenie kategorii
+Wstawienie dwóch rekordów do `unified_categories`:
 
-**3. Add "Tytuł" column (2nd position, max-w 200px):**
-- Add `title` to the query's select and `CalendarItemRow` interface
-- Add `<TableHead className="w-[200px] max-w-[200px]">Tytuł</TableHead>` after "Nr"
-- Add `<TableCell className="max-w-[200px] truncate">{order.title}</TableCell>` in the row
-- Update all `colSpan` values from 7 to 8
+| Kategoria | sort_order |
+|---|---|
+| System Nawadniania | 0 |
+| Roboty koszące | 1 |
 
-**4. Wire "Szczegóły" menu item to open the drawer:**
-- On "Szczegóły" click: map the `CalendarItemRow` to a `CalendarItem` shape (adding `title`, `start_time`, `end_time` with defaults), set `detailsItem` and open the drawer
+### 2. Utworzenie usług
 
-**5. Render `CalendarItemDetailsDrawer`:**
-- Import `CalendarItemDetailsDrawer` and `CalendarItem` type
-- Render at the bottom with `item={detailsItem}`, `open={detailsDrawerOpen}`, `onClose`, `columns={[]}`, `instanceId`
-- Wire `onStatusChange` to call `changeStatus` and refresh
+**System Nawadniania** (19 usług, sort_order 0-18):
 
-### Technical notes
-- The `CalendarItemDetailsDrawer` expects a `CalendarItem` which has `title`, `start_time`, `end_time` -- the current `CalendarItemRow` doesn't have these. We need to add `title`, `start_time`, `end_time` to the query select and interface.
-- The drawer's `columns` prop can be `[]` since we don't need column info in this context.
-- The row click will no longer expand -- rows become non-interactive (no cursor-pointer).
+1. Diagnoza awarii
+2. Wymiana zraszacza rotacyjnego
+3. Wymiana dyszy rotacyjnej
+4. Wymiana zraszacza statycznego
+5. Wymiana elektrozaworu
+6. Wymiana cewki elektromagnetycznej
+7. Wymiana membrany elektrozaworowej
+8. Montaż studzienki elektrozaworowej
+9. Wymiana studzienki elektrozaworowej
+10. Uszczelnienie systemu
+11. Uszczelnienie linii kroplującej
+12. Wymiana sterownika systemu nawadniania
+13. Wymiana zasilacza sterownika
+14. Serwis jesienny
+15. Serwis wiosenny
+16. Kalibracja dysz i zraszaczy
+17. Montaż linii kroplującej (metry)
+18. Czyszczenie filtrów
+19. Montaż pompy głębinowej
+
+**Roboty koszące** (5 usług, sort_order 0-4):
+
+1. Diagnoza awarii
+2. Naprawa przerwanego przewodu
+3. Wymiana noży
+4. Czyszczenie robota
+5. Kalibracja stacji dokującej
+
+### Szczegóły techniczne
+
+- Dane wstawiane przez SQL INSERT do tabel `unified_categories` i `unified_services`
+- Ceny i czasy trwania ustawione na NULL (do uzupełnienia później przez admina)
+- Jednostka domyślna: `szt` (dla "Montaż linii kroplującej (metry)" można zmienić na `mb` jeśli potrzeba)
+- Wszystkie usługi z `active = true`
 
