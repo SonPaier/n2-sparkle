@@ -290,6 +290,9 @@ const CalendarItemDetailsDrawer = ({
   const formattedDate = item.item_date
     ? format(new Date(item.item_date), 'EEEE, d MMMM yyyy', { locale: pl })
     : '';
+  const shortDate = item.item_date
+    ? format(new Date(item.item_date), 'EE, d MMM yyyy', { locale: pl })
+    : '';
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -542,7 +545,7 @@ const CalendarItemDetailsDrawer = ({
   if (!item) {
     return (
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side={isMobile ? 'bottom' : 'right'} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-[85vh]' : 'sm:max-w-lg'}`}>
+        <SheetContent side={isMobile ? 'bottom' : 'right'} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-full' : 'sm:max-w-lg'}`}>
           <SheetTitle className="sr-only">Szczegóły</SheetTitle>
           <SheetDescription className="sr-only">Brak danych</SheetDescription>
         </SheetContent>
@@ -557,31 +560,19 @@ const CalendarItemDetailsDrawer = ({
           side={isMobile ? 'bottom' : 'right'}
           hideCloseButton
           hideOverlay
-          className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-[85vh]' : 'sm:max-w-lg'}`}
+          className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-full' : 'sm:max-w-lg'}`}
         >
           {/* Accessible title */}
           <SheetTitle className="sr-only">{item.title}</SheetTitle>
           <SheetDescription className="sr-only">Szczegóły zlecenia</SheetDescription>
 
-          {/* Header */}
-          <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
-                  <span className="text-muted-foreground">·</span>
-                  <span className="text-sm text-muted-foreground">{formattedDate}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                   <Badge className={statusColors[item.status] || 'bg-muted'}>
-                     {statusLabels[item.status] || item.status}
-                   </Badge>
-                   <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
-                   {column && (
-                     <span className="text-xs text-muted-foreground">{column.name}</span>
-                   )}
-                 </div>
-                <h3 className="text-base font-semibold mt-1">{item.title}</h3>
+          {/* Header - line 1: time + short date + X */}
+          <div className="px-6 pt-6 pb-4 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-[17px] font-bold">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
+                <span className="text-muted-foreground">·</span>
+                <span className="text-[15px] text-muted-foreground capitalize">{shortDate}</span>
               </div>
               <button
                 onClick={onClose}
@@ -589,6 +580,18 @@ const CalendarItemDetailsDrawer = ({
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+            {/* Line 2: service/title */}
+            <h3 className="text-[17px] font-semibold mt-1">{item.title}</h3>
+            {/* Line 3: badges */}
+            <div className="flex items-center gap-2 mt-2">
+              <Badge className={statusColors[item.status] || 'bg-muted'}>
+                {statusLabels[item.status] || item.status}
+              </Badge>
+              <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
+              {column && (
+                <span className="text-xs text-muted-foreground">{column.name}</span>
+              )}
             </div>
           </div>
 
@@ -598,12 +601,12 @@ const CalendarItemDetailsDrawer = ({
             {(item.customer_name || item.customer_phone || item.customer_email) && (
               <div className="space-y-2">
                 {item.customer_name && (
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground shrink-0" />
                     {item.customer_id ? (
                       <button
                         type="button"
-                        className="font-medium text-primary hover:underline cursor-pointer text-left"
+                        className="font-medium text-[15px] text-primary hover:underline cursor-pointer text-left"
                         onClick={async () => {
                           const { data } = await supabase
                             .from('customers')
@@ -619,112 +622,57 @@ const CalendarItemDetailsDrawer = ({
                         {item.customer_name}
                       </button>
                     ) : (
-                      <span className="font-medium">{item.customer_name}</span>
+                      <span className="font-medium text-[15px]">{item.customer_name}</span>
                     )}
                     {item.customer_phone && (
                       <a href={`tel:${item.customer_phone}`} className="ml-auto p-1 rounded hover:bg-muted">
-                        <Phone className="w-4 h-4 text-primary" />
+                        <Phone className="w-[19px] h-[19px] text-primary" />
                       </a>
                     )}
                     {item.customer_phone && (
                       <a href={`sms:${item.customer_phone}`} className="p-1 rounded hover:bg-muted">
-                        <MessageSquare className="w-4 h-4 text-primary" />
+                        <MessageSquare className="w-[19px] h-[19px] text-primary" />
                       </a>
                     )}
                   </div>
                 )}
-                {addressLabel && (
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-                      <span className="font-medium">{addressLabel}</span>
-                      {addressCoords && (
-                        <a
-                          href={`https://www.google.com/maps?q=${addressCoords.lat},${addressCoords.lng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-auto p-1 rounded hover:bg-muted"
-                          title="Otwórz w Google Maps"
-                        >
-                          <svg viewBox="0 0 92.3 132.3" className="w-5 h-5">
-                            <path fill="#1a73e8" d="M60.2 2.2C55.8.8 51 0 46.1 0 32 0 19.3 6.4 10.8 16.5l21.8 18.3L60.2 2.2z"/>
-                            <path fill="#ea4335" d="M10.8 16.5C4.1 24.5 0 34.9 0 46.1c0 8.7 1.7 15.7 4.6 22l28-32.4L10.8 16.5z"/>
-                            <path fill="#4285f4" d="M46.2 28.5c9.8 0 17.7 7.9 17.7 17.7 0 4.3-1.6 8.3-4.2 11.4 0 0 13.9-16.1 27.7-32.1-5.6-10.8-15.3-19-27.2-22.7L32.6 34.8c3.3-3.8 8.1-6.3 13.6-6.3"/>
-                            <path fill="#fbbc04" d="M46.2 63.8c-9.8 0-17.7-7.9-17.7-17.7 0-4.3 1.6-8.3 4.2-11.4L4.6 68.1c5.5 11.9 13.6 21.5 19.8 29.7l35.3-40.9c-3.2 3.9-8.1 6.3-13.5 6.9"/>
-                            <path fill="#34a853" d="M59.1 109.2c15.4-24.1 33.3-35 33.3-63 0-7.7-1.9-14.9-5.2-21.3L24.4 97.8c2.6 3.4 5 6.7 7 9.9 6.5 10.4 11 21.2 14.8 24.6 3.8-3.4 8.3-14.2 12.9-23.1"/>
-                          </svg>
-                        </a>
-                      )}
-                    </div>
-                    {addressStreet && (
-                      <div className="text-sm text-foreground ml-6">{addressStreet}</div>
+              </div>
+            )}
+
+            {/* Location */}
+            {addressLabel && (
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="font-medium text-[15px]">{addressLabel}</span>
+                </div>
+                {addressStreet && (
+                  <div className="ml-6">
+                    {addressCoords ? (
+                      <a
+                        href={`https://www.google.com/maps?q=${addressCoords.lat},${addressCoords.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[15px] text-primary hover:underline inline-flex items-center gap-1.5"
+                      >
+                        {addressStreet}
+                        <svg viewBox="0 0 92.3 132.3" className="w-4 h-4 shrink-0">
+                          <path fill="#1a73e8" d="M60.2 2.2C55.8.8 51 0 46.1 0 32 0 19.3 6.4 10.8 16.5l21.8 18.3L60.2 2.2z"/>
+                          <path fill="#ea4335" d="M10.8 16.5C4.1 24.5 0 34.9 0 46.1c0 8.7 1.7 15.7 4.6 22l28-32.4L10.8 16.5z"/>
+                          <path fill="#4285f4" d="M46.2 28.5c9.8 0 17.7 7.9 17.7 17.7 0 4.3-1.6 8.3-4.2 11.4 0 0 13.9-16.1 27.7-32.1-5.6-10.8-15.3-19-27.2-22.7L32.6 34.8c3.3-3.8 8.1-6.3 13.6-6.3"/>
+                          <path fill="#fbbc04" d="M46.2 63.8c-9.8 0-17.7-7.9-17.7-17.7 0-4.3 1.6-8.3 4.2-11.4L4.6 68.1c5.5 11.9 13.6 21.5 19.8 29.7l35.3-40.9c-3.2 3.9-8.1 6.3-13.5 6.9"/>
+                          <path fill="#34a853" d="M59.1 109.2c15.4-24.1 33.3-35 33.3-63 0-7.7-1.9-14.9-5.2-21.3L24.4 97.8c2.6 3.4 5 6.7 7 9.9 6.5 10.4 11 21.2 14.8 24.6 3.8-3.4 8.3-14.2 12.9-23.1"/>
+                        </svg>
+                      </a>
+                    ) : (
+                      <span className="text-[15px] text-foreground">{addressStreet}</span>
                     )}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Price */}
-            {item.price != null && (
-              <div className="flex items-center gap-2 text-sm">
-                <DollarSign className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="font-bold">{item.price.toFixed(2)} PLN</span>
-              </div>
-            )}
-
-            {/* Completed: FV + SMS buttons */}
-            {(item.status === 'completed' || item.status === 'in_progress') && (
-              <div className="space-y-2 pt-2 border-t border-border">
-                {invoicingSettings?.active && itemInvoices.length === 0 && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setInvoiceDrawerOpen(true)}
-                  >
-                    <DollarSign className="w-4 h-4 mr-2" />
-                    Wystaw FV
-                  </Button>
-                )}
-                {itemInvoices.length > 0 && (
-                  <div className="space-y-1">
-                    {itemInvoices.map(inv => (
-                      <div key={inv.id} className="flex items-center justify-between text-sm bg-muted/50 rounded-lg px-3 py-2">
-                        <div>
-                          <span className="font-medium">{inv.invoice_number || 'Faktura'}</span>
-                          <span className="text-muted-foreground ml-2">{inv.total_gross?.toFixed(2)} {inv.currency}</span>
-                        </div>
-                        {inv.pdf_url && (
-                          <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">
-                            PDF
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {item.status === 'completed' && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    disabled={!item.customer_phone}
-                    onClick={() => {
-                      const phone = item.customer_phone || '';
-                      let message = `Prośba o rozliczenie "${item.title}"`;
-                      if (item.price != null) message += ` w kwocie ${item.price.toFixed(2)} PLN`;
-                      message += '.';
-                      if (protocolToken) {
-                        message += ` Link do protokołu: ${window.location.origin}/protocol/${protocolToken}`;
-                      }
-                      window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
-                    }}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Wyślij SMS o rozliczeniu
-                  </Button>
-                )}
-              </div>
-            )}
-            {/* Assigned Employees - N2Wash style pills */}
+            {/* Assigned Employees */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <HardHat className="w-4 h-4 text-muted-foreground" />
@@ -767,18 +715,26 @@ const CalendarItemDetailsDrawer = ({
                   onBlur={handleNotesBlur}
                   autoFocus
                   rows={3}
-                  className="text-sm"
+                  className="text-[15px]"
                   placeholder="Dodaj notatkę..."
                 />
               ) : (
                 <p
                   onClick={() => setEditingNotes(true)}
-                  className={`text-sm ml-6 whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
+                  className={`text-[15px] ml-6 whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
                 >
                   {notesValue || 'Kliknij, aby dodać notatkę...'}
                 </p>
               )}
             </div>
+
+            {/* Price */}
+            {item.price != null && (
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="font-bold text-[15px]">{item.price.toFixed(2)} PLN</span>
+              </div>
+            )}
 
             {/* Photos */}
             <div className="space-y-2">
@@ -790,7 +746,6 @@ const CalendarItemDetailsDrawer = ({
                 photos={itemPhotos}
                 onPhotosChange={(newPhotos) => {
                   setItemPhotos(newPhotos);
-                  // Auto-save to calendar_items
                   supabase
                     .from('calendar_items')
                     .update({ photo_urls: newPhotos } as any)
@@ -814,16 +769,68 @@ const CalendarItemDetailsDrawer = ({
               />
             </div>
 
-            {/* Add Protocol button */}
+            {/* Add Protocol button - normal width */}
             {onAddProtocol && (
               <Button
                 variant="outline"
-                className="w-full justify-start"
                 onClick={() => onAddProtocol(item)}
               >
                 <ClipboardCheck className="w-4 h-4 mr-2" />
                 Dodaj protokół
               </Button>
+            )}
+
+            {/* Completed: FV + SMS buttons */}
+            {(item.status === 'completed' || item.status === 'in_progress') && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                {invoicingSettings?.active && itemInvoices.length === 0 && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => setInvoiceDrawerOpen(true)}
+                  >
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Wystaw FV
+                  </Button>
+                )}
+                {itemInvoices.length > 0 && (
+                  <div className="space-y-1">
+                    {itemInvoices.map(inv => (
+                      <div key={inv.id} className="flex items-center justify-between text-[15px] bg-muted/50 rounded-lg px-3 py-2">
+                        <div>
+                          <span className="font-medium">{inv.invoice_number || 'Faktura'}</span>
+                          <span className="text-muted-foreground ml-2">{inv.total_gross?.toFixed(2)} {inv.currency}</span>
+                        </div>
+                        {inv.pdf_url && (
+                          <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">
+                            PDF
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {item.status === 'completed' && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={!item.customer_phone}
+                    onClick={() => {
+                      const phone = item.customer_phone || '';
+                      let message = `Prośba o rozliczenie "${item.title}"`;
+                      if (item.price != null) message += ` w kwocie ${item.price.toFixed(2)} PLN`;
+                      message += '.';
+                      if (protocolToken) {
+                        message += ` Link do protokołu: ${window.location.origin}/protocol/${protocolToken}`;
+                      }
+                      window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Wyślij SMS o rozliczeniu
+                  </Button>
+                )}
+              </div>
             )}
 
             {(smsNotifications.length > 0 || unsent.length > 0) && (
@@ -833,7 +840,7 @@ const CalendarItemDetailsDrawer = ({
                   Powiadomienie SMS
                 </div>
                 {smsNotifications.map(sms => (
-                  <div key={sms.id} className="ml-6 text-sm">
+                  <div key={sms.id} className="ml-6 text-[15px]">
                     {sms.sent_at ? (
                       <span className="text-emerald-600">
                         ✓ Wysłano SMS ({sms.service_type}) — {format(new Date(sms.sent_at), 'd MMM yyyy, HH:mm', { locale: pl })}
