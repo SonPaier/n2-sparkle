@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
@@ -28,14 +29,32 @@ interface DashboardLayoutProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
   children: React.ReactNode;
+  instanceId?: string | null;
 }
 
-const DashboardLayout = ({ currentView, onViewChange, children }: DashboardLayoutProps) => {
+const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: DashboardLayoutProps) => {
   const { signOut, username, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('n2serwis-sidebar-collapsed') === 'true';
   });
+  const [instanceLogo, setInstanceLogo] = useState<string | null>(null);
+  const [instanceName, setInstanceName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!instanceId) return;
+    supabase
+      .from('instances')
+      .select('logo_url, name')
+      .eq('id', instanceId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setInstanceLogo(data.logo_url);
+          setInstanceName(data.name);
+        }
+      });
+  }, [instanceId]);
 
   useEffect(() => {
     localStorage.setItem('n2serwis-sidebar-collapsed', String(sidebarCollapsed));
@@ -74,12 +93,21 @@ const DashboardLayout = ({ currentView, onViewChange, children }: DashboardLayou
               onClick={() => handleNavClick('kalendarz')}
               className={cn("flex items-center cursor-pointer hover:opacity-80 transition-opacity", sidebarCollapsed ? "justify-center" : "gap-3")}
             >
-              <div className={cn("rounded-xl bg-primary flex items-center justify-center shrink-0", "w-10 h-10")}>
-                <span className="text-primary-foreground font-bold text-lg">N2</span>
-              </div>
-              {!sidebarCollapsed && (
+              {instanceLogo ? (
+                <img src={instanceLogo} alt={instanceName || 'Logo'} className={cn("object-contain shrink-0", sidebarCollapsed ? "h-8 w-10" : "h-10 max-w-[140px]")} />
+              ) : (
+                <div className={cn("rounded-xl bg-primary flex items-center justify-center shrink-0", "w-10 h-10")}>
+                  <span className="text-primary-foreground font-bold text-lg">N2</span>
+                </div>
+              )}
+              {!sidebarCollapsed && !instanceLogo && (
                 <div className="text-left min-w-0 flex-1">
                   <h1 className="font-bold text-foreground truncate">N2Serwis</h1>
+                </div>
+              )}
+              {!sidebarCollapsed && instanceLogo && instanceName && (
+                <div className="text-left min-w-0 flex-1">
+                  <h1 className="font-bold text-foreground truncate">{instanceName}</h1>
                 </div>
               )}
             </button>
@@ -163,7 +191,11 @@ const DashboardLayout = ({ currentView, onViewChange, children }: DashboardLayou
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </Button>
-          <h1 className="font-semibold text-foreground">N2Serwis</h1>
+          {instanceLogo ? (
+            <img src={instanceLogo} alt={instanceName || 'Logo'} className="h-8 object-contain" />
+          ) : (
+            <h1 className="font-semibold text-foreground">N2Serwis</h1>
+          )}
         </header>
 
         <main className="flex-1 overflow-auto p-6">
