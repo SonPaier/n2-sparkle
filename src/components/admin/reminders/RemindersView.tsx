@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Settings2 } from 'lucide-react';
 import { useReminders, useReminderTypes } from '@/hooks/useReminders';
@@ -54,7 +53,6 @@ export default function RemindersView({ instanceId }: Props) {
   const { types, addType, updateType, deleteType } = useReminderTypes(instanceId);
 
   const [activeTab, setActiveTab] = useState<'todo' | 'archive'>('todo');
-  const [filterTypeId, setFilterTypeId] = useState<string>('all');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [typesDialogOpen, setTypesDialogOpen] = useState(false);
@@ -63,7 +61,6 @@ export default function RemindersView({ instanceId }: Props) {
   const archiveReminders = useMemo(() => reminders.filter(r => r.status === 'done' || r.status === 'cancelled'), [reminders]);
 
   const displayedReminders = activeTab === 'todo' ? todoReminders : archiveReminders;
-  const filtered = filterTypeId === 'all' ? displayedReminders : displayedReminders.filter(r => r.reminder_type_id === filterTypeId);
 
   const openNew = () => { setEditingReminder(null); setDrawerOpen(true); };
   const openEdit = (r: Reminder) => { setEditingReminder(r); setDrawerOpen(true); };
@@ -72,63 +69,44 @@ export default function RemindersView({ instanceId }: Props) {
     <div className="max-w-4xl mx-auto space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Przypomnienia</h1>
-          <p className="text-sm text-muted-foreground">Zarządzaj terminami i powiadomieniami</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setTypesDialogOpen(true)}>
-            <Settings2 className="w-4 h-4 mr-1" /> Kategorie
+        <h1 className="text-xl font-bold text-foreground">Przypomnienia</h1>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setTypesDialogOpen(true)}>
+            <Settings2 className="w-4 h-4" />
           </Button>
-          <Button size="sm" onClick={openNew}>
-            <Plus className="w-4 h-4 mr-1" /> Nowe przypomnienie
+          <Button size="icon" className="h-9 w-9" onClick={openNew}>
+            <Plus className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
       {/* Tabs + Filter */}
-      <div className="flex items-center justify-between border-b border-border/50">
-        <div className="flex">
+      <div className="flex border-b border-border/50">
           <button
             onClick={() => setActiveTab('todo')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'todo' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'todo' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
           >
             Do zrobienia
             <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-muted">{todoReminders.length}</span>
           </button>
           <button
             onClick={() => setActiveTab('archive')}
-            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'archive' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+            className={`flex-1 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${activeTab === 'archive' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
           >
             Archiwum
             <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-muted">{archiveReminders.length}</span>
           </button>
-        </div>
-        <div className="flex items-center gap-2 pb-2">
-          <span className="text-xs text-muted-foreground">Kategoria:</span>
-          <Select value={filterTypeId} onValueChange={setFilterTypeId}>
-            <SelectTrigger className="h-8 w-40 text-xs">
-              <SelectValue placeholder="Wszystkie" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Wszystkie</SelectItem>
-              {types.map(t => (
-                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       {/* List */}
       <div className="space-y-2">
         {loading && <p className="text-sm text-muted-foreground text-center py-8">Ładowanie...</p>}
-        {!loading && filtered.length === 0 && (
+        {!loading && displayedReminders.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            <p className="text-sm">Brak przypomnień w tej kategorii</p>
+            <p className="text-sm">Brak przypomnień</p>
           </div>
         )}
-        {filtered.map(r => {
+        {displayedReminders.map(r => {
           const isArchive = r.status !== 'todo';
           const urgency = getUrgencyClasses(r.deadline);
 

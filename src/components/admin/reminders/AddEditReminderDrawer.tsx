@@ -270,7 +270,7 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
       </div>
 
       <div>
-        <Label className="mb-1.5 block">Klient <span className="text-muted-foreground text-xs">(opcjonalne)</span></Label>
+        <Label className="mb-1.5 block">Powiąż klienta <span className="text-muted-foreground text-xs">(opcjonalne)</span></Label>
         <CustomerSearchInput
           instanceId={instanceId}
           selectedCustomer={customerId ? { id: customerId, name: customerName, phone: '', email: null, company: null } : null}
@@ -313,8 +313,8 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={v => !v && onClose()}>
-        <DrawerContent className="max-h-[90vh] flex flex-col p-0 gap-0 bg-card">
+      <Drawer open={open} onOpenChange={v => !v && onClose()} dismissible={false}>
+        <DrawerContent className="h-full max-h-full flex flex-col p-0 gap-0 bg-card" hideHandle>
           {header}
           {formContent}
           {footer}
