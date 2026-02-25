@@ -134,7 +134,7 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation }: CalendarMapPro
       const marker = L.marker([item.address_lat!, item.address_lng!], {
         icon: getIcon(color),
       })
-        .bindTooltip(tooltipHtml, { permanent: true, direction: 'top', offset: [0, -4], className: 'calendar-map-tooltip', interactive: true })
+        .bindTooltip(tooltipHtml, { permanent: false, direction: 'top', offset: [0, -4], className: 'calendar-map-tooltip', interactive: true })
         .on('click', () => onItemClick(item))
         .addTo(map);
 
@@ -169,7 +169,7 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation }: CalendarMapPro
       });
       const hqMarker = L.marker([hqLocation.lat, hqLocation.lng], { icon: hqIcon })
         .bindTooltip(`<div class="calendar-map-tooltip-content"><div class="cmt-line1">🏢 ${hqLocation.name}</div><div class="cmt-line2">Baza firmy</div></div>`, {
-          permanent: true, direction: 'top', offset: [0, -4], className: 'calendar-map-tooltip calendar-map-tooltip-hq',
+          permanent: false, direction: 'top', offset: [0, -4], className: 'calendar-map-tooltip calendar-map-tooltip-hq',
         })
         .addTo(map);
       markersRef.current.push(hqMarker);
