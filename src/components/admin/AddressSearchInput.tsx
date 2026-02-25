@@ -126,7 +126,7 @@ const AddressSearchInput = ({
   const showDropdown = open && query.length >= 3 && (results.length > 0 || searching);
 
   return (
-    <div ref={containerRef} className={`relative ${className || ''}`}>
+    <div ref={containerRef} className="relative">
       <div className="relative">
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
         <Input
@@ -145,7 +145,7 @@ const AddressSearchInput = ({
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="pl-9 pr-9"
+          className={`pl-9 pr-9 ${className || ''}`}
         />
         {searching && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
