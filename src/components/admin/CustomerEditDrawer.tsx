@@ -541,7 +541,7 @@ const CustomerEditDrawer = ({
 
       {/* Sticky footer - only show for add mode or when on "dane" tab */}
       {(isAddMode || activeTab === 'dane') && (
-        <div className="p-4 bg-background border-t shrink-0">
+        <div className="p-4 bg-card border-t shrink-0">
           {isAddMode || isEditing ? (
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleCancelEdit} disabled={saving} className="flex-1">

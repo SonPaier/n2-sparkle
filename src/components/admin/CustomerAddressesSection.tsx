@@ -119,7 +119,7 @@ const CustomerAddressesSection = ({
           <AddressSearchInput
             onSelect={addFromSearch}
             placeholder="Szukaj adresu..."
-            className="bg-background"
+            className="bg-card"
           />
         </div>
         <Button variant="outline" size="sm" onClick={addEmpty}>
