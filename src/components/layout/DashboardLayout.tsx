@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-type ViewType = 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'powiadomienia-sms' | 'ustawienia';
+type ViewType = 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'przypomnienia' | 'powiadomienia-sms' | 'ustawienia';
 
 const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
@@ -20,6 +20,7 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'klienci', label: 'Klienci', icon: Users },
   { id: 'pracownicy', label: 'Pracownicy', icon: HardHat },
   { id: 'protokoly', label: 'Protokoły', icon: ClipboardCheck },
+  { id: 'przypomnienia', label: 'Przypomnienia', icon: Bell },
   { id: 'uslugi', label: 'Usługi', icon: BadgeDollarSign },
   { id: 'powiadomienia-sms', label: 'Powiadomienia SMS', icon: MessageSquare },
   { id: 'ustawienia', label: 'Ustawienia', icon: Settings },
