@@ -133,6 +133,8 @@ const AddCalendarItemDialog = ({
   // Customer detail drawer state
   const [customerDetailOpen, setCustomerDetailOpen] = useState(false);
   const [customerDetailData, setCustomerDetailData] = useState<Customer | null>(null);
+  // Add new customer drawer state
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
 
   // SMS notification state
   const [sendImmediateSms, setSendImmediateSms] = useState(false);
@@ -622,6 +624,7 @@ const AddCalendarItemDialog = ({
                 onSelect={handleSelectCustomer}
                 onClear={handleClearCustomer}
                 onCustomerClick={handleCustomerClick}
+                onAddNew={() => setAddCustomerOpen(true)}
               />
             </div>
 
@@ -861,6 +864,25 @@ const AddCalendarItemDialog = ({
         instanceId={instanceId}
         open={customerDetailOpen}
         onClose={() => { setCustomerDetailOpen(false); setCustomerDetailData(null); }}
+      />
+
+      {/* Add New Customer Drawer */}
+      <CustomerEditDrawer
+        customer={null}
+        instanceId={instanceId}
+        open={addCustomerOpen}
+        onClose={() => setAddCustomerOpen(false)}
+        isAddMode
+        onCustomerCreated={(newCustomer, firstAddressId) => {
+          setCustomerId(newCustomer.id);
+          setCustomerName(newCustomer.name);
+          setCustomerPhone(newCustomer.phone);
+          setCustomerEmail(newCustomer.email || '');
+          if (firstAddressId) {
+            setCustomerAddressId(firstAddressId);
+          }
+          setAddCustomerOpen(false);
+        }}
       />
     </>
   );
