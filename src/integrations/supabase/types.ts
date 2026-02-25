@@ -1094,6 +1094,8 @@ export type Database = {
           notes: string | null
           notification_sent: boolean
           notification_sent_at: string | null
+          notify_customer_email: boolean
+          notify_customer_sms: boolean
           notify_email: boolean
           notify_sms: boolean
           recurring_type: string | null
@@ -1115,6 +1117,8 @@ export type Database = {
           notes?: string | null
           notification_sent?: boolean
           notification_sent_at?: string | null
+          notify_customer_email?: boolean
+          notify_customer_sms?: boolean
           notify_email?: boolean
           notify_sms?: boolean
           recurring_type?: string | null
@@ -1136,6 +1140,8 @@ export type Database = {
           notes?: string | null
           notification_sent?: boolean
           notification_sent_at?: string | null
+          notify_customer_email?: boolean
+          notify_customer_sms?: boolean
           notify_email?: boolean
           notify_sms?: boolean
           recurring_type?: string | null

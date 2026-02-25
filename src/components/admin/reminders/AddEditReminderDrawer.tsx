@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,8 +8,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Trash2, RefreshCw } from 'lucide-react';
+import { Trash2, X, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { Reminder, ReminderType } from '@/hooks/useReminders';
 import CustomerSearchInput from '@/components/admin/CustomerSearchInput';
 
@@ -46,6 +51,8 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
   const [notes, setNotes] = useState('');
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [notifySms, setNotifySms] = useState(false);
+  const [notifyCustomerEmail, setNotifyCustomerEmail] = useState(false);
+  const [notifyCustomerSms, setNotifyCustomerSms] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringType, setRecurringType] = useState('monthly');
   const [recurringValue, setRecurringValue] = useState<number | null>(null);
@@ -63,6 +70,8 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
         setNotes(editingReminder.notes || '');
         setNotifyEmail(editingReminder.notify_email);
         setNotifySms(editingReminder.notify_sms);
+        setNotifyCustomerEmail((editingReminder as any).notify_customer_email ?? false);
+        setNotifyCustomerSms((editingReminder as any).notify_customer_sms ?? false);
         setIsRecurring(editingReminder.is_recurring);
         setRecurringType(editingReminder.recurring_type || 'monthly');
         setRecurringValue(editingReminder.recurring_value);
@@ -76,6 +85,8 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
         setNotes('');
         setNotifyEmail(true);
         setNotifySms(false);
+        setNotifyCustomerEmail(false);
+        setNotifyCustomerSms(false);
         setIsRecurring(false);
         setRecurringType('monthly');
         setRecurringValue(null);
@@ -98,6 +109,8 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
       notes: notes || null,
       notify_email: notifyEmail,
       notify_sms: notifySms,
+      notify_customer_email: customerId ? notifyCustomerEmail : false,
+      notify_customer_sms: customerId ? notifyCustomerSms : false,
       is_recurring: isRecurring,
       recurring_type: isRecurring ? recurringType : null,
       recurring_value: isRecurring ? recurringValue : null,
@@ -108,18 +121,45 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
     if (success) onClose();
   };
 
+  const deadlineDate = deadline ? new Date(deadline + 'T00:00:00') : undefined;
+
+  const header = (
+    <div className="px-6 py-4 border-b border-border shrink-0 bg-card flex items-center justify-between">
+      <h2 className="text-lg font-semibold">{isEditing ? 'Edytuj przypomnienie' : 'Nowe przypomnienie'}</h2>
+      <button onClick={onClose} className="p-2 rounded-full hover:bg-muted transition-colors">
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  );
+
+  const footer = (
+    <div className="px-6 py-4 border-t border-border shrink-0 bg-card flex items-center justify-between">
+      {isEditing && onDelete ? (
+        <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { onDelete(editingReminder!.id); onClose(); }}>
+          <Trash2 className="w-4 h-4 mr-1" /> Usuń
+        </Button>
+      ) : <div />}
+      <div className="flex gap-2">
+        <Button variant="outline" className="bg-white" onClick={onClose}>Anuluj</Button>
+        <Button onClick={handleSave} disabled={saving || !name.trim() || !typeId || (!isRecurring && !deadline)}>
+          {saving ? 'Zapisywanie...' : isEditing ? 'Zapisz' : 'Utwórz'}
+        </Button>
+      </div>
+    </div>
+  );
+
   const formContent = (
-    <div className="space-y-4 p-4">
+    <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
       <div>
         <Label className="mb-1.5 block">Nazwa <span className="text-destructive">*</span></Label>
-        <Input value={name} onChange={e => setName(e.target.value)} placeholder="np. Badania lekarskie — Bartek" />
+        <Input value={name} onChange={e => setName(e.target.value)} className="bg-white" />
       </div>
 
       <div>
-        <Label className="mb-1.5 block">Typ przypomnienia <span className="text-destructive">*</span></Label>
+        <Label className="mb-1.5 block">Kategoria przypomnienia <span className="text-destructive">*</span></Label>
         <Select value={typeId} onValueChange={setTypeId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Wybierz typ..." />
+          <SelectTrigger className="bg-white">
+            <SelectValue placeholder="Wybierz kategorię..." />
           </SelectTrigger>
           <SelectContent>
             {reminderTypes.map(t => (
@@ -130,23 +170,20 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
       </div>
 
       {/* Recurring toggle */}
-      <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-3">
+      <div className="space-y-3">
         <div className="flex items-center gap-3">
           <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
-          <div className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4 text-muted-foreground" />
-            <Label className="font-semibold">Przypomnienie cykliczne</Label>
-          </div>
+          <Label className="font-semibold">Przypomnienie cykliczne</Label>
         </div>
 
         {isRecurring && (
-          <div className="pt-3 border-t border-border/50 space-y-3">
+          <div className="space-y-3 pl-1">
             <div className="flex gap-2">
               <Button
                 type="button"
                 variant={recurringType === 'monthly' ? 'default' : 'outline'}
                 size="sm"
-                className="flex-1"
+                className={cn("flex-1", recurringType !== 'monthly' && "bg-white")}
                 onClick={() => setRecurringType('monthly')}
               >
                 Dzień miesiąca
@@ -155,7 +192,7 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
                 type="button"
                 variant={recurringType === 'weekly' ? 'default' : 'outline'}
                 size="sm"
-                className="flex-1"
+                className={cn("flex-1", recurringType !== 'weekly' && "bg-white")}
                 onClick={() => setRecurringType('weekly')}
               >
                 Dzień tygodnia
@@ -170,14 +207,14 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
                   max={31}
                   value={recurringValue ?? ''}
                   onChange={e => setRecurringValue(e.target.value ? parseInt(e.target.value) : null)}
-                  className="w-24"
+                  className="w-24 bg-white"
                 />
               </div>
             ) : (
               <div>
                 <Label className="mb-1.5 block text-sm">Dzień tygodnia</Label>
                 <Select value={recurringValue?.toString() ?? ''} onValueChange={v => setRecurringValue(parseInt(v))}>
-                  <SelectTrigger><SelectValue placeholder="Wybierz dzień..." /></SelectTrigger>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="Wybierz dzień..." /></SelectTrigger>
                   <SelectContent>
                     {DAYS_OF_WEEK.map(d => (
                       <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>
@@ -192,21 +229,44 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
 
       {!isRecurring && (
         <div>
-          <Label className="mb-1.5 block">Deadline <span className="text-destructive">*</span></Label>
-          <Input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} />
+          <Label className="mb-1.5 block">Do kiedy <span className="text-destructive">*</span></Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal bg-white",
+                  !deadline && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {deadline ? format(deadlineDate!, 'dd.MM.yyyy', { locale: pl }) : 'Wybierz datę...'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={deadlineDate}
+                onSelect={(date) => setDeadline(date ? format(date, 'yyyy-MM-dd') : '')}
+                locale={pl}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       )}
 
       <div>
-        <Label className="mb-1.5 block">Przypomnij X dni przed <span className="text-destructive">*</span></Label>
+        <Label className="mb-1.5 block">Przypomnij ile dni przed <span className="text-destructive">*</span></Label>
         <Input
           type="number"
           min={1}
           value={daysBefore}
           onChange={e => setDaysBefore(parseInt(e.target.value) || 1)}
-          className="w-24"
+          className="w-24 bg-white"
         />
-        <p className="text-xs text-muted-foreground mt-1">Na ile dni przed deadline'em wysłać powiadomienie</p>
+        <p className="text-xs text-muted-foreground mt-1">Na ile dni przed terminem wysłać powiadomienie</p>
       </div>
 
       <div>
@@ -215,41 +275,38 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
           instanceId={instanceId}
           selectedCustomer={customerId ? { id: customerId, name: customerName, phone: '', email: null, company: null } : null}
           onSelect={(customer) => { setCustomerId(customer.id); setCustomerName(customer.name); }}
-          onClear={() => { setCustomerId(null); setCustomerName(''); }}
+          onClear={() => { setCustomerId(null); setCustomerName(''); setNotifyCustomerEmail(false); setNotifyCustomerSms(false); }}
         />
       </div>
 
       <div>
         <Label className="mb-1.5 block">Notatki</Label>
-        <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Dodatkowe informacje..." rows={3} />
+        <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="bg-white" />
       </div>
 
       {/* Notifications */}
-      <div className="rounded-lg border border-border/50 bg-muted/30 p-4 space-y-3">
+      <div className="space-y-3">
         <Label className="font-semibold block">Powiadomienia</Label>
         <div className="flex items-center gap-3">
           <Checkbox id="notifyEmail" checked={notifyEmail} onCheckedChange={v => setNotifyEmail(!!v)} />
-          <label htmlFor="notifyEmail" className="text-sm cursor-pointer">📧 Wyślij e-mail <span className="text-muted-foreground text-xs">(adres biura)</span></label>
+          <label htmlFor="notifyEmail" className="text-sm cursor-pointer">Wyślij mi e-mail</label>
         </div>
         <div className="flex items-center gap-3">
           <Checkbox id="notifySms" checked={notifySms} onCheckedChange={v => setNotifySms(!!v)} />
-          <label htmlFor="notifySms" className="text-sm cursor-pointer">📱 Wyślij SMS <span className="text-muted-foreground text-xs">(numer usera)</span></label>
+          <label htmlFor="notifySms" className="text-sm cursor-pointer">Wyślij mi SMS</label>
         </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center justify-between pt-4 border-t border-border/50">
-        {isEditing && onDelete ? (
-          <Button variant="ghost" size="sm" className="text-destructive" onClick={() => { onDelete(editingReminder!.id); onClose(); }}>
-            <Trash2 className="w-4 h-4 mr-1" /> Usuń
-          </Button>
-        ) : <div />}
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={onClose}>Anuluj</Button>
-          <Button onClick={handleSave} disabled={saving || !name.trim() || !typeId || (!isRecurring && !deadline)}>
-            {saving ? 'Zapisywanie...' : isEditing ? 'Zapisz' : 'Utwórz'}
-          </Button>
-        </div>
+        {customerId && (
+          <>
+            <div className="flex items-center gap-3">
+              <Checkbox id="notifyCustomerEmail" checked={notifyCustomerEmail} onCheckedChange={v => setNotifyCustomerEmail(!!v)} />
+              <label htmlFor="notifyCustomerEmail" className="text-sm cursor-pointer">Wyślij e-mail do klienta</label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox id="notifyCustomerSms" checked={notifyCustomerSms} onCheckedChange={v => setNotifyCustomerSms(!!v)} />
+              <label htmlFor="notifyCustomerSms" className="text-sm cursor-pointer">Wyślij SMS do klienta</label>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -257,11 +314,10 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={v => !v && onClose()}>
-        <DrawerContent className="max-h-[90vh]">
-          <div className="px-4 py-3 border-b border-border/50">
-            <h2 className="text-lg font-semibold">{isEditing ? 'Edytuj przypomnienie' : 'Nowe przypomnienie'}</h2>
-          </div>
-          <div className="overflow-auto">{formContent}</div>
+        <DrawerContent className="max-h-[90vh] flex flex-col p-0 gap-0 bg-card">
+          {header}
+          {formContent}
+          {footer}
         </DrawerContent>
       </Drawer>
     );
@@ -269,11 +325,10 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
 
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent className="w-[480px] sm:max-w-[480px] p-0 overflow-auto">
-        <SheetHeader className="px-4 py-3 border-b border-border/50">
-          <SheetTitle>{isEditing ? 'Edytuj przypomnienie' : 'Nowe przypomnienie'}</SheetTitle>
-        </SheetHeader>
+      <SheetContent className="w-[480px] sm:max-w-[480px] flex flex-col p-0 gap-0 bg-card" hideCloseButton>
+        {header}
         {formContent}
+        {footer}
       </SheetContent>
     </Sheet>
   );
@@ -288,8 +343,7 @@ function computeNextRecurringDeadline(type: string, value: number | null): strin
   }
   if (type === 'weekly' && value !== null) {
     const current = now.getDay();
-    // JS: 0=Sun, our 0=Mon
-    const target = (value + 1) % 7; // convert our 0-6 Mon-Sun to JS 0-6 Sun-Sat
+    const target = (value + 1) % 7;
     let diff = target - current;
     if (diff <= 0) diff += 7;
     const next = new Date(now);

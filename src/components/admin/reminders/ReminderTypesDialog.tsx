@@ -40,7 +40,7 @@ export default function ReminderTypesDialog({ open, onClose, types, onAdd, onUpd
     <Dialog open={open} onOpenChange={v => !v && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Typy przypomnień</DialogTitle>
+          <DialogTitle>Kategorie przypomnień</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-2 max-h-64 overflow-auto">
@@ -61,14 +61,14 @@ export default function ReminderTypesDialog({ open, onClose, types, onAdd, onUpd
               )}
             </div>
           ))}
-          {types.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak typów. Dodaj pierwszy typ poniżej.</p>}
+          {types.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Brak kategorii. Dodaj pierwszą kategorię poniżej.</p>}
         </div>
 
         <div className="flex gap-2 pt-2">
           <Input
             value={newName}
             onChange={e => setNewName(e.target.value)}
-            placeholder="Nowy typ..."
+            placeholder="Nowa kategoria..."
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
           />
           <Button onClick={handleAdd} disabled={!newName.trim()} size="sm">
