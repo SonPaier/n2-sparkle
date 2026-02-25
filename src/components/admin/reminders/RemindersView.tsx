@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Settings2, Archive, ListTodo } from 'lucide-react';
+import { Plus, Settings2 } from 'lucide-react';
 import { useReminders, useReminderTypes } from '@/hooks/useReminders';
 import type { Reminder } from '@/hooks/useReminders';
 import AddEditReminderDrawer from './AddEditReminderDrawer';
@@ -93,17 +93,15 @@ export default function RemindersView({ instanceId }: Props) {
             onClick={() => setActiveTab('todo')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'todo' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
           >
-            <ListTodo className="w-4 h-4 inline mr-1" />
             Do zrobienia
-            <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === 'todo' ? 'bg-primary/10' : 'bg-muted'}`}>{todoReminders.length}</span>
+            <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-muted">{todoReminders.length}</span>
           </button>
           <button
             onClick={() => setActiveTab('archive')}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'archive' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
           >
-            <Archive className="w-4 h-4 inline mr-1" />
             Archiwum
-            <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === 'archive' ? 'bg-primary/10' : 'bg-muted'}`}>{archiveReminders.length}</span>
+            <span className="ml-2 text-xs px-1.5 py-0.5 rounded-full bg-muted">{archiveReminders.length}</span>
           </button>
         </div>
         <div className="flex items-center gap-2 pb-2">
@@ -163,9 +161,9 @@ export default function RemindersView({ instanceId }: Props) {
                     <Badge variant="outline" className="text-xs">{r.customer_name}</Badge>
                   )}
                   {r.is_recurring && (
-                    <Badge variant="outline" className="text-xs">
+                    <span className="text-xs text-muted-foreground">
                       {getRecurringLabel(r.recurring_type, r.recurring_value)}
-                    </Badge>
+                    </span>
                   )}
                 </div>
               </div>
