@@ -36,7 +36,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const { signOut, username, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('n2serwis-sidebar-collapsed') === 'true';
+    return localStorage.getItem('n2service-sidebar-collapsed') === 'true';
   });
   const [instanceLogo, setInstanceLogo] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState<string | null>(null);
@@ -57,7 +57,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   }, [instanceId]);
 
   useEffect(() => {
-    localStorage.setItem('n2serwis-sidebar-collapsed', String(sidebarCollapsed));
+    localStorage.setItem('n2service-sidebar-collapsed', String(sidebarCollapsed));
   }, [sidebarCollapsed]);
 
   const handleNavClick = (view: ViewType) => {
@@ -184,7 +184,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
           {instanceLogo ? (
             <img src={instanceLogo} alt={instanceName || 'Logo'} className="h-8 object-contain" />
           ) : (
-            <h1 className="font-semibold text-foreground">N2Serwis</h1>
+            <h1 className="font-semibold text-foreground">N2Service</h1>
           )}
         </header>
 

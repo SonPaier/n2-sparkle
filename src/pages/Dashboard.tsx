@@ -201,10 +201,13 @@ const Dashboard = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_items', filter: `instance_id=eq.${instanceId}` }, () => {
         fetchItems();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'breaks', filter: `instance_id=eq.${instanceId}` }, () => {
+        fetchBreaks();
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [instanceId, currentView, fetchItems]);
+  }, [instanceId, currentView, fetchItems, fetchBreaks]);
 
   // Handlers
   const handleItemClick = (item: CalendarItem) => {

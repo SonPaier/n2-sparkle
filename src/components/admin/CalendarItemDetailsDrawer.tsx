@@ -600,9 +600,9 @@ const CalendarItemDetailsDrawer = ({
             {/* Customer */}
             {(item.customer_name || item.customer_phone || item.customer_email) && (
               <div className="space-y-2">
+                <span className="text-sm font-medium">Klient</span>
                 {item.customer_name && (
                   <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground shrink-0" />
                     {item.customer_id ? (
                       <button
                         type="button"
@@ -642,12 +642,12 @@ const CalendarItemDetailsDrawer = ({
             {/* Location */}
             {addressLabel && (
               <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">Lokalizacja</span>
+                <div>
                   <span className="font-medium text-[15px]">{addressLabel}</span>
                 </div>
                 {addressStreet && (
-                  <div className="ml-6">
+                  <div>
                     {addressCoords ? (
                       <a
                         href={`https://www.google.com/maps?q=${addressCoords.lat},${addressCoords.lng}`}
@@ -675,7 +675,6 @@ const CalendarItemDetailsDrawer = ({
             {/* Assigned Employees */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <HardHat className="w-4 h-4 text-muted-foreground" />
                 Przypisani pracownicy
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -705,7 +704,6 @@ const CalendarItemDetailsDrawer = ({
             {/* Notes - inline editable */}
             <div className="space-y-1">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <FileText className="w-4 h-4 text-muted-foreground" />
                 Notatki
               </div>
               {editingNotes ? (
@@ -721,7 +719,7 @@ const CalendarItemDetailsDrawer = ({
               ) : (
                 <p
                   onClick={() => setEditingNotes(true)}
-                  className={`text-[15px] ml-6 whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
+                  className={`text-[15px] whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
                 >
                   {notesValue || 'Kliknij, aby dodać notatkę...'}
                 </p>
@@ -731,7 +729,7 @@ const CalendarItemDetailsDrawer = ({
             {/* Price */}
             {item.price != null && (
               <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">Cena</span>
                 <span className="font-bold text-[15px]">{item.price.toFixed(2)} PLN</span>
               </div>
             )}
@@ -739,7 +737,6 @@ const CalendarItemDetailsDrawer = ({
             {/* Photos */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium">
-                <Camera className="w-4 h-4 text-muted-foreground" />
                 Zdjęcia
               </div>
               <ProtocolPhotosUploader

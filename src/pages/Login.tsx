@@ -285,7 +285,7 @@ const Login = ({ subdomainSlug }: LoginProps) => {
         {/* Footer */}
         <div className="p-6 border-t border-border/50">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-xs text-muted-foreground">
-            <span>© {new Date().getFullYear()} N2Serwis</span>
+            <span>© {new Date().getFullYear()} N2Service</span>
             <a href="https://n2works.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
               n2works.com
             </a>
@@ -312,7 +312,7 @@ const Login = ({ subdomainSlug }: LoginProps) => {
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm mb-4">
               <Wrench className="w-10 h-10" />
             </div>
-            <h2 className="text-3xl font-bold">N2Serwis</h2>
+            <h2 className="text-3xl font-bold">N2Service</h2>
             <p className="text-white/70 text-lg">
               Zarządzaj serwisem, klientami i usługami w jednym miejscu.
             </p>
