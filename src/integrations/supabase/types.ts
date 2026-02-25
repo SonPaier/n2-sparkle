@@ -1042,6 +1042,132 @@ export type Database = {
           },
         ]
       }
+      reminder_types: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          instance_id: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_types_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reminders: {
+        Row: {
+          assigned_user_id: string | null
+          created_at: string
+          customer_id: string | null
+          days_before: number
+          deadline: string
+          id: string
+          instance_id: string
+          is_recurring: boolean
+          name: string
+          notes: string | null
+          notification_sent: boolean
+          notification_sent_at: string | null
+          notify_email: boolean
+          notify_sms: boolean
+          recurring_type: string | null
+          recurring_value: number | null
+          reminder_type_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          days_before?: number
+          deadline: string
+          id?: string
+          instance_id: string
+          is_recurring?: boolean
+          name: string
+          notes?: string | null
+          notification_sent?: boolean
+          notification_sent_at?: string | null
+          notify_email?: boolean
+          notify_sms?: boolean
+          recurring_type?: string | null
+          recurring_value?: number | null
+          reminder_type_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          days_before?: number
+          deadline?: string
+          id?: string
+          instance_id?: string
+          is_recurring?: boolean
+          name?: string
+          notes?: string | null
+          notification_sent?: boolean
+          notification_sent_at?: string | null
+          notify_email?: boolean
+          notify_sms?: boolean
+          recurring_type?: string | null
+          recurring_value?: number | null
+          reminder_type_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_reminder_type_id_fkey"
+            columns: ["reminder_type_id"]
+            isOneToOne: false
+            referencedRelation: "reminder_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sms_notification_templates: {
         Row: {
           created_at: string

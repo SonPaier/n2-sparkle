@@ -1,0 +1,216 @@
+import { useState, useMemo } from 'react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Settings2, RefreshCw, Archive, ListTodo } from 'lucide-react';
+import { useReminders, useReminderTypes } from '@/hooks/useReminders';
+import type { Reminder } from '@/hooks/useReminders';
+import AddEditReminderDrawer from './AddEditReminderDrawer';
+import ReminderTypesDialog from './ReminderTypesDialog';
+import { format } from 'date-fns';
+
+interface Props {
+  instanceId: string;
+}
+
+function getDaysUntil(deadline: string): number {
+  const d = new Date(deadline);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  d.setHours(0, 0, 0, 0);
+  return Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function getUrgencyClasses(deadline: string): { border: string; text: string; badge: string; label: string | null } {
+  const days = getDaysUntil(deadline);
+  if (days <= 3) return { border: 'border-l-red-500', text: 'text-red-700', badge: 'bg-red-100 text-red-700 border-red-200', label: 'PILNE' };
+  if (days <= 7) return { border: 'border-l-yellow-500', text: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'WKRÓTCE' };
+  return { border: 'border-l-green-500', text: 'text-green-700', badge: '', label: null };
+}
+
+function formatDeadline(deadline: string): string {
+  try { return format(new Date(deadline), 'dd.MM.yyyy'); } catch { return deadline; }
+}
+
+function getDaysLabel(deadline: string): string {
+  const days = getDaysUntil(deadline);
+  if (days < 0) return `${Math.abs(days)} dni po terminie!`;
+  if (days === 0) return 'Dziś!';
+  return `za ${days} dni`;
+}
+
+export default function RemindersView({ instanceId }: Props) {
+  const { reminders, loading, saveReminder, updateStatus, deleteReminder } = useReminders(instanceId);
+  const { types, addType, updateType, deleteType } = useReminderTypes(instanceId);
+
+  const [activeTab, setActiveTab] = useState<'todo' | 'archive'>('todo');
+  const [filterTypeId, setFilterTypeId] = useState<string>('all');
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [typesDialogOpen, setTypesDialogOpen] = useState(false);
+
+  const todoReminders = useMemo(() => reminders.filter(r => r.status === 'todo'), [reminders]);
+  const archiveReminders = useMemo(() => reminders.filter(r => r.status === 'done' || r.status === 'cancelled'), [reminders]);
+
+  const displayedReminders = activeTab === 'todo' ? todoReminders : archiveReminders;
+  const filtered = filterTypeId === 'all' ? displayedReminders : displayedReminders.filter(r => r.reminder_type_id === filterTypeId);
+
+  const openNew = () => { setEditingReminder(null); setDrawerOpen(true); };
+  const openEdit = (r: Reminder) => { setEditingReminder(r); setDrawerOpen(true); };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Przypomnienia</h1>
+          <p className="text-sm text-muted-foreground">Zarządzaj terminami i powiadomieniami</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => setTypesDialogOpen(true)}>
+            <Settings2 className="w-4 h-4 mr-1" /> Typy
+          </Button>
+          <Button size="sm" onClick={openNew}>
+            <Plus className="w-4 h-4 mr-1" /> Nowe przypomnienie
+          </Button>
+        </div>
+      </div>
+
+      {/* Tabs + Filter */}
+      <div className="flex items-center justify-between border-b border-border/50">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('todo')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'todo' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            <ListTodo className="w-4 h-4 inline mr-1" />
+            Do zrobienia
+            <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === 'todo' ? 'bg-primary/10' : 'bg-muted'}`}>{todoReminders.length}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('archive')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === 'archive' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
+          >
+            <Archive className="w-4 h-4 inline mr-1" />
+            Archiwum
+            <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === 'archive' ? 'bg-primary/10' : 'bg-muted'}`}>{archiveReminders.length}</span>
+          </button>
+        </div>
+        <div className="flex items-center gap-2 pb-2">
+          <span className="text-xs text-muted-foreground">Typ:</span>
+          <Select value={filterTypeId} onValueChange={setFilterTypeId}>
+            <SelectTrigger className="h-8 w-40 text-xs">
+              <SelectValue placeholder="Wszystkie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Wszystkie</SelectItem>
+              {types.map(t => (
+                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="space-y-2">
+        {loading && <p className="text-sm text-muted-foreground text-center py-8">Ładowanie...</p>}
+        {!loading && filtered.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <div className="text-4xl mb-2">📭</div>
+            <p className="text-sm">Brak przypomnień w tej kategorii</p>
+          </div>
+        )}
+        {filtered.map(r => {
+          const isArchive = r.status !== 'todo';
+          const urgency = getUrgencyClasses(r.deadline);
+          const daysLeft = getDaysUntil(r.deadline);
+
+          return (
+            <div
+              key={r.id}
+              onClick={() => openEdit(r)}
+              className={`flex items-center gap-4 p-3 rounded-lg border border-border/50 border-l-4 cursor-pointer transition-colors hover:bg-muted/30 ${isArchive ? 'border-l-muted opacity-70' : urgency.border} bg-card`}
+            >
+              {/* Checkbox for quick complete */}
+              {!isArchive && (
+                <div onClick={e => e.stopPropagation()} className="shrink-0">
+                  <Checkbox
+                    onCheckedChange={() => updateStatus(r.id, 'done', r)}
+                    className="w-5 h-5"
+                  />
+                </div>
+              )}
+
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-semibold text-foreground truncate">{r.name}</span>
+                  {r.is_recurring && <span title="Cykliczne"><RefreshCw className="w-3.5 h-3.5 text-muted-foreground shrink-0" /></span>}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {r.reminder_type_name && (
+                    <Badge variant="secondary" className="text-xs">{r.reminder_type_name}</Badge>
+                  )}
+                  {r.customer_name && (
+                    <Badge variant="outline" className="text-xs">👤 {r.customer_name}</Badge>
+                  )}
+                  {r.notify_email && <span title="Email" className="text-xs">📧</span>}
+                  {r.notify_sms && <span title="SMS" className="text-xs">📱</span>}
+                </div>
+              </div>
+
+              {/* Right: deadline or status */}
+              <div className="text-right shrink-0">
+                {isArchive ? (
+                  <div className="flex items-center gap-2">
+                    <Badge variant={r.status === 'done' ? 'default' : 'secondary'} className="text-xs">
+                      {r.status === 'done' ? 'Wykonane' : 'Anulowane'}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7"
+                      onClick={e => { e.stopPropagation(); updateStatus(r.id, 'todo'); }}
+                    >
+                      Przywróć
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`text-sm font-semibold ${urgency.text}`}>{formatDeadline(r.deadline)}</div>
+                    <div className={`text-xs ${urgency.text}`}>{getDaysLabel(r.deadline)}</div>
+                    {urgency.label && (
+                      <Badge className={`text-[10px] mt-1 ${urgency.badge}`}>{urgency.label}</Badge>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Drawers & Dialogs */}
+      <AddEditReminderDrawer
+        open={drawerOpen}
+        onClose={() => { setDrawerOpen(false); setEditingReminder(null); }}
+        instanceId={instanceId}
+        reminderTypes={types}
+        onSave={saveReminder}
+        onDelete={deleteReminder}
+        editingReminder={editingReminder}
+      />
+
+      <ReminderTypesDialog
+        open={typesDialogOpen}
+        onClose={() => setTypesDialogOpen(false)}
+        types={types}
+        onAdd={addType}
+        onUpdate={updateType}
+        onDelete={deleteType}
+      />
+    </div>
+  );
+}
