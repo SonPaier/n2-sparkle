@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell, LayoutDashboard } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
@@ -22,13 +22,15 @@ import SettlementsView from '@/components/admin/SettlementsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import RemindersView from '@/components/admin/reminders/RemindersView';
 import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
+import DashboardOverview from '@/components/admin/DashboardOverview';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 
-const validViews: ViewType[] = ['kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'przypomnienia', 'powiadomienia-sms', 'ustawienia'];
+const validViews: ViewType[] = ['dashboard', 'kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'przypomnienia', 'powiadomienia-sms', 'ustawienia'];
 
 const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; description: string }> = {
+  dashboard: { label: 'Dashboard', icon: LayoutDashboard, description: 'Przegląd zadań na ten tydzień' },
   kalendarz: { label: 'Kalendarz', icon: Calendar, description: 'Zarządzaj harmonogramem i rezerwacjami' },
   klienci: { label: 'Klienci', icon: Users, description: 'Przeglądaj i zarządzaj bazą klientów' },
   pracownicy: { label: 'Pracownicy', icon: HardHat, description: 'Zarządzaj pracownikami i czasem pracy' },
@@ -46,7 +48,7 @@ const Dashboard = () => {
   const { roles } = useAuth();
   const isMobile = useIsMobile();
 
-  const currentView: ViewType = view && validViews.includes(view as ViewType) ? (view as ViewType) : 'kalendarz';
+  const currentView: ViewType = view && validViews.includes(view as ViewType) ? (view as ViewType) : 'dashboard';
 
   const adminRole = roles.find(r => (r.role === 'admin' || r.role === 'employee') && r.instance_id);
   const instanceId = adminRole?.instance_id ?? null;
@@ -54,7 +56,7 @@ const Dashboard = () => {
   const basePath = window.location.pathname.includes('/admin') ? '/admin' : '';
 
   const handleViewChange = (newView: ViewType) => {
-    navigate(newView === 'kalendarz' ? `${basePath || '/admin'}` : `${basePath || '/admin'}/${newView}`, { replace: true });
+    navigate(newView === 'dashboard' ? `${basePath || '/admin'}` : `${basePath || '/admin'}/${newView}`, { replace: true });
   };
 
   // Calendar state
@@ -315,6 +317,10 @@ const Dashboard = () => {
   };
 
   const renderContent = () => {
+    if (currentView === 'dashboard' && instanceId) {
+      return <DashboardOverview instanceId={instanceId} />;
+    }
+
     if (currentView === 'ustawienia') {
       return <SettingsView instanceId={instanceId} />;
     }
