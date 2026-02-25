@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Phone, MessageSquare, Mail, X, ChevronDown, CalendarPlus } from 'lucide-react';
+import type { SelectedCustomer } from './CustomerSearchInput';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
 import CustomerOrdersTab from './CustomerOrdersTab';
@@ -38,6 +39,7 @@ interface CustomerEditDrawerProps {
   prefilledServiceIds?: string[];
   prefilledServiceNames?: string[];
   onNewOrderCreated?: () => void;
+  onCustomerCreated?: (customer: SelectedCustomer, firstAddressId?: string) => void;
 }
 
 const CustomerEditDrawer = ({
@@ -51,6 +53,7 @@ const CustomerEditDrawer = ({
   prefilledServiceIds,
   prefilledServiceNames,
   onNewOrderCreated,
+  onCustomerCreated,
 }: CustomerEditDrawerProps) => {
   const isMobile = useIsMobile();
   const [newOrderOpen, setNewOrderOpen] = useState(false);
@@ -229,8 +232,21 @@ const CustomerEditDrawer = ({
       }
 
       // Save addresses
+      let firstAddressId: string | undefined;
       if (customerId) {
-        await syncAddresses(customerId);
+        firstAddressId = await syncAddresses(customerId);
+      }
+
+      // Call onCustomerCreated callback for add mode
+      if (isAddMode && customerId && onCustomerCreated) {
+        onCustomerCreated({
+          id: customerId,
+          name: editName.trim(),
+          phone: normalizePhone(editPhone.trim()),
+          email: editEmail.trim() || null,
+          company: editCompany.trim() || null,
+          nip: editNip.trim() || null,
+        }, firstAddressId);
       }
 
       toast.success('Klient zapisany');
@@ -244,8 +260,8 @@ const CustomerEditDrawer = ({
     }
   };
 
-  const syncAddresses = async (customerId: string) => {
-    if (!instanceId) return;
+  const syncAddresses = async (customerId: string): Promise<string | undefined> => {
+    if (!instanceId) return undefined;
 
     // Delete removed addresses
     const deletedIds = addresses.filter(a => a._deleted && a.id).map(a => a.id!);
@@ -255,6 +271,7 @@ const CustomerEditDrawer = ({
 
     // Upsert remaining
     const activeAddresses = addresses.filter(a => !a._deleted);
+    let firstAddressId: string | undefined;
     for (let i = 0; i < activeAddresses.length; i++) {
       const addr = activeAddresses[i];
       const addrData = {
@@ -275,10 +292,13 @@ const CustomerEditDrawer = ({
 
       if (addr.id && !addr._isNew) {
         await supabase.from('customer_addresses').update(addrData).eq('id', addr.id);
+        if (i === 0) firstAddressId = addr.id;
       } else {
-        await supabase.from('customer_addresses').insert(addrData);
+        const { data: inserted } = await supabase.from('customer_addresses').insert(addrData).select('id').single();
+        if (i === 0 && inserted) firstAddressId = inserted.id;
       }
     }
+    return firstAddressId;
   };
 
   const handleCancelEdit = () => {

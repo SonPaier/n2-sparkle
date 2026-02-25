@@ -20,9 +20,10 @@ interface CustomerSearchInputProps {
   onSelect: (customer: SelectedCustomer) => void;
   onClear: () => void;
   onCustomerClick?: (customerId: string) => void;
+  onAddNew?: () => void;
 }
 
-const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, onCustomerClick }: CustomerSearchInputProps) => {
+const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, onCustomerClick, onAddNew }: CustomerSearchInputProps) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SelectedCustomer[]>([]);
   const [searching, setSearching] = useState(false);
@@ -106,7 +107,7 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
 
   if (selectedCustomer) {
     return (
-      <div className="flex items-center gap-2 p-2 rounded-md border border-input bg-muted/30">
+      <div className="flex items-center gap-2 p-2 rounded-md border border-input bg-white">
         <Search className="w-4 h-4 text-muted-foreground" />
         <button
           type="button"
@@ -123,7 +124,7 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
     );
   }
 
-  const showDropdown = open && query.length >= 2 && (results.length > 0 || searching);
+  const showDropdown = open && query.length >= 2;
 
   return (
     <div ref={containerRef} className="relative">
@@ -149,22 +150,41 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
 
       {showDropdown && (
         <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
-          {results.map((c, i) => (
-            <button
-              key={c.id}
-              type="button"
-              className={`w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0 ${
-                i === selectedIndex ? 'bg-accent' : 'hover:bg-muted/30'
-              }`}
-              onClick={() => handleSelect(c)}
-              onMouseEnter={() => setSelectedIndex(i)}
-            >
-              <span className="font-semibold text-base text-foreground">{c.name}</span>
-              {c.phone && (
-                <span className="text-primary font-medium text-sm">{formatPhoneDisplay(c.phone)}</span>
+          {searching ? null : results.length > 0 ? (
+            results.map((c, i) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0 ${
+                  i === selectedIndex ? 'bg-accent' : 'hover:bg-muted/30'
+                }`}
+                onClick={() => handleSelect(c)}
+                onMouseEnter={() => setSelectedIndex(i)}
+              >
+                <span className="font-semibold text-base text-foreground">{c.name}</span>
+                {c.phone && (
+                  <span className="text-primary font-medium text-sm">{formatPhoneDisplay(c.phone)}</span>
+                )}
+              </button>
+            ))
+          ) : (
+            <div className="p-4 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">Brak klienta w bazie</p>
+              {onAddNew && (
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => {
+                    setOpen(false);
+                    setQuery('');
+                    onAddNew();
+                  }}
+                >
+                  Dodaj
+                </Button>
               )}
-            </button>
-          ))}
+            </div>
+          )}
         </div>
       )}
     </div>
