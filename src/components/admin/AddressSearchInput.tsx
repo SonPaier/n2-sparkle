@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { searchAddress, type AddressSearchResult } from '@/lib/addressSearch';
 
 interface AddressSearchInputProps {
@@ -18,13 +16,16 @@ const AddressSearchInput = ({
   defaultValue = '',
   className,
 }: AddressSearchInputProps) => {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [displayValue, setDisplayValue] = useState(defaultValue);
   const [results, setResults] = useState<AddressSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isEditing, setIsEditing] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const search = useCallback(async (q: string) => {
@@ -66,15 +67,48 @@ const AddressSearchInput = ({
     };
   }, []);
 
+  // Close on outside click
   useEffect(() => {
-    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setIsEditing(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
-    const timer = window.setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open || results.length === 0) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setIsEditing(false);
+      }
+      return;
+    }
 
-    return () => window.clearTimeout(timer);
-  }, [open]);
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < results.length) {
+          handleSelect(results[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        setOpen(false);
+        setIsEditing(false);
+        break;
+    }
+  };
 
   const handleSelect = (result: AddressSearchResult) => {
     const label = [result.street, result.postal_code, result.city]
@@ -84,70 +118,62 @@ const AddressSearchInput = ({
     setOpen(false);
     setQuery('');
     setResults([]);
+    setSelectedIndex(-1);
+    setIsEditing(false);
     onSelect(result);
   };
 
+  const showDropdown = open && query.length >= 3 && (results.length > 0 || searching);
+
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={`w-full justify-start text-left font-normal bg-background ${!displayValue ? 'text-muted-foreground' : ''} ${className || ''}`}
-        >
-          <MapPin className="w-4 h-4 mr-2 shrink-0" />
-          <span className="truncate">{displayValue || placeholder}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="z-[1200] p-0 w-[--radix-popover-trigger-width] pointer-events-auto"
-        align="start"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <Command shouldFilter={false}>
-          <CommandInput
-            ref={inputRef}
-            placeholder="Wpisz adres, ulicę lub miasto..."
-            value={query}
-            onValueChange={setQuery}
-          />
-          <CommandList>
-            <CommandEmpty>
-              {searching ? (
-                <span className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Szukam...
-                </span>
-              ) : query.length < 3 ? (
-                'Wpisz min. 3 znaki'
-              ) : (
-                'Brak wyników'
-              )}
-            </CommandEmpty>
-            <CommandGroup>
-              {results.map((r, i) => (
-                <CommandItem
-                  key={`${r.lat}-${r.lng}-${i}`}
-                  onSelect={() => handleSelect(r)}
-                  className="cursor-pointer"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">
-                      {r.street || r.city}
-                    </div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {[r.postal_code, r.city, r.street ? '' : '']
-                        .filter(Boolean)
-                        .join(' ')}
-                      {r.street && r.city ? ` • ${r.city}` : ''}
-                    </div>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div ref={containerRef} className={`relative ${className || ''}`}>
+      <div className="relative">
+        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Input
+          ref={inputRef}
+          value={isEditing ? query : displayValue}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            setSelectedIndex(-1);
+            if (!isEditing) setIsEditing(true);
+          }}
+          onFocus={() => {
+            setIsEditing(true);
+            setQuery('');
+            if (query.length >= 3) setOpen(true);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className="pl-9 pr-9"
+        />
+        {searching && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+        )}
+      </div>
+
+      {showDropdown && (
+        <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
+          {results.map((r, i) => (
+            <button
+              key={`${r.lat}-${r.lng}-${i}`}
+              type="button"
+              className={`w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0 ${
+                i === selectedIndex ? 'bg-accent' : 'hover:bg-muted/30'
+              }`}
+              onClick={() => handleSelect(r)}
+              onMouseEnter={() => setSelectedIndex(i)}
+            >
+              <span className="font-medium text-base text-foreground">{r.street || r.city}</span>
+              <span className="text-sm text-muted-foreground">
+                {[r.postal_code, r.city].filter(Boolean).join(' ')}
+                {r.street && r.city ? ` • ${r.city}` : ''}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 

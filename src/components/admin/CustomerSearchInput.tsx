@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import { formatPhoneDisplay } from '@/lib/phoneUtils';
 
 export interface SelectedCustomer {
   id: string;
@@ -23,11 +23,13 @@ interface CustomerSearchInputProps {
 }
 
 const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, onCustomerClick }: CustomerSearchInputProps) => {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SelectedCustomer[]>([]);
   const [searching, setSearching] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const search = useCallback(async (q: string) => {
@@ -51,21 +53,56 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => search(query), 300);
-
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [query, search]);
 
+  // Close on outside click
   useEffect(() => {
-    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
-    const timer = window.setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!open || results.length === 0) {
+      if (e.key === 'Escape') setOpen(false);
+      return;
+    }
 
-    return () => window.clearTimeout(timer);
-  }, [open]);
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < results.length) {
+          handleSelect(results[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        setOpen(false);
+        break;
+    }
+  };
+
+  const handleSelect = (customer: SelectedCustomer) => {
+    onSelect(customer);
+    setOpen(false);
+    setQuery('');
+    setResults([]);
+    setSelectedIndex(-1);
+  };
 
   if (selectedCustomer) {
     return (
@@ -77,7 +114,7 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
           onClick={() => onCustomerClick?.(selectedCustomer.id)}
         >
           {selectedCustomer.name}
-          {selectedCustomer.phone ? ` • ${selectedCustomer.phone}` : ''}
+          {selectedCustomer.phone ? ` • ${formatPhoneDisplay(selectedCustomer.phone)}` : ''}
         </button>
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onClear}>
           <X className="w-3 h-3" />
@@ -86,53 +123,51 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
     );
   }
 
+  const showDropdown = open && query.length >= 2 && (results.length > 0 || searching);
+
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full justify-start text-muted-foreground font-normal">
-          <Search className="w-4 h-4 mr-2" />
-          Szukaj klienta w bazie...
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className="z-[1200] p-0 w-[--radix-popover-trigger-width] pointer-events-auto bg-white"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <Command shouldFilter={false}>
-          <CommandInput
-            ref={inputRef}
-            value={query}
-            onValueChange={setQuery}
-          />
-          <CommandList>
-            <CommandEmpty>
-              {searching ? 'Szukam...' : query.length < 2 ? 'Wpisz min. 2 znaki' : 'Brak wyników'}
-            </CommandEmpty>
-            <CommandGroup>
-              {results.map((c) => (
-                <CommandItem
-                  key={c.id}
-                  onSelect={() => {
-                    onSelect(c);
-                    setOpen(false);
-                    setQuery('');
-                  }}
-                  className="cursor-pointer"
-                >
-                  <div>
-                    <div className="font-semibold text-[15px] text-foreground">{c.name}</div>
-                    <div className="text-sm text-foreground">
-                      {c.phone}
-                    </div>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+        <Input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            setSelectedIndex(-1);
+          }}
+          onFocus={() => { if (query.length >= 2) setOpen(true); }}
+          onKeyDown={handleKeyDown}
+          placeholder="Szukaj klienta w bazie..."
+          className="pl-9 pr-9"
+        />
+        {searching && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+        )}
+      </div>
+
+      {showDropdown && (
+        <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
+          {results.map((c, i) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0 ${
+                i === selectedIndex ? 'bg-accent' : 'hover:bg-muted/30'
+              }`}
+              onClick={() => handleSelect(c)}
+              onMouseEnter={() => setSelectedIndex(i)}
+            >
+              <span className="font-semibold text-base text-foreground">{c.name}</span>
+              {c.phone && (
+                <span className="text-primary font-medium text-sm">{formatPhoneDisplay(c.phone)}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 };
 
