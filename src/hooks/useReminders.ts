@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -22,6 +22,8 @@ export interface Reminder {
   notes: string | null;
   notify_email: boolean;
   notify_sms: boolean;
+  notify_customer_email: boolean;
+  notify_customer_sms: boolean;
   is_recurring: boolean;
   recurring_type: string | null;
   recurring_value: number | null;
@@ -82,16 +84,22 @@ export function useReminderTypes(instanceId: string | null) {
 export function useReminders(instanceId: string | null) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [loading, setLoading] = useState(false);
+  const isFirstLoad = useRef(true);
 
   const fetch = useCallback(async () => {
     if (!instanceId) return;
-    setLoading(true);
+    if (isFirstLoad.current) {
+      setLoading(true);
+    }
     const { data, error } = await supabase
       .from('reminders')
       .select('*')
       .eq('instance_id', instanceId)
       .order('deadline', { ascending: true });
-    setLoading(false);
+    if (isFirstLoad.current) {
+      setLoading(false);
+      isFirstLoad.current = false;
+    }
     if (error) { console.error(error); return; }
 
     const items = (data as any[]) || [];
@@ -120,16 +128,6 @@ export function useReminders(instanceId: string | null) {
   }, [instanceId]);
 
   useEffect(() => { fetch(); }, [fetch]);
-
-  // Realtime
-  useEffect(() => {
-    if (!instanceId) return;
-    const channel = supabase
-      .channel('reminders-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reminders', filter: `instance_id=eq.${instanceId}` }, () => { fetch(); })
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [instanceId, fetch]);
 
   const saveReminder = async (reminder: Partial<Reminder> & { instance_id: string }, id?: string) => {
     if (id) {
@@ -164,6 +162,8 @@ export function useReminders(instanceId: string | null) {
           notes: reminder.notes,
           notify_email: reminder.notify_email,
           notify_sms: reminder.notify_sms,
+          notify_customer_email: reminder.notify_customer_email,
+          notify_customer_sms: reminder.notify_customer_sms,
           is_recurring: true,
           recurring_type: reminder.recurring_type,
           recurring_value: reminder.recurring_value,
@@ -186,18 +186,22 @@ export function useReminders(instanceId: string | null) {
   return { reminders, loading, refetch: fetch, saveReminder, updateStatus, deleteReminder };
 }
 
+const fmtDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 function getNextRecurringDeadline(currentDeadline: string, recurringType: string, recurringValue: number | null): string | null {
-  const current = new Date(currentDeadline);
+  const current = new Date(currentDeadline + 'T00:00:00');
   if (recurringType === 'monthly' && recurringValue) {
     const next = new Date(current);
     next.setMonth(next.getMonth() + 1);
-    next.setDate(Math.min(recurringValue, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()));
-    return next.toISOString().split('T')[0];
+    const maxDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+    next.setDate(Math.min(recurringValue, maxDay));
+    return fmtDate(next);
   }
   if (recurringType === 'weekly') {
     const next = new Date(current);
     next.setDate(next.getDate() + 7);
-    return next.toISOString().split('T')[0];
+    return fmtDate(next);
   }
   return null;
 }

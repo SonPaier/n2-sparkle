@@ -200,11 +200,11 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
             </div>
             {recurringType === 'monthly' ? (
               <div>
-                <Label className="mb-1.5 block text-sm">Dzień miesiąca (1–31)</Label>
+                <Label className="mb-1.5 block text-sm">Dzień miesiąca (1–28)</Label>
                 <Input
                   type="number"
                   min={1}
-                  max={31}
+                  max={28}
                   value={recurringValue ?? ''}
                   onChange={e => setRecurringValue(e.target.value ? parseInt(e.target.value) : null)}
                   className="w-24 bg-white"
@@ -336,10 +336,13 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
 
 function computeNextRecurringDeadline(type: string, value: number | null): string {
   const now = new Date();
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   if (type === 'monthly' && value) {
-    const next = new Date(now.getFullYear(), now.getMonth(), value);
+    const cappedValue = Math.min(value, 28);
+    const next = new Date(now.getFullYear(), now.getMonth(), cappedValue);
     if (next <= now) next.setMonth(next.getMonth() + 1);
-    return next.toISOString().split('T')[0];
+    return fmt(next);
   }
   if (type === 'weekly' && value !== null) {
     const current = now.getDay();
@@ -348,7 +351,7 @@ function computeNextRecurringDeadline(type: string, value: number | null): strin
     if (diff <= 0) diff += 7;
     const next = new Date(now);
     next.setDate(next.getDate() + diff);
-    return next.toISOString().split('T')[0];
+    return fmt(next);
   }
-  return now.toISOString().split('T')[0];
+  return fmt(now);
 }
