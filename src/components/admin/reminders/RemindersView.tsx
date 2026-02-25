@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Settings2, RefreshCw, Archive, ListTodo } from 'lucide-react';
+import { Plus, Settings2, Archive, ListTodo } from 'lucide-react';
 import { useReminders, useReminderTypes } from '@/hooks/useReminders';
 import type { Reminder } from '@/hooks/useReminders';
 import AddEditReminderDrawer from './AddEditReminderDrawer';
@@ -12,6 +12,15 @@ import { format } from 'date-fns';
 
 interface Props {
   instanceId: string;
+}
+
+const DAYS_OF_WEEK_LABELS = ['poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela'];
+
+function getRecurringLabel(recurringType: string | null, recurringValue: number | null): string {
+  if (!recurringType) return 'Cykliczne';
+  if (recurringType === 'monthly' && recurringValue) return `Cykliczne: ${recurringValue} dnia miesiąca`;
+  if (recurringType === 'weekly' && recurringValue !== null) return `Cykliczne: co ${DAYS_OF_WEEK_LABELS[recurringValue] || ''}`;
+  return 'Cykliczne';
 }
 
 function getDaysUntil(deadline: string): number {
@@ -69,7 +78,7 @@ export default function RemindersView({ instanceId }: Props) {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setTypesDialogOpen(true)}>
-            <Settings2 className="w-4 h-4 mr-1" /> Typy
+            <Settings2 className="w-4 h-4 mr-1" /> Kategorie
           </Button>
           <Button size="sm" onClick={openNew}>
             <Plus className="w-4 h-4 mr-1" /> Nowe przypomnienie
@@ -98,7 +107,7 @@ export default function RemindersView({ instanceId }: Props) {
           </button>
         </div>
         <div className="flex items-center gap-2 pb-2">
-          <span className="text-xs text-muted-foreground">Typ:</span>
+          <span className="text-xs text-muted-foreground">Kategoria:</span>
           <Select value={filterTypeId} onValueChange={setFilterTypeId}>
             <SelectTrigger className="h-8 w-40 text-xs">
               <SelectValue placeholder="Wszystkie" />
@@ -118,14 +127,12 @@ export default function RemindersView({ instanceId }: Props) {
         {loading && <p className="text-sm text-muted-foreground text-center py-8">Ładowanie...</p>}
         {!loading && filtered.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
-            <div className="text-4xl mb-2">📭</div>
             <p className="text-sm">Brak przypomnień w tej kategorii</p>
           </div>
         )}
         {filtered.map(r => {
           const isArchive = r.status !== 'todo';
           const urgency = getUrgencyClasses(r.deadline);
-          const daysLeft = getDaysUntil(r.deadline);
 
           return (
             <div
@@ -147,17 +154,19 @@ export default function RemindersView({ instanceId }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm font-semibold text-foreground truncate">{r.name}</span>
-                  {r.is_recurring && <span title="Cykliczne"><RefreshCw className="w-3.5 h-3.5 text-muted-foreground shrink-0" /></span>}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {r.reminder_type_name && (
                     <Badge variant="secondary" className="text-xs">{r.reminder_type_name}</Badge>
                   )}
                   {r.customer_name && (
-                    <Badge variant="outline" className="text-xs">👤 {r.customer_name}</Badge>
+                    <Badge variant="outline" className="text-xs">{r.customer_name}</Badge>
                   )}
-                  {r.notify_email && <span title="Email" className="text-xs">📧</span>}
-                  {r.notify_sms && <span title="SMS" className="text-xs">📱</span>}
+                  {r.is_recurring && (
+                    <Badge variant="outline" className="text-xs">
+                      {getRecurringLabel(r.recurring_type, r.recurring_value)}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
