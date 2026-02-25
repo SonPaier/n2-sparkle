@@ -146,7 +146,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
 
       const marker = L.marker([addr.lat, addr.lng], { icon: createMarkerIcon(addr.futureOrdersCount) })
         .bindTooltip(tooltipHtml, {
-          permanent: true,
+          permanent: false,
           direction: 'top',
           offset: [0, -4],
           className: 'calendar-map-tooltip',
