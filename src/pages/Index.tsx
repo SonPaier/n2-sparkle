@@ -3,7 +3,7 @@
 const Index = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <h1 className="text-4xl font-bold text-foreground">N2Serwis</h1>
+      <h1 className="text-4xl font-bold text-foreground">N2Service</h1>
     </div>
   );
 };

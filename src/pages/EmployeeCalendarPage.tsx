@@ -215,9 +215,12 @@ const EmployeeCalendarPage = () => {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_items', filter: `instance_id=eq.${instanceId}` }, () => {
         fetchItems();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'breaks', filter: `instance_id=eq.${instanceId}` }, () => {
+        fetchBreaks();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [instanceId, currentView, fetchItems]);
+  }, [instanceId, currentView, fetchItems, fetchBreaks]);
 
   const allowedActions = config?.allowed_actions || {};
 
@@ -331,7 +334,7 @@ const EmployeeCalendarPage = () => {
                 <span className="text-primary-foreground font-bold text-lg">N2</span>
               </div>
               <div className="text-left min-w-0 flex-1">
-                <h1 className="font-bold text-foreground truncate">N2Serwis</h1>
+                <h1 className="font-bold text-foreground truncate">N2Service</h1>
               </div>
             </button>
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(false)}>
@@ -369,7 +372,7 @@ const EmployeeCalendarPage = () => {
           <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
             <Menu className="w-5 h-5" />
           </Button>
-          <h1 className="font-semibold text-foreground">N2Serwis</h1>
+          <h1 className="font-semibold text-foreground">N2Service</h1>
         </header>
 
         <main className="flex-1 overflow-auto p-6">
