@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Phone, MessageSquare, Mail, X, ChevronDown, CalendarPlus } from 'lucide-react';
 import type { SelectedCustomer } from './CustomerSearchInput';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
-import { AdminTabsList, AdminTabsTrigger } from './AdminTabsList';
+import { LightTabsList, LightTabsTrigger } from '@/components/ui/light-tabs';
 import CustomerOrdersTab from './CustomerOrdersTab';
 import {
   Sheet,
@@ -435,10 +435,10 @@ const CustomerEditDrawer = ({
           ) : (
             /* View/Edit mode: with tabs */
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-              <AdminTabsList columns={2}>
-                <AdminTabsTrigger value="dane">Dane</AdminTabsTrigger>
-                <AdminTabsTrigger value="zlecenia">Zlecenia</AdminTabsTrigger>
-              </AdminTabsList>
+              <LightTabsList>
+                <LightTabsTrigger value="dane">Dane</LightTabsTrigger>
+                <LightTabsTrigger value="zlecenia">Zlecenia</LightTabsTrigger>
+              </LightTabsList>
 
               <TabsContent value="dane">
                 {isEditing ? (
