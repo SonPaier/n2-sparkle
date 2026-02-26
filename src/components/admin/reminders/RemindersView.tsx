@@ -138,6 +138,9 @@ export default function RemindersView({ instanceId }: Props) {
                   {r.customer_name && (
                     <Badge variant="outline" className="text-xs">{r.customer_name}</Badge>
                   )}
+                  {(r as any).assigned_employee_name && (
+                    <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-700">{(r as any).assigned_employee_name}</Badge>
+                  )}
                   {r.is_recurring && (
                     <span className="text-xs text-muted-foreground">
                       {getRecurringLabel(r.recurring_type, r.recurring_value)}

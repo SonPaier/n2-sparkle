@@ -31,9 +31,12 @@ export interface Reminder {
   notification_sent: boolean;
   created_at: string;
   updated_at: string;
+  assigned_employee_id: string | null;
+  visible_for_employee: boolean;
   // Joined
   reminder_type_name?: string;
   customer_name?: string;
+  assigned_employee_name?: string;
 }
 
 export function useReminderTypes(instanceId: string | null) {
@@ -124,6 +127,16 @@ export function useReminders(instanceId: string | null) {
       }
     }
 
+    // Fetch assigned employee names
+    const employeeIds = [...new Set(items.filter(i => i.assigned_employee_id).map(i => i.assigned_employee_id))];
+    if (employeeIds.length > 0) {
+      const { data: employees } = await supabase.from('employees').select('id, name').in('id', employeeIds);
+      if (employees) {
+        const empMap = new Map((employees as any[]).map(e => [e.id, e.name]));
+        items.forEach(i => { if (i.assigned_employee_id) i.assigned_employee_name = empMap.get(i.assigned_employee_id); });
+      }
+    }
+
     setReminders(items);
   }, [instanceId]);
 
@@ -167,6 +180,8 @@ export function useReminders(instanceId: string | null) {
           is_recurring: true,
           recurring_type: reminder.recurring_type,
           recurring_value: reminder.recurring_value,
+          assigned_employee_id: reminder.assigned_employee_id,
+          visible_for_employee: reminder.visible_for_employee,
           status: 'todo',
         } as any);
       }

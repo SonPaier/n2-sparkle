@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar as CalendarIcon, ClipboardCheck, LogOut, Menu, X } from 'lucide-react';
+import { Calendar as CalendarIcon, ClipboardCheck, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,19 +14,20 @@ import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import CalendarMapPanel from '@/components/admin/CalendarMapPanel';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
+import EmployeeDashboard from '@/components/employee/EmployeeDashboard';
 import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 
-type EmployeeView = 'kalendarz' | 'protokoly';
+type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly';
 
 const EmployeeCalendarPage = () => {
   const { configId } = useParams<{ configId: string }>();
   const navigate = useNavigate();
   const { signOut, username, user } = useAuth();
-  const [currentView, setCurrentView] = useState<EmployeeView>('kalendarz');
+  const [currentView, setCurrentView] = useState<EmployeeView>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Config state
@@ -313,6 +314,7 @@ const EmployeeCalendarPage = () => {
   }
 
   const navItems = [
+    { id: 'dashboard' as EmployeeView, label: 'Dashboard', icon: LayoutDashboard },
     { id: 'kalendarz' as EmployeeView, label: 'Kalendarz', icon: CalendarIcon },
     { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
   ];
@@ -376,7 +378,14 @@ const EmployeeCalendarPage = () => {
         </header>
 
         <main className="flex-1 overflow-auto p-6">
-          {currentView === 'protokoly' && instanceId ? (
+          {currentView === 'dashboard' && instanceId && config ? (
+            <EmployeeDashboard
+              instanceId={instanceId}
+              columnIds={config.column_ids || []}
+              hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
+              onItemClick={(item) => handleItemClick(item)}
+            />
+          ) : currentView === 'protokoly' && instanceId ? (
             <ProtocolsView instanceId={instanceId} />
           ) : currentView === 'kalendarz' && instanceId ? (
             (() => {

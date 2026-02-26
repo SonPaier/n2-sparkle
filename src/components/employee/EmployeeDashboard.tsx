@@ -1,0 +1,320 @@
+import { useState, useEffect, useCallback } from 'react';
+import { format, differenceInDays } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { Calendar, Bell, Clock, User, MapPin, HardHat, Tag } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
+
+interface EmployeeDashboardProps {
+  instanceId: string;
+  columnIds: string[];
+  hidePrices?: boolean;
+  onItemClick?: (item: any) => void;
+}
+
+interface CalendarItemRow {
+  id: string;
+  title: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  customer_email: string | null;
+  customer_id: string | null;
+  customer_address_id: string | null;
+  item_date: string;
+  start_time: string;
+  end_time: string;
+  status: string;
+  column_id: string | null;
+  assigned_employee_ids: string[] | null;
+  admin_notes: string | null;
+  price: number | null;
+  payment_status: string | null;
+  address_name?: string | null;
+  address_street?: string | null;
+  address_city?: string | null;
+  employee_names?: string[];
+}
+
+interface ReminderRow {
+  id: string;
+  name: string;
+  deadline: string;
+  customer_id: string | null;
+  reminder_type_id: string | null;
+  status: string;
+  days_before: number;
+  customer_name?: string;
+  reminder_type_name?: string;
+}
+
+/** Get next N business days starting from today (inclusive). */
+function getNextBusinessDays(count: number): string[] {
+  const dates: string[] = [];
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  while (dates.length < count) {
+    const day = d.getDay();
+    if (day !== 0 && day !== 6) {
+      dates.push(format(d, 'yyyy-MM-dd'));
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
+}
+
+const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick }: EmployeeDashboardProps) => {
+  const [items, setItems] = useState<CalendarItemRow[]>([]);
+  const [reminders, setReminders] = useState<ReminderRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const businessDays = getNextBusinessDays(3);
+  const dateStart = businessDays[0];
+  const dateEnd = businessDays[businessDays.length - 1];
+
+  const fetchData = useCallback(async () => {
+    if (!instanceId || columnIds.length === 0) { setLoading(false); return; }
+    setLoading(true);
+
+    const [itemsRes, remindersRes] = await Promise.all([
+      supabase
+        .from('calendar_items')
+        .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, start_time, end_time, status, admin_notes, price, payment_status')
+        .eq('instance_id', instanceId)
+        .in('column_id', columnIds)
+        .gte('item_date', dateStart)
+        .lte('item_date', dateEnd)
+        .neq('status', 'cancelled')
+        .order('item_date')
+        .order('start_time'),
+      (supabase
+        .from('reminders')
+        .select('id, name, deadline, customer_id, reminder_type_id, status, days_before')
+        .eq('instance_id', instanceId)
+        .eq('status', 'todo') as any)
+        .eq('visible_for_employee', true)
+        .order('deadline'),
+    ]);
+
+    const calItems = (itemsRes.data as CalendarItemRow[]) || [];
+    const remItems = (remindersRes.data as ReminderRow[]) || [];
+
+    // Fetch addresses
+    const addressIds = [...new Set(calItems.filter(i => i.customer_address_id).map(i => i.customer_address_id!))];
+    if (addressIds.length > 0) {
+      const { data: addresses } = await supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds);
+      if (addresses) {
+        const addrMap = new Map(addresses.map(a => [a.id, a]));
+        calItems.forEach(i => {
+          if (i.customer_address_id) {
+            const addr = addrMap.get(i.customer_address_id);
+            if (addr) { i.address_name = addr.name; i.address_street = addr.street; i.address_city = addr.city; }
+          }
+        });
+      }
+    }
+
+    // Fetch employee names
+    const allEmpIds = [...new Set(calItems.flatMap(i => i.assigned_employee_ids || []))];
+    if (allEmpIds.length > 0) {
+      const { data: employees } = await supabase.from('employees').select('id, name').in('id', allEmpIds);
+      if (employees) {
+        const empMap = new Map(employees.map(e => [e.id, e.name]));
+        calItems.forEach(i => {
+          if (i.assigned_employee_ids?.length) {
+            i.employee_names = i.assigned_employee_ids.map(id => empMap.get(id)).filter(Boolean) as string[];
+          }
+        });
+      }
+    }
+
+    // Fetch reminder customer/type names
+    const customerIds = [...new Set(remItems.filter(r => r.customer_id).map(r => r.customer_id!))];
+    const typeIds = [...new Set(remItems.filter(r => r.reminder_type_id).map(r => r.reminder_type_id!))];
+    const [custRes, typeRes] = await Promise.all([
+      customerIds.length > 0 ? supabase.from('customers').select('id, name').in('id', customerIds) : { data: [] },
+      typeIds.length > 0 ? supabase.from('reminder_types').select('id, name').in('id', typeIds) : { data: [] },
+    ]);
+    if (custRes.data) {
+      const custMap = new Map((custRes.data as any[]).map(c => [c.id, c.name]));
+      remItems.forEach(r => { if (r.customer_id) r.customer_name = custMap.get(r.customer_id); });
+    }
+    if (typeRes.data) {
+      const typeMap = new Map((typeRes.data as any[]).map(t => [t.id, t.name]));
+      remItems.forEach(r => { if (r.reminder_type_id) r.reminder_type_name = typeMap.get(r.reminder_type_id); });
+    }
+
+    // Filter reminders within notification window
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const filteredReminders = remItems.filter(r => {
+      const deadlineDate = new Date(r.deadline + 'T00:00:00');
+      const notifyDate = new Date(deadlineDate);
+      notifyDate.setDate(notifyDate.getDate() - r.days_before);
+      return notifyDate <= today;
+    });
+
+    setItems(calItems);
+    setReminders(filteredReminders);
+    setLoading(false);
+  }, [instanceId, columnIds, dateStart, dateEnd]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleReminderDone = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const { error } = await supabase.from('reminders').update({ status: 'done' } as any).eq('id', id);
+    if (error) { toast.error('Błąd zmiany statusu'); return; }
+    toast.success('Przypomnienie oznaczone jako wykonane');
+    fetchData();
+  };
+
+  const formatDateLabel = (date: string) => {
+    try { return format(new Date(date + 'T00:00:00'), 'EEEE, d MMM', { locale: pl }); }
+    catch { return date; }
+  };
+
+  const buildFullAddress = (item: CalendarItemRow) => {
+    const parts = [item.address_name, item.address_street, item.address_city].filter(Boolean);
+    return parts.join(', ');
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[0, 1].map(i => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
+      <p className="text-sm text-muted-foreground mb-6">
+        {formatDateLabel(dateStart)} — {formatDateLabel(dateEnd)}
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Zlecenia */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold">Zlecenia</h3>
+              <span className="text-sm text-muted-foreground">({items.length})</span>
+            </div>
+            {items.length === 0 ? (
+              <p className="text-sm text-muted-foreground/60 italic py-3">Brak zleceń</p>
+            ) : (
+              <div>
+                {items.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
+                    onClick={() => onItemClick?.(item)}
+                  >
+                    <div className="space-y-1">
+                      <span className="font-medium text-sm leading-tight">{item.title}</span>
+                      <div className="flex items-center gap-1.5 text-xs text-foreground">
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDateLabel(item.item_date)}, {item.start_time}–{item.end_time}</span>
+                      </div>
+                      {item.customer_name && (
+                        <div className="flex items-center gap-1.5 text-xs text-foreground">
+                          <User className="w-3 h-3" />
+                          <span>{item.customer_name}</span>
+                        </div>
+                      )}
+                      {buildFullAddress(item) && (
+                        <div className="flex items-center gap-1.5 text-xs text-foreground">
+                          <MapPin className="w-3 h-3" />
+                          <span>{buildFullAddress(item)}</span>
+                        </div>
+                      )}
+                      {item.employee_names && item.employee_names.length > 0 && (
+                        <div className="flex items-center gap-1.5 text-xs text-foreground">
+                          <HardHat className="w-3 h-3" />
+                          <span>{item.employee_names.join(', ')}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Przypomnienia */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Bell className="w-5 h-5 text-primary" />
+              <h3 className="font-semibold">Przypomnienia</h3>
+              <span className="text-sm text-muted-foreground">({reminders.length})</span>
+            </div>
+            {reminders.length === 0 ? (
+              <p className="text-sm text-muted-foreground/60 italic py-3">Brak przypomnień</p>
+            ) : (
+              <div>
+                {reminders.map((r, idx) => {
+                  const deadlineDate = new Date(r.deadline + 'T00:00:00');
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const days = differenceInDays(deadlineDate, today);
+                  const deadlineLabel = days === 0 ? 'Dziś' : days === 1 ? 'Jutro' : days < 0 ? `${Math.abs(days)} dni temu` : `za ${days} dni`;
+
+                  return (
+                    <div
+                      key={r.id}
+                      className={`py-3 px-1 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        <Checkbox
+                          className="mt-0.5 shrink-0"
+                          onClick={(e) => handleReminderDone(r.id, e)}
+                        />
+                        <div className="space-y-1 min-w-0">
+                          <span className="font-medium text-sm leading-tight">{r.name}</span>
+                          <div className="flex items-center gap-1.5 text-xs text-foreground">
+                            <Clock className="w-3 h-3" />
+                            <span>{deadlineLabel}</span>
+                          </div>
+                          {r.customer_name && (
+                            <div className="flex items-center gap-1.5 text-xs text-foreground">
+                              <User className="w-3 h-3" />
+                              <span>{r.customer_name}</span>
+                            </div>
+                          )}
+                          {r.reminder_type_name && (
+                            <div className="flex items-center gap-1.5 text-xs text-foreground">
+                              <Tag className="w-3 h-3" />
+                              <span>{r.reminder_type_name}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default EmployeeDashboard;

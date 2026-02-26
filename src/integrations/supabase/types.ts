@@ -1091,6 +1091,7 @@ export type Database = {
       }
       reminders: {
         Row: {
+          assigned_employee_id: string | null
           assigned_user_id: string | null
           created_at: string
           customer_id: string | null
@@ -1112,8 +1113,10 @@ export type Database = {
           reminder_type_id: string | null
           status: string
           updated_at: string
+          visible_for_employee: boolean
         }
         Insert: {
+          assigned_employee_id?: string | null
           assigned_user_id?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1135,8 +1138,10 @@ export type Database = {
           reminder_type_id?: string | null
           status?: string
           updated_at?: string
+          visible_for_employee?: boolean
         }
         Update: {
+          assigned_employee_id?: string | null
           assigned_user_id?: string | null
           created_at?: string
           customer_id?: string | null
@@ -1158,6 +1163,7 @@ export type Database = {
           reminder_type_id?: string | null
           status?: string
           updated_at?: string
+          visible_for_employee?: boolean
         }
         Relationships: [
           {

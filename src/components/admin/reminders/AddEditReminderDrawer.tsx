@@ -17,6 +17,7 @@ import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Reminder, ReminderType } from '@/hooks/useReminders';
 import CustomerSearchInput from '@/components/admin/CustomerSearchInput';
+import { useEmployees } from '@/hooks/useEmployees';
 
 const DAYS_OF_WEEK = [
   { value: 0, label: 'Poniedziałek' },
@@ -56,7 +57,12 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringType, setRecurringType] = useState('monthly');
   const [recurringValue, setRecurringValue] = useState<number | null>(null);
+  const [assignedEmployeeId, setAssignedEmployeeId] = useState<string | null>(null);
+  const [visibleForEmployee, setVisibleForEmployee] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const { data: employees = [] } = useEmployees(instanceId);
+  const activeEmployees = employees.filter(e => e.active);
 
   useEffect(() => {
     if (open) {
@@ -75,6 +81,8 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
         setIsRecurring(editingReminder.is_recurring);
         setRecurringType(editingReminder.recurring_type || 'monthly');
         setRecurringValue(editingReminder.recurring_value);
+        setAssignedEmployeeId(editingReminder.assigned_employee_id || null);
+        setVisibleForEmployee(editingReminder.visible_for_employee ?? false);
       } else {
         setName('');
         setTypeId('');
@@ -90,6 +98,8 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
         setIsRecurring(false);
         setRecurringType('monthly');
         setRecurringValue(null);
+        setAssignedEmployeeId(null);
+        setVisibleForEmployee(false);
       }
     }
   }, [open, editingReminder]);
@@ -114,6 +124,8 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
       is_recurring: isRecurring,
       recurring_type: isRecurring ? recurringType : null,
       recurring_value: isRecurring ? recurringValue : null,
+      assigned_employee_id: assignedEmployeeId || null,
+      visible_for_employee: assignedEmployeeId ? visibleForEmployee : false,
     };
 
     const success = await onSave(data, editingReminder?.id);
@@ -278,6 +290,29 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
           onClear={() => { setCustomerId(null); setCustomerName(''); setNotifyCustomerEmail(false); setNotifyCustomerSms(false); }}
         />
       </div>
+
+      {/* Employee assignment */}
+      <div>
+        <Label className="mb-1.5 block">Przypisz pracownika <span className="text-muted-foreground text-xs">(opcjonalne)</span></Label>
+        <Select value={assignedEmployeeId || '__none__'} onValueChange={v => { setAssignedEmployeeId(v === '__none__' ? null : v); if (v === '__none__') setVisibleForEmployee(false); }}>
+          <SelectTrigger className="bg-white">
+            <SelectValue placeholder="Wybierz pracownika..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">Brak</SelectItem>
+            {activeEmployees.map(e => (
+              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {assignedEmployeeId && (
+        <div className="flex items-center gap-3">
+          <Checkbox id="visibleForEmployee" checked={visibleForEmployee} onCheckedChange={v => setVisibleForEmployee(!!v)} />
+          <label htmlFor="visibleForEmployee" className="text-sm cursor-pointer">Przypomnienie widoczne dla pracownika</label>
+        </div>
+      )}
 
       <div>
         <Label className="mb-1.5 block">Notatki</Label>
