@@ -12,6 +12,7 @@ interface ManageUserRequest {
   username?: string;
   password?: string;
   role?: 'admin' | 'employee' | 'hall';
+  employeeId?: string;
 }
 
 Deno.serve(async (req) => {
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
     const isSuperAdmin = callerRoles?.some(r => r.role === 'super_admin');
 
     const body: ManageUserRequest = await req.json();
-    const { action, instanceId, userId, username, password, role } = body;
+    const { action, instanceId, userId, username, password, role, employeeId } = body;
 
     if (!instanceId) {
       return new Response(
@@ -194,6 +195,15 @@ Deno.serve(async (req) => {
 
         // Auto-create employee calendar config when creating employee
         if (role === 'employee') {
+          // Link employee record if employeeId provided
+          if (employeeId) {
+            await supabase
+              .from('employees')
+              .update({ linked_user_id: newUser.user.id })
+              .eq('id', employeeId)
+              .eq('instance_id', instanceId);
+          }
+
           // Get all active calendar columns for this instance
           const { data: allColumns } = await supabase
             .from('calendar_columns')
