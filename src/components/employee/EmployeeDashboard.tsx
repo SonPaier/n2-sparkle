@@ -13,6 +13,7 @@ interface EmployeeDashboardProps {
   columnIds: string[];
   hidePrices?: boolean;
   onItemClick?: (item: any) => void;
+  linkedEmployeeId?: string | null;
 }
 
 interface CalendarItemRow {
@@ -65,7 +66,7 @@ function getNextBusinessDays(count: number): string[] {
   return dates;
 }
 
-const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick }: EmployeeDashboardProps) => {
+const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, linkedEmployeeId }: EmployeeDashboardProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,8 +79,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick }: E
     if (!instanceId || columnIds.length === 0) { setLoading(false); return; }
     setLoading(true);
 
-    const [itemsRes, remindersRes] = await Promise.all([
-      supabase
+    let itemsQuery = supabase
         .from('calendar_items')
         .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, start_time, end_time, status, admin_notes, price, payment_status')
         .eq('instance_id', instanceId)
@@ -88,7 +88,14 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick }: E
         .lte('item_date', dateEnd)
         .neq('status', 'cancelled')
         .order('item_date')
-        .order('start_time'),
+        .order('start_time');
+
+    if (linkedEmployeeId) {
+      itemsQuery = itemsQuery.contains('assigned_employee_ids', [linkedEmployeeId]);
+    }
+
+    const [itemsRes, remindersRes] = await Promise.all([
+      itemsQuery,
       (supabase
         .from('reminders')
         .select('id, name, deadline, customer_id, reminder_type_id, status, days_before')
@@ -159,7 +166,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick }: E
     setItems(calItems);
     setReminders(filteredReminders);
     setLoading(false);
-  }, [instanceId, columnIds, dateStart, dateEnd]);
+  }, [instanceId, columnIds, dateStart, dateEnd, linkedEmployeeId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
