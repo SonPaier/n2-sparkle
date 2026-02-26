@@ -2,56 +2,65 @@
 
 ## Plan
 
-### 1. Rename status "Potwierdzone" → "Do wykonania" everywhere
+### 1. Database migration: Add fields to `reminders` table
 
-Files to update:
-- **`CalendarItemDetailsDrawer.tsx`**: `statusLabels.confirmed` → `'Do wykonania'`, `statusColors.confirmed` stays same. All dropdown menu items showing "Potwierdzone" → "Do wykonania". Footer button labels referencing "Potwierdzone" → "Do wykonania".
-- **`AdminCalendar.tsx`**: Legend label "Potwierdzone" → "Do wykonania" (line 1212).
-- **`CustomerOrderCard.tsx`**: `statusConfig.confirmed.label` → `'Do wykonania'`.
-- **`SettlementsView.tsx`**: `STATUS_CONFIG.confirmed.label` → `'Do wykonania'` (line 66).
+```sql
+ALTER TABLE public.reminders ADD COLUMN assigned_employee_id uuid;
+ALTER TABLE public.reminders ADD COLUMN visible_for_employee boolean NOT NULL DEFAULT false;
+```
 
-### 2. Dashboard: all fonts black
+No FK to employees table (consistent with `assigned_employee_ids` on calendar_items being plain UUIDs). RLS already allows employees to SELECT reminders for their instance.
 
-In **`DashboardOverview.tsx`**, change all `text-muted-foreground` on card content text (time, customer, address, employee, reminder deadline, type, price) to `text-foreground` or remove the muted class. Keep column headers/empty text muted.
+### 2. Update `AddEditReminderDrawer.tsx` — add employee selector + visibility checkbox
 
-### 3. Dashboard: "Po terminie" as red pill with white font
+- Add an employee dropdown (fetch from `employees` table for the instance)
+- When an employee is selected, show a checkbox: "Przypomnienie widoczne dla pracownika"
+- Save `assigned_employee_id` and `visible_for_employee` to the reminder
+- Load these fields when editing
 
-In **`DashboardOverview.tsx`** `PaymentCard`, replace the current `<span className="text-xs text-destructive ...">` with a proper pill: `<span className="text-xs bg-red-600 text-white rounded-full px-2 py-0.5 font-medium whitespace-nowrap">`.
+### 3. Update `useReminders.ts` — include new fields
 
-### 4. Drawer: unify "Dodaj protokół" and "Dodaj zdjęcie" buttons + hide "Zdjęcia" header when no photos
+- Add `assigned_employee_id` and `visible_for_employee` to `Reminder` interface
+- Include them in save/recurring-copy logic
+- Fetch employee names for display (join employee name)
 
-In **`CalendarItemDetailsDrawer.tsx`**:
-- Remove the `<div className="text-sm font-medium">Zdjęcia</div>` header. Only show "Zdjęcia" label if `itemPhotos.length > 0`.
-- Change both "Dodaj protokół" button and the photo uploader's add button to plain `variant="outline"` buttons with white bg, stacked vertically (they already are mostly, just ensure consistent styling).
-- Both buttons: `variant="outline" className="w-full bg-white"`, placed one below the other.
+### 4. Update `RemindersView.tsx` — show assigned employee badge
 
-### 5. Employee view: hide prices when `visible_fields.price === false`
+- Display assigned employee name as a badge on reminder cards
 
-The `employee_calendar_configs` table has a `visible_fields` JSON column with a `price` boolean. When `price: false`:
+### 5. Create `EmployeeDashboard.tsx` component
 
-**`EmployeeCalendarPage.tsx`**:
-- Read `config.visible_fields.price` (default true).
-- Pass `hidePrices` prop to `CalendarItemDetailsDrawer`.
+A simplified dashboard with 2 columns: Zlecenia and Przypomnienia.
 
-**`CalendarItemDetailsDrawer.tsx`**:
-- Add optional `hidePrices?: boolean` prop.
-- When `hidePrices === true`, hide:
-  - Price section (line ~702-706)
-  - Invoice "Wystaw FV" button and invoice list (lines ~755-779)
-  - SMS rozliczenie button that includes price (lines ~782-801)
-  - Price in SMS message text
+**Date range**: Next 3 business days from today (skip weekends). E.g., Wednesday → Wed, Thu, Fri, Mon, Tue.
 
-**`CustomerOrderCard.tsx`**:
-- Add optional `hidePrices?: boolean` prop.
-- When true, hide service prices, total price row.
+**Zlecenia column**:
+- Fetch `calendar_items` for the config's `column_ids` within the date range
+- Filter only items where the current user's employee ID is in `assigned_employee_ids`
+- Need to resolve which employee ID belongs to this user — use the employees assigned to items in the config columns, or find by matching. Simpler: fetch all items for the columns, then filter client-side by `assigned_employee_ids` containing any employee that this user manages.
+- Actually, since we don't have a direct user→employee mapping, we'll fetch ALL items for the configured columns within date range, and show them all (same as the calendar view shows). The user sees only their columns' items.
+- Clicking opens the same `CalendarItemDetailsDrawer`.
 
-**`CustomerOrdersTab.tsx`**:
-- Accept and pass `hidePrices` prop through to `CustomerOrderCard` and `CalendarItemDetailsDrawer`.
+**Przypomnienia column**:
+- Fetch reminders where `assigned_employee_id` is in the list of employee IDs from the config's items AND `visible_for_employee = true`
+- Actually simpler: fetch reminders for the instance where `visible_for_employee = true` and the employee is assigned. But we need to know which employee ID maps to this user.
+- Best approach: fetch ALL reminders for the instance where `visible_for_employee = true`, then on the employee page, filter by `assigned_employee_id` matching employees that appear in items assigned to the user's columns. 
+- Even simpler: just show all reminders with `visible_for_employee = true` for the instance. The admin controls visibility per employee.
+- No drawer on click, but show checkbox to mark as done.
 
-Places where prices appear that need conditional hiding:
-1. `CalendarItemDetailsDrawer`: price field, invoice section, SMS rozliczenie
-2. `CustomerOrderCard`: service prices, total price
-3. `CustomerOrdersTab`: passes price to `CustomerOrderCard`
+Same card styles as admin dashboard (`OrderCard`, `ReminderCard`).
 
-The admin Dashboard page is NOT affected (admin always sees prices). Only employee calendar flow uses `visible_fields`.
+### 6. Update `EmployeeCalendarPage.tsx`
+
+- Add `'dashboard'` to `EmployeeView` type, place it first in sidebar nav (above Kalendarz)
+- Import and render `EmployeeDashboard` when `currentView === 'dashboard'`
+- Pass `instanceId`, `config`, `hidePrices`, column IDs, and item click handler
+
+### Files to modify:
+- **New migration** — add columns to reminders
+- **`src/hooks/useReminders.ts`** — add new fields to interface and save logic
+- **`src/components/admin/reminders/AddEditReminderDrawer.tsx`** — employee selector + visibility checkbox
+- **`src/components/admin/reminders/RemindersView.tsx`** — show employee badge
+- **New: `src/components/employee/EmployeeDashboard.tsx`** — simplified 2-column dashboard
+- **`src/pages/EmployeeCalendarPage.tsx`** — add dashboard view to sidebar and routing
 
