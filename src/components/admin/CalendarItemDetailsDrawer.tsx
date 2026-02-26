@@ -12,15 +12,18 @@ import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmployees } from '@/hooks/useEmployees';
+import { useQuery } from '@tanstack/react-query';
 import EmployeeSelectionDrawer from './EmployeeSelectionDrawer';
 import { ProtocolPhotosUploader } from '@/components/protocols/ProtocolPhotosUploader';
 import { CreateInvoiceDrawer } from '@/components/invoicing/CreateInvoiceDrawer';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { useInvoicingSettings } from '@/components/invoicing/useInvoicingSettings';
 import { useInvoices } from '@/components/invoicing/useInvoices';
+import CustomerOrderCard from './CustomerOrderCard';
 import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
 
 interface SmsNotificationInfo {
@@ -119,11 +122,65 @@ const CalendarItemDetailsDrawer = ({
   const { settings: invoicingSettings } = useInvoicingSettings(instanceId || null);
   const { data: itemInvoices = [], refetch: refetchInvoices } = useInvoices(instanceId || null, item?.id);
 
+  // History tab query
+  const customerAddressId = item?.customer_address_id;
+  const { data: historyItems = [] } = useQuery({
+    queryKey: ['address-history', customerAddressId, item?.id],
+    queryFn: async () => {
+      if (!customerAddressId) return [];
+      const { data: items, error } = await supabase
+        .from('calendar_items')
+        .select('*')
+        .eq('customer_address_id', customerAddressId)
+        .neq('id', item!.id)
+        .order('item_date', { ascending: false })
+        .limit(50);
+      if (error || !items) return [];
+
+      // Fetch services for these items
+      const itemIds = items.map(i => i.id);
+      const { data: services } = await supabase
+        .from('calendar_item_services')
+        .select('calendar_item_id, service_id, custom_price')
+        .in('calendar_item_id', itemIds);
+
+      // Fetch service names
+      const serviceIds = [...new Set((services || []).map(s => s.service_id))];
+      const { data: serviceDetails } = serviceIds.length > 0
+        ? await supabase.from('unified_services').select('id, name, price').in('id', serviceIds)
+        : { data: [] };
+
+      // Fetch protocols
+      const { data: protocols } = await supabase
+        .from('protocols')
+        .select('calendar_item_id, public_token')
+        .in('calendar_item_id', itemIds);
+
+      const serviceMap = new Map((serviceDetails || []).map(s => [s.id, s]));
+      const protocolMap = new Map((protocols || []).map(p => [p.calendar_item_id, p.public_token]));
+
+      return items.map(ci => {
+        const ciServices = (services || [])
+          .filter(s => s.calendar_item_id === ci.id)
+          .map(s => {
+            const svc = serviceMap.get(s.service_id);
+            return { name: svc?.name || '', price: s.custom_price ?? svc?.price ?? undefined };
+          });
+        return {
+          ...ci,
+          services: ciServices,
+          protocolPublicToken: protocolMap.get(ci.id) || undefined,
+        };
+      });
+    },
+    enabled: !!customerAddressId && !!item?.id && open,
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
     if (item) {
       setNotesValue(item.admin_notes || '');
       setEditingNotes(false);
-      // Load photos from item
       const photos = Array.isArray(item.photo_urls) ? item.photo_urls : [];
       setItemPhotos(photos as string[]);
     }
@@ -184,7 +241,6 @@ const CalendarItemDetailsDrawer = ({
   useEffect(() => {
     if (!item?.id || !open || !instanceId) { setAvailableSmsTemplates([]); return; }
     const fetchTemplates = async () => {
-      // Get services linked to this calendar item
       const { data: itemServices } = await supabase
         .from('calendar_item_services')
         .select('service_id')
@@ -192,7 +248,6 @@ const CalendarItemDetailsDrawer = ({
       if (!itemServices?.length) { setAvailableSmsTemplates([]); return; }
 
       const serviceIds = itemServices.map(s => s.service_id);
-      // Get services with notification_template_id
       const { data: services } = await supabase
         .from('unified_services')
         .select('id, name, notification_template_id')
@@ -226,8 +281,6 @@ const CalendarItemDetailsDrawer = ({
     fetchTemplates();
   }, [item?.id, open, instanceId]);
 
-  // Check which templates already have SMS sent
-  const sentTemplateIds = new Set(smsNotifications.map(n => n.id ? n.service_type : ''));
   const unsent = availableSmsTemplates.filter(t => 
     !smsNotifications.some(n => n.service_type === t.serviceName)
   );
@@ -272,7 +325,6 @@ const CalendarItemDetailsDrawer = ({
         }),
       });
 
-      // Refresh SMS list
       const { data: refreshed } = await (supabase.from('customer_sms_notifications') as any)
         .select('id, status, sent_at, service_type')
         .eq('calendar_item_id', item.id);
@@ -289,10 +341,6 @@ const CalendarItemDetailsDrawer = ({
 
   if (!item) return null;
 
-  const column = columns.find(c => c.id === item.column_id);
-  const formattedDate = item.item_date
-    ? format(new Date(item.item_date), 'EEEE, d MMMM yyyy', { locale: pl })
-    : '';
   const shortDate = item.item_date
     ? format(new Date(item.item_date), 'EE, d MMM yyyy', { locale: pl })
     : '';
@@ -332,12 +380,11 @@ const CalendarItemDetailsDrawer = ({
       .update({ assigned_employee_ids: newIds.length > 0 ? newIds : null })
       .eq('id', item.id);
     if (error) { toast.error('Błąd usuwania pracownika'); return; }
-    // Update local state
     if (item.assigned_employees) {
       item.assigned_employees = item.assigned_employees.filter(e => e.id !== empId);
     }
     item.assigned_employee_ids = newIds;
-    onStatusChange?.(item.id, item.status); // trigger refresh
+    onStatusChange?.(item.id, item.status);
   };
 
   const handleEmployeesConfirmed = async (ids: string[]) => {
@@ -346,11 +393,18 @@ const CalendarItemDetailsDrawer = ({
       .update({ assigned_employee_ids: ids.length > 0 ? ids : null })
       .eq('id', item.id);
     if (error) { toast.error('Błąd przypisania pracowników'); return; }
-    onStatusChange?.(item.id, item.status); // trigger refresh
+    onStatusChange?.(item.id, item.status);
   };
 
-  // Footer button config based on status
+  // Footer
   const renderFooter = () => {
+    const protocolBtn = onAddProtocol && (
+      <Button variant="outline" className="bg-white flex-1" onClick={() => onAddProtocol(item)}>
+        <ClipboardCheck className="w-4 h-4 mr-1" />
+        Protokół
+      </Button>
+    );
+
     const editBtn = onEdit && (
       <Button variant="outline" className="bg-white flex-1" onClick={() => onEdit(item)}>
         <Pencil className="w-4 h-4 mr-1" />
@@ -405,6 +459,7 @@ const CalendarItemDetailsDrawer = ({
     return (
       <div className="flex-shrink-0 border-t border-border px-6 py-4 flex items-center gap-2">
         {item.status !== 'completed' && moreMenu}
+        {protocolBtn}
         {editBtn}
 
         {item.status === 'confirmed' && onStartWork && statusDropdown(
@@ -522,7 +577,7 @@ const CalendarItemDetailsDrawer = ({
   if (!item) {
     return (
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side={sheetSide} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : 'sm:max-w-lg'}`}>
+        <SheetContent side={sheetSide} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : 'sm:max-w-md'}`}>
           <SheetTitle className="sr-only">Szczegóły</SheetTitle>
           <SheetDescription className="sr-only">Brak danych</SheetDescription>
         </SheetContent>
@@ -537,20 +592,17 @@ const CalendarItemDetailsDrawer = ({
           side={sheetSide}
           hideCloseButton
           hideOverlay
-          className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : 'sm:max-w-lg'}`}
+          className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : 'sm:max-w-md'}`}
         >
           {/* Accessible title */}
           <SheetTitle className="sr-only">{item.title}</SheetTitle>
           <SheetDescription className="sr-only">Szczegóły zlecenia</SheetDescription>
 
-          {/* Header - line 1: time + short date + X */}
+          {/* Header - fixed */}
           <div className="px-6 pt-6 pb-4 shrink-0">
+            {/* Line 1: Service name + X */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-[17px] font-bold">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
-                <span className="text-muted-foreground">·</span>
-                <span className="text-[15px] text-muted-foreground capitalize">{shortDate}</span>
-              </div>
+              <h3 className="text-[17px] font-bold truncate pr-2">{item.title}</h3>
               <button
                 onClick={onClose}
                 className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
@@ -558,304 +610,321 @@ const CalendarItemDetailsDrawer = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {/* Line 2: service/title */}
-            <h3 className="text-[17px] font-semibold mt-1">{item.title}</h3>
-            {/* Line 3: badges */}
-            <div className="flex items-center gap-2 mt-2">
+            {/* Line 2: date + time + badges */}
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="text-[14px] text-muted-foreground capitalize">{shortDate}</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-[14px] font-medium">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
               <Badge className={statusColors[item.status] || 'bg-muted'}>
                 {statusLabels[item.status] || item.status}
               </Badge>
               <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
-              {column && (
-                <span className="text-xs text-muted-foreground">{column.name}</span>
-              )}
             </div>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
-            {/* Customer */}
-            {(item.customer_name || item.customer_phone || item.customer_email) && (
-              <div className="space-y-2">
-                <span className="text-sm font-medium">Klient</span>
-                {item.customer_name && (
-                  <div className="flex items-center gap-2">
-                    {item.customer_id ? (
-                      <button
-                        type="button"
-                        className="font-medium text-[15px] text-primary hover:underline cursor-pointer text-left"
-                        onClick={async () => {
-                          const { data } = await supabase
-                            .from('customers')
-                            .select('*')
-                            .eq('id', item.customer_id!)
-                            .single();
-                          if (data) {
-                            setCustomerDetailData(data as Customer);
-                            setCustomerDetailOpen(true);
-                          }
-                        }}
-                      >
-                        {item.customer_name}
-                      </button>
-                    ) : (
-                      <span className="font-medium text-[15px]">{item.customer_name}</span>
-                    )}
-                    {item.customer_phone && (
-                      <a href={`tel:${item.customer_phone}`} className="ml-auto p-1 rounded hover:bg-muted">
-                        <Phone className="w-[19px] h-[19px] text-primary" />
-                      </a>
-                    )}
-                    {item.customer_phone && (
-                      <a href={`sms:${item.customer_phone}`} className="p-1 rounded hover:bg-muted">
-                        <MessageSquare className="w-[19px] h-[19px] text-primary" />
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+          {/* Tabbed Content */}
+          <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0">
+            <div className="px-6 shrink-0">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="general">Ogólne</TabsTrigger>
+                <TabsTrigger value="media">Media</TabsTrigger>
+                <TabsTrigger value="history">Historia</TabsTrigger>
+              </TabsList>
+            </div>
 
-            {/* Location */}
-            {addressLabel && (
-              <div className="space-y-0.5">
-                <span className="text-sm font-medium">Lokalizacja</span>
-                <div>
-                  <span className="font-medium text-[15px]">{addressLabel}</span>
+            {/* Tab: Ogólne */}
+            <TabsContent value="general" className="flex-1 overflow-y-auto px-6 py-4 space-y-5 m-0">
+              {/* Customer */}
+              {(item.customer_name || item.customer_phone || item.customer_email) && (
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Klient</span>
+                  {item.customer_name && (
+                    <div className="flex items-center gap-1.5">
+                      {item.customer_id ? (
+                        <button
+                          type="button"
+                          className="font-medium text-[15px] text-primary hover:underline cursor-pointer text-left"
+                          onClick={async () => {
+                            const { data } = await supabase
+                              .from('customers')
+                              .select('*')
+                              .eq('id', item.customer_id!)
+                              .single();
+                            if (data) {
+                              setCustomerDetailData(data as Customer);
+                              setCustomerDetailOpen(true);
+                            }
+                          }}
+                        >
+                          {item.customer_name}
+                        </button>
+                      ) : (
+                        <span className="font-medium text-[15px]">{item.customer_name}</span>
+                      )}
+                      {item.customer_phone && (
+                        <a href={`tel:${item.customer_phone}`} className="p-1 rounded hover:bg-muted">
+                          <Phone className="w-[17px] h-[17px] text-primary" />
+                        </a>
+                      )}
+                      {item.customer_phone && (
+                        <a href={`sms:${item.customer_phone}`} className="p-1 rounded hover:bg-muted">
+                          <MessageSquare className="w-[17px] h-[17px] text-primary" />
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {addressStreet && (
+              )}
+
+              {/* Location */}
+              {addressLabel && (
+                <div className="space-y-0.5">
+                  <span className="text-sm font-medium">Lokalizacja</span>
                   <div>
-                    {addressCoords ? (
-                      <a
-                        href={`https://www.google.com/maps?q=${addressCoords.lat},${addressCoords.lng}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[15px] text-primary hover:underline inline-flex items-center gap-1.5"
-                      >
-                        {addressStreet}
-                        <svg viewBox="0 0 92.3 132.3" className="w-4 h-4 shrink-0">
-                          <path fill="#1a73e8" d="M60.2 2.2C55.8.8 51 0 46.1 0 32 0 19.3 6.4 10.8 16.5l21.8 18.3L60.2 2.2z"/>
-                          <path fill="#ea4335" d="M10.8 16.5C4.1 24.5 0 34.9 0 46.1c0 8.7 1.7 15.7 4.6 22l28-32.4L10.8 16.5z"/>
-                          <path fill="#4285f4" d="M46.2 28.5c9.8 0 17.7 7.9 17.7 17.7 0 4.3-1.6 8.3-4.2 11.4 0 0 13.9-16.1 27.7-32.1-5.6-10.8-15.3-19-27.2-22.7L32.6 34.8c3.3-3.8 8.1-6.3 13.6-6.3"/>
-                          <path fill="#fbbc04" d="M46.2 63.8c-9.8 0-17.7-7.9-17.7-17.7 0-4.3 1.6-8.3 4.2-11.4L4.6 68.1c5.5 11.9 13.6 21.5 19.8 29.7l35.3-40.9c-3.2 3.9-8.1 6.3-13.5 6.9"/>
-                          <path fill="#34a853" d="M59.1 109.2c15.4-24.1 33.3-35 33.3-63 0-7.7-1.9-14.9-5.2-21.3L24.4 97.8c2.6 3.4 5 6.7 7 9.9 6.5 10.4 11 21.2 14.8 24.6 3.8-3.4 8.3-14.2 12.9-23.1"/>
-                        </svg>
-                      </a>
-                    ) : (
-                      <span className="text-[15px] text-foreground">{addressStreet}</span>
-                    )}
+                    <span className="font-medium text-[15px]">{addressLabel}</span>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Assigned Employees */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                Przypisani pracownicy
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {item.assigned_employees && item.assigned_employees.map(emp => (
-                  <span key={emp.id} className="inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-medium">
-                    {emp.name}
-                    <button
-                      onClick={() => handleRemoveEmployee(emp.id)}
-                      className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-                {instanceId && (
-                  <button
-                    onClick={() => setEmployeeDrawerOpen(true)}
-                    className="inline-flex items-center gap-1 border border-dashed border-border rounded-full px-3 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Dodaj
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Notes - inline editable */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                Notatki
-              </div>
-              {editingNotes ? (
-                <Textarea
-                  value={notesValue}
-                  onChange={(e) => setNotesValue(e.target.value)}
-                  onBlur={handleNotesBlur}
-                  autoFocus
-                  rows={3}
-                  className="text-[15px]"
-                  placeholder="Dodaj notatkę..."
-                />
-              ) : (
-                <p
-                  onClick={() => setEditingNotes(true)}
-                  className={`text-[15px] whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
-                >
-                  {notesValue || 'Kliknij, aby dodać notatkę...'}
-                </p>
-              )}
-            </div>
-
-            {/* Price */}
-            {!hidePrices && item.price != null && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Cena</span>
-                <span className="font-bold text-[15px]">{item.price.toFixed(2)} PLN</span>
-              </div>
-            )}
-
-            {/* Photos */}
-            <div className="space-y-2">
-              {itemPhotos.length > 0 && (
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  Zdjęcia
+                  {addressStreet && (
+                    <div>
+                      {addressCoords ? (
+                        <a
+                          href={`https://www.google.com/maps?q=${addressCoords.lat},${addressCoords.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[15px] text-primary hover:underline inline-flex items-center gap-1.5"
+                        >
+                          {addressStreet}
+                          <svg viewBox="0 0 92.3 132.3" className="w-4 h-4 shrink-0">
+                            <path fill="#1a73e8" d="M60.2 2.2C55.8.8 51 0 46.1 0 32 0 19.3 6.4 10.8 16.5l21.8 18.3L60.2 2.2z"/>
+                            <path fill="#ea4335" d="M10.8 16.5C4.1 24.5 0 34.9 0 46.1c0 8.7 1.7 15.7 4.6 22l28-32.4L10.8 16.5z"/>
+                            <path fill="#4285f4" d="M46.2 28.5c9.8 0 17.7 7.9 17.7 17.7 0 4.3-1.6 8.3-4.2 11.4 0 0 13.9-16.1 27.7-32.1-5.6-10.8-15.3-19-27.2-22.7L32.6 34.8c3.3-3.8 8.1-6.3 13.6-6.3"/>
+                            <path fill="#fbbc04" d="M46.2 63.8c-9.8 0-17.7-7.9-17.7-17.7 0-4.3 1.6-8.3 4.2-11.4L4.6 68.1c5.5 11.9 13.6 21.5 19.8 29.7l35.3-40.9c-3.2 3.9-8.1 6.3-13.5 6.9"/>
+                            <path fill="#34a853" d="M59.1 109.2c15.4-24.1 33.3-35 33.3-63 0-7.7-1.9-14.9-5.2-21.3L24.4 97.8c2.6 3.4 5 6.7 7 9.9 6.5 10.4 11 21.2 14.8 24.6 3.8-3.4 8.3-14.2 12.9-23.1"/>
+                          </svg>
+                        </a>
+                      ) : (
+                        <span className="text-[15px] text-foreground">{addressStreet}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
-              <ProtocolPhotosUploader
-                photos={itemPhotos}
-                onPhotosChange={(newPhotos) => {
-                  setItemPhotos(newPhotos);
-                  supabase
-                    .from('calendar_items')
-                    .update({ photo_urls: newPhotos } as any)
-                    .eq('id', item.id)
-                    .then(({ error }) => {
-                      if (error) console.error('Error saving photos:', error);
-                    });
-                }}
-                storageBucket="protocol-photos"
-                filePrefix="zlecenie"
-                onAutoSave={(newPhotos) => {
-                  setItemPhotos(newPhotos);
-                  supabase
-                    .from('calendar_items')
-                    .update({ photo_urls: newPhotos } as any)
-                    .eq('id', item.id)
-                    .then(({ error }) => {
-                      if (error) console.error('Error saving photo annotation:', error);
-                    });
-                }}
-              />
-            </div>
 
-            {/* Add Protocol button */}
-            {onAddProtocol && (
-              <Button
-                variant="outline"
-                className="w-full bg-white"
-                onClick={() => onAddProtocol(item)}
-              >
-                <ClipboardCheck className="w-4 h-4 mr-2" />
-                Dodaj protokół
-              </Button>
-            )}
-
-            {/* Completed: FV + SMS buttons */}
-            {!hidePrices && (item.status === 'completed' || item.status === 'in_progress') && (
-              <div className="space-y-2 pt-2 border-t border-border">
-                {invoicingSettings?.active && itemInvoices.length === 0 && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() => setInvoiceDrawerOpen(true)}
-                  >
-                    <DollarSign className="w-4 h-4 mr-2" />
-                    Wystaw FV
-                  </Button>
-                )}
-                {itemInvoices.length > 0 && (
-                  <div className="space-y-1">
-                    {itemInvoices.map(inv => (
-                      <div key={inv.id} className="flex items-center justify-between text-[15px] bg-muted/50 rounded-lg px-3 py-2">
-                        <div>
-                          <span className="font-medium">{inv.invoice_number || 'Faktura'}</span>
-                          <span className="text-muted-foreground ml-2">{inv.total_gross?.toFixed(2)} {inv.currency}</span>
-                        </div>
-                        {inv.pdf_url && (
-                          <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">
-                            PDF
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {item.status === 'completed' && (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                    disabled={!item.customer_phone}
-                    onClick={() => {
-                      const phone = item.customer_phone || '';
-                      let message = `Prośba o rozliczenie "${item.title}"`;
-                      if (item.price != null) message += ` w kwocie ${item.price.toFixed(2)} PLN`;
-                      message += '.';
-                      if (protocolToken) {
-                        message += ` Link do protokołu: ${window.location.origin}/protocol/${protocolToken}`;
-                      }
-                      window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
-                    }}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Wyślij SMS o rozliczeniu
-                  </Button>
-                )}
-              </div>
-            )}
-
-            {(smsNotifications.length > 0 || unsent.length > 0) && (
+              {/* Assigned Employees */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
-                  Powiadomienie SMS
+                  Przypisani pracownicy
                 </div>
-                {smsNotifications.map(sms => (
-                  <div key={sms.id} className="ml-6 text-[15px]">
-                    {sms.sent_at ? (
-                      <span className="text-emerald-600">
-                        ✓ Wysłano SMS ({sms.service_type}) — {format(new Date(sms.sent_at), 'd MMM yyyy, HH:mm', { locale: pl })}
-                      </span>
-                    ) : sms.status === 'pending' ? (
-                      <span className="text-orange-600">
-                        ⏳ SMS oczekuje na wysłanie ({sms.service_type})
-                      </span>
-                    ) : sms.status === 'failed' ? (
-                      <span className="text-destructive">
-                        ✗ Błąd wysyłki SMS ({sms.service_type})
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-                {unsent.map(template => (
-                  <div key={template.templateId} className="ml-6 space-y-1.5">
-                    <p className="text-xs text-muted-foreground">
-                      Szablon: {template.templateName}
-                    </p>
-                    <p className="text-xs bg-muted rounded p-2 whitespace-pre-wrap">
-                      {template.smsTemplate.replace(/\{short_name\}/g, instanceShortName)}
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={sendingSms || !item.customer_phone}
-                      onClick={() => handleSendSms(template)}
-                      className="text-xs"
+                <div className="flex flex-wrap gap-1.5">
+                  {item.assigned_employees && item.assigned_employees.map(emp => (
+                    <span key={emp.id} className="inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-medium">
+                      {emp.name}
+                      <button
+                        onClick={() => handleRemoveEmployee(emp.id)}
+                        className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {instanceId && (
+                    <button
+                      onClick={() => setEmployeeDrawerOpen(true)}
+                      className="inline-flex items-center gap-1 border border-dashed border-border rounded-full px-3 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
                     >
-                      {sendingSms ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
-                      Wyślij SMS
-                    </Button>
-                  </div>
-                ))}
+                      <Plus className="w-3 h-3" />
+                      Dodaj
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Notes */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  Notatki
+                </div>
+                {editingNotes ? (
+                  <Textarea
+                    value={notesValue}
+                    onChange={(e) => setNotesValue(e.target.value)}
+                    onBlur={handleNotesBlur}
+                    autoFocus
+                    rows={3}
+                    className="text-[15px]"
+                    placeholder="Dodaj notatkę..."
+                  />
+                ) : (
+                  <p
+                    onClick={() => setEditingNotes(true)}
+                    className={`text-[15px] whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
+                  >
+                    {notesValue || 'Kliknij, aby dodać notatkę...'}
+                  </p>
+                )}
+              </div>
+
+              {/* Price */}
+              {!hidePrices && item.price != null && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">Cena netto</span>
+                  <span className="font-bold text-[15px]">{item.price.toFixed(2)} PLN</span>
+                </div>
+              )}
+
+              {/* FV + SMS section */}
+              {!hidePrices && (item.status === 'completed' || item.status === 'in_progress') && (
+                <div className="space-y-2 pt-2 border-t border-border">
+                  {invoicingSettings?.active && itemInvoices.length === 0 && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      onClick={() => setInvoiceDrawerOpen(true)}
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Wystaw FV
+                    </Button>
+                  )}
+                  {itemInvoices.length > 0 && (
+                    <div className="space-y-1">
+                      {itemInvoices.map(inv => (
+                        <div key={inv.id} className="flex items-center justify-between text-[15px] bg-muted/50 rounded-lg px-3 py-2">
+                          <div>
+                            <span className="font-medium">{inv.invoice_number || 'Faktura'}</span>
+                            <span className="text-muted-foreground ml-2">{inv.total_gross?.toFixed(2)} {inv.currency}</span>
+                          </div>
+                          {inv.pdf_url && (
+                            <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">
+                              PDF
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {item.status === 'completed' && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start"
+                      disabled={!item.customer_phone}
+                      onClick={() => {
+                        const phone = item.customer_phone || '';
+                        let message = `Prośba o rozliczenie "${item.title}"`;
+                        if (item.price != null) message += ` w kwocie ${item.price.toFixed(2)} PLN`;
+                        message += '.';
+                        if (protocolToken) {
+                          message += ` Link do protokołu: ${window.location.origin}/protocol/${protocolToken}`;
+                        }
+                        window.open(`sms:${phone}?body=${encodeURIComponent(message)}`, '_self');
+                      }}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Wyślij SMS o rozliczeniu
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {(smsNotifications.length > 0 || unsent.length > 0) && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                    Powiadomienie SMS
+                  </div>
+                  {smsNotifications.map(sms => (
+                    <div key={sms.id} className="ml-6 text-[15px]">
+                      {sms.sent_at ? (
+                        <span className="text-emerald-600">
+                          ✓ Wysłano SMS ({sms.service_type}) — {format(new Date(sms.sent_at), 'd MMM yyyy, HH:mm', { locale: pl })}
+                        </span>
+                      ) : sms.status === 'pending' ? (
+                        <span className="text-orange-600">
+                          ⏳ SMS oczekuje na wysłanie ({sms.service_type})
+                        </span>
+                      ) : sms.status === 'failed' ? (
+                        <span className="text-destructive">
+                          ✗ Błąd wysyłki SMS ({sms.service_type})
+                        </span>
+                      ) : null}
+                    </div>
+                  ))}
+                  {unsent.map(template => (
+                    <div key={template.templateId} className="ml-6 space-y-1.5">
+                      <p className="text-xs text-muted-foreground">
+                        Szablon: {template.templateName}
+                      </p>
+                      <p className="text-xs bg-muted rounded p-2 whitespace-pre-wrap">
+                        {template.smsTemplate.replace(/\{short_name\}/g, instanceShortName)}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={sendingSms || !item.customer_phone}
+                        onClick={() => handleSendSms(template)}
+                        className="text-xs"
+                      >
+                        {sendingSms ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Send className="w-3 h-3 mr-1" />}
+                        Wyślij SMS
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Tab: Media */}
+            <TabsContent value="media" className="flex-1 overflow-y-auto px-6 py-4 m-0">
+              <div className="space-y-2">
+                <ProtocolPhotosUploader
+                  photos={itemPhotos}
+                  onPhotosChange={(newPhotos) => {
+                    setItemPhotos(newPhotos);
+                    supabase
+                      .from('calendar_items')
+                      .update({ photo_urls: newPhotos } as any)
+                      .eq('id', item.id)
+                      .then(({ error }) => {
+                        if (error) console.error('Error saving photos:', error);
+                      });
+                  }}
+                  storageBucket="protocol-photos"
+                  filePrefix="zlecenie"
+                  onAutoSave={(newPhotos) => {
+                    setItemPhotos(newPhotos);
+                    supabase
+                      .from('calendar_items')
+                      .update({ photo_urls: newPhotos } as any)
+                      .eq('id', item.id)
+                      .then(({ error }) => {
+                        if (error) console.error('Error saving photo annotation:', error);
+                      });
+                  }}
+                />
+              </div>
+            </TabsContent>
+
+            {/* Tab: Historia */}
+            <TabsContent value="history" className="flex-1 overflow-y-auto px-6 py-4 m-0">
+              {!customerAddressId ? (
+                <p className="text-sm text-muted-foreground">Brak przypisanego adresu serwisowego.</p>
+              ) : historyItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Brak innych zleceń dla tej lokalizacji.</p>
+              ) : (
+                <div className="space-y-2">
+                  {historyItems.map((hi: any) => (
+                    <CustomerOrderCard
+                      key={hi.id}
+                      itemDate={hi.item_date}
+                      status={hi.status}
+                      services={hi.services || []}
+                      price={hi.price}
+                      protocolPublicToken={hi.protocolPublicToken}
+                      hidePrices={hidePrices}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* Footer */}
           {renderFooter()}
@@ -911,7 +980,7 @@ const CalendarItemDetailsDrawer = ({
           customerEmail={item.customer_email}
           onSuccess={() => {
             refetchInvoices();
-            onStatusChange?.(item.id, item.status); // refresh parent
+            onStatusChange?.(item.id, item.status);
           }}
         />
       )}
