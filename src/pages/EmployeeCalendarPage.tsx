@@ -187,8 +187,10 @@ const EmployeeCalendarPage = () => {
   }, [instanceId, config, currentCalendarDate]);
 
   useEffect(() => {
-    if (currentView === 'kalendarz' && config) {
+    if ((currentView === 'kalendarz' || currentView === 'dashboard') && config) {
       fetchColumns();
+    }
+    if (currentView === 'kalendarz' && config) {
       fetchItems();
       fetchBreaks();
     }
@@ -338,11 +340,11 @@ const EmployeeCalendarPage = () => {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar overlay - only on mobile when "Więcej" is tapped */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 z-[60] bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       <aside className={cn(
-        "fixed lg:sticky top-0 inset-y-0 left-0 z-50 h-screen w-64 bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0",
+        "fixed lg:sticky top-0 inset-y-0 left-0 z-[70] h-screen w-64 bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0",
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full overflow-hidden">
@@ -388,13 +390,41 @@ const EmployeeCalendarPage = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <main className="flex-1 overflow-auto p-4 lg:p-6 pb-20 lg:pb-6">
           {currentView === 'dashboard' && instanceId && config ? (
-            <EmployeeDashboard
-              instanceId={instanceId}
-              columnIds={config.column_ids || []}
-              hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
-              onItemClick={(item) => handleItemClick(item)}
-              linkedEmployeeId={linkedEmployeeId}
-            />
+            <>
+              <EmployeeDashboard
+                instanceId={instanceId}
+                columnIds={config.column_ids || []}
+                hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
+                onItemClick={(item) => handleItemClick(item)}
+                linkedEmployeeId={linkedEmployeeId}
+              />
+              <CalendarItemDetailsDrawer
+                item={selectedItem}
+                open={detailsOpen}
+                onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
+                columns={calendarColumns}
+                onDelete={allowedActions.delete_item ? handleDeleteItem : undefined}
+                onEdit={allowedActions.edit_item ? handleEditItem : undefined}
+                onStatusChange={handleStatusChange}
+                onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
+                onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+                hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
+                onAddProtocol={(item) => {
+                  setDetailsOpen(false);
+                  setProtocolPrefill({
+                    customerId: item.customer_id,
+                    customerName: item.customer_name || '',
+                    customerPhone: item.customer_phone || '',
+                    customerEmail: item.customer_email || '',
+                    customerAddressId: item.customer_address_id,
+                    calendarItemId: item.id,
+                  });
+                  setProtocolFormOpen(true);
+                }}
+                instanceId={instanceId || undefined}
+                forceSideRight
+              />
+            </>
           ) : currentView === 'protokoly' && instanceId ? (
             <ProtocolsView instanceId={instanceId} />
           ) : currentView === 'kalendarz' && instanceId ? (
