@@ -53,7 +53,6 @@ interface CalendarItemDetailsDrawerProps {
 }
 
 const statusLabels: Record<string, string> = {
-  pending: 'Do potwierdzenia',
   confirmed: 'Potwierdzone',
   in_progress: 'W trakcie',
   completed: 'Zakończone',
@@ -62,7 +61,6 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-800 border-amber-300',
   confirmed: 'bg-emerald-100 text-emerald-800 border-emerald-300',
   in_progress: 'bg-orange-100 text-orange-800 border-orange-300',
   completed: 'bg-slate-100 text-slate-700 border-slate-300',
@@ -404,24 +402,11 @@ const CalendarItemDetailsDrawer = ({
         {item.status !== 'completed' && moreMenu}
         {editBtn}
 
-        {item.status === 'pending' && statusDropdown(
-          'Potwierdź',
-          () => onStatusChange?.(item.id, 'confirmed'),
-          'bg-amber-500 hover:bg-amber-600 text-white',
-          [
-            { label: 'W trakcie', status: 'in_progress', icon: <Clock className="w-4 h-4 mr-2" /> },
-            { label: 'Zakończone', status: 'completed', icon: <Check className="w-4 h-4 mr-2" /> },
-            { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
-            { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
-          ]
-        )}
-
         {item.status === 'confirmed' && onStartWork && statusDropdown(
           'Rozpocznij pracę',
           () => onStartWork(item.id),
           'bg-emerald-600 hover:bg-emerald-700 text-white',
           [
-            { label: 'Do potwierdzenia', status: 'pending', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
             { label: 'Zakończone', status: 'completed', icon: <Check className="w-4 h-4 mr-2" /> },
             { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
             { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
@@ -433,7 +418,6 @@ const CalendarItemDetailsDrawer = ({
           () => onEndWork(item.id),
           'bg-sky-500 hover:bg-sky-600 text-white',
           [
-            { label: 'Do potwierdzenia', status: 'pending', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
             { label: 'Potwierdzone', status: 'confirmed', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
             { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
             { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
@@ -449,10 +433,6 @@ const CalendarItemDetailsDrawer = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'pending')}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Do potwierdzenia
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Potwierdzone
@@ -482,10 +462,6 @@ const CalendarItemDetailsDrawer = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'pending')}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Do potwierdzenia
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Potwierdzone
@@ -515,10 +491,6 @@ const CalendarItemDetailsDrawer = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'pending')}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Do potwierdzenia
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
                 <Check className="w-4 h-4 mr-2" />
                 Potwierdzone
