@@ -39,14 +39,10 @@ interface CustomersMapDrawerProps {
 
 const MARKER_COLOR = '#6366f1';
 
-const createMarkerIcon = (count?: number) => {
-  const badge = count && count > 0
-    ? `<g transform="translate(20, -8)"><circle cx="8" cy="8" r="14" fill="#16a34a" stroke="#fff" stroke-width="2"/><text x="8" y="14" text-anchor="middle" fill="#fff" font-size="15" font-weight="700" font-family="sans-serif">${count > 9 ? '9+' : count}</text></g>`
-    : '';
+const createMarkerIcon = () => {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="44" height="50" viewBox="-6 -8 44 50">
     <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 26 16 26s16-14 16-26C32 7.16 24.84 0 16 0z" fill="${MARKER_COLOR}" stroke="#fff" stroke-width="2.5"/>
     <circle cx="16" cy="16" r="7" fill="#fff"/>
-    ${badge}
   </svg>`;
 
   return L.divIcon({
@@ -144,7 +140,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
       const line2Parts = [addr.addressName, addr.city].filter(Boolean).join(', ');
       const tooltipHtml = `<div class="calendar-map-tooltip-content"><div class="cmt-line1">${addr.customerName}</div>${line2Parts ? `<div class="cmt-line2">${line2Parts}</div>` : ''}</div>`;
 
-      const marker = L.marker([addr.lat, addr.lng], { icon: createMarkerIcon(addr.futureOrdersCount) })
+      const marker = L.marker([addr.lat, addr.lng], { icon: createMarkerIcon() })
         .bindTooltip(tooltipHtml, {
           permanent: false,
           direction: 'top',
