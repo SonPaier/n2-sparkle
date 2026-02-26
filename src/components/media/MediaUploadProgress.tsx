@@ -25,7 +25,7 @@ export const MediaUploadProgress = ({ progress, error, onRetry }: MediaUploadPro
   }
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-background border">
+    <div className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border">
       <div className="flex-1 min-w-0">
         <Progress value={progress} className="h-2" />
       </div>
