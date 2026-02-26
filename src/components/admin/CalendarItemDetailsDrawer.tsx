@@ -19,7 +19,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEmployees } from '@/hooks/useEmployees';
 import { useQuery } from '@tanstack/react-query';
 import EmployeeSelectionDrawer from './EmployeeSelectionDrawer';
-import { ProtocolPhotosUploader } from '@/components/protocols/ProtocolPhotosUploader';
+import { MediaUploader } from '@/components/media/MediaUploader';
+import type { MediaItem } from '@/components/media/mediaTypes';
 import { CreateInvoiceDrawer } from '@/components/invoicing/CreateInvoiceDrawer';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { useInvoicingSettings } from '@/components/invoicing/useInvoicingSettings';
@@ -112,8 +113,8 @@ const CalendarItemDetailsDrawer = ({
   // Employee management
   const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
 
-  // Photos state
-  const [itemPhotos, setItemPhotos] = useState<string[]>([]);
+  // Media items state
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   // Customer detail drawer
   const [customerDetailOpen, setCustomerDetailOpen] = useState(false);
   const [customerDetailData, setCustomerDetailData] = useState<Customer | null>(null);
@@ -182,8 +183,14 @@ const CalendarItemDetailsDrawer = ({
     if (item) {
       setNotesValue(item.admin_notes || '');
       setEditingNotes(false);
-      const photos = Array.isArray(item.photo_urls) ? item.photo_urls : [];
-      setItemPhotos(photos as string[]);
+      // Load media_items with fallback from photo_urls
+      const raw = (item as any).media_items;
+      if (Array.isArray(raw) && raw.length > 0) {
+        setMediaItems(raw as MediaItem[]);
+      } else {
+        const photos = Array.isArray(item.photo_urls) ? (item.photo_urls as string[]) : [];
+        setMediaItems(photos.map((url: string) => ({ type: 'image' as const, url })));
+      }
     }
   }, [item?.id, item?.admin_notes]);
 
@@ -877,33 +884,22 @@ const CalendarItemDetailsDrawer = ({
 
             {/* Tab: Media */}
             <TabsContent value="media" className="flex-1 overflow-y-auto px-6 py-4 m-0">
-              <div className="space-y-2">
-                <ProtocolPhotosUploader
-                  photos={itemPhotos}
-                  onPhotosChange={(newPhotos) => {
-                    setItemPhotos(newPhotos);
-                    supabase
-                      .from('calendar_items')
-                      .update({ photo_urls: newPhotos } as any)
-                      .eq('id', item.id)
-                      .then(({ error }) => {
-                        if (error) console.error('Error saving photos:', error);
-                      });
-                  }}
-                  storageBucket="protocol-photos"
-                  filePrefix="zlecenie"
-                  onAutoSave={(newPhotos) => {
-                    setItemPhotos(newPhotos);
-                    supabase
-                      .from('calendar_items')
-                      .update({ photo_urls: newPhotos } as any)
-                      .eq('id', item.id)
-                      .then(({ error }) => {
-                        if (error) console.error('Error saving photo annotation:', error);
-                      });
-                  }}
-                />
-              </div>
+              <MediaUploader
+                items={mediaItems}
+                onItemsChange={setMediaItems}
+                filePrefix="zlecenie"
+                enableAnnotation
+                onAutoSave={(newItems) => {
+                  setMediaItems(newItems);
+                  supabase
+                    .from('calendar_items')
+                    .update({ media_items: newItems, photo_urls: newItems.filter(i => i.type === 'image').map(i => i.url) } as any)
+                    .eq('id', item.id)
+                    .then(({ error }) => {
+                      if (error) console.error('Error saving media:', error);
+                    });
+                }}
+              />
             </TabsContent>
 
             {/* Tab: Historia */}
