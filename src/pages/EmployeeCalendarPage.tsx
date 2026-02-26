@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar as CalendarIcon, ClipboardCheck, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
+import { Calendar as CalendarIcon, ClipboardCheck, LayoutDashboard, LogOut, Menu, MoreHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -34,6 +34,7 @@ const EmployeeCalendarPage = () => {
   const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [instanceId, setInstanceId] = useState<string | null>(null);
+  const [linkedEmployeeId, setLinkedEmployeeId] = useState<string | null>(null);
 
   // Calendar state
   const [calendarColumns, setCalendarColumns] = useState<CalendarColumn[]>([]);
@@ -193,6 +194,20 @@ const EmployeeCalendarPage = () => {
     }
   }, [currentView, config, fetchColumns, fetchItems, fetchBreaks]);
 
+  // Fetch linked employee ID
+  useEffect(() => {
+    if (!instanceId || !user) return;
+    supabase
+      .from('employees')
+      .select('id')
+      .eq('instance_id', instanceId)
+      .eq('linked_user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setLinkedEmployeeId(data.id);
+      });
+  }, [instanceId, user]);
+
   // Fetch HQ location
   useEffect(() => {
     if (!instanceId) return;
@@ -321,6 +336,7 @@ const EmployeeCalendarPage = () => {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      {/* Desktop sidebar overlay - only on mobile when "Więcej" is tapped */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -370,20 +386,14 @@ const EmployeeCalendarPage = () => {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="lg:hidden flex items-center gap-3 p-4 border-b border-border/50 bg-card">
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-            <Menu className="w-5 h-5" />
-          </Button>
-          <h1 className="font-semibold text-foreground">N2Service</h1>
-        </header>
-
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-4 lg:p-6 pb-20 lg:pb-6">
           {currentView === 'dashboard' && instanceId && config ? (
             <EmployeeDashboard
               instanceId={instanceId}
               columnIds={config.column_ids || []}
               hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
               onItemClick={(item) => handleItemClick(item)}
+              linkedEmployeeId={linkedEmployeeId}
             />
           ) : currentView === 'protokoly' && instanceId ? (
             <ProtocolsView instanceId={instanceId} />
@@ -518,6 +528,37 @@ const EmployeeCalendarPage = () => {
             </div>
           )}
         </main>
+
+        {/* Mobile bottom navigation bar */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 flex items-center justify-around h-14">
+          {[
+            { id: 'dashboard' as EmployeeView, label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
+            { id: 'kalendarz' as EmployeeView, label: 'Kalendarz', icon: CalendarIcon },
+          ].map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setCurrentView(id)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors",
+                currentView === id ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              <span>{label}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className={cn(
+              "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors",
+              sidebarOpen ? "text-primary" : "text-muted-foreground"
+            )}
+          >
+            <MoreHorizontal className="w-5 h-5" />
+            <span>Więcej</span>
+          </button>
+        </nav>
       </div>
     </div>
   );
