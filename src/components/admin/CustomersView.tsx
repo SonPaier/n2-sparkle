@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Search, Phone, MessageSquare, Plus, Trash2, MapPin } from 'lucide-react';
+import { Search, Phone, MessageSquare, Plus, Trash2, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious, PaginationEllipsis } from '@/components/ui/pagination';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CustomerEditDrawer from './CustomerEditDrawer';
@@ -285,10 +284,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     return addrs.map(a => formatAddressShort(a)).join('; ');
   };
 
-  // Pagination page numbers
+  // Pagination page numbers with ellipsis
   const getPageNumbers = () => {
     const pages: (number | 'ellipsis')[] = [];
-    if (totalPages <= 5) {
+    if (totalPages <= 7) {
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       pages.push(1);
@@ -364,7 +363,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                     {customer.name}
                   </div>
                   {addrs.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-foreground">
                       {visibleAddrs.map((a, i) => (
                         <span key={a.id}>
                           {i > 0 && ', '}
@@ -389,7 +388,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                       )}
                     </div>
                   )}
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-sm text-foreground">
                     {formatPhoneDisplay(customer.phone)}
                   </div>
                 </div>
@@ -400,7 +399,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                   <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={e => handleCall(customer.phone, e)}>
                     <Phone className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-destructive hover:bg-muted" onClick={e => handleDeleteClick(customer, e)}>
+                  <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={e => handleDeleteClick(customer, e)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -428,19 +427,13 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                   onClick={() => openCustomer(customer)}
                 >
                   <TableCell className="font-medium">{customer.name}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-[300px] truncate">
+                  <TableCell className="max-w-[300px] truncate">
                     {getAddressDisplay(customer.id)}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{formatPhoneDisplay(customer.phone)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground" onClick={e => handleSms(customer.phone, e)}>
-                        <MessageSquare className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground" onClick={e => handleCall(customer.phone, e)}>
-                        <Phone className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-destructive" onClick={e => handleDeleteClick(customer, e)}>
+                      <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={e => handleDeleteClick(customer, e)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -454,43 +447,43 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredCustomers.length)} z {filteredCustomers.length}
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-muted-foreground">
+            Strona {currentPage} z {totalPages} ({filteredCustomers.length} klientów)
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            {getPageNumbers().map((page, idx) =>
+              page === 'ellipsis' ? (
+                <span key={`e-${idx}`} className="px-1 text-muted-foreground">…</span>
+              ) : (
+                <Button
+                  key={page}
+                  variant={page === currentPage ? 'default' : 'outline'}
+                  size="sm"
+                  className="w-9"
+                  onClick={() => setCurrentPage(page as number)}
+                >
+                  {page}
+                </Button>
+              )
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
           </div>
-          <Pagination className="w-auto mx-0">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => currentPage > 1 && setCurrentPage(p => p - 1)}
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-              {getPageNumbers().map((page, idx) =>
-                page === 'ellipsis' ? (
-                  <PaginationItem key={`e-${idx}`}>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                ) : (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      isActive={currentPage === page}
-                      onClick={() => setCurrentPage(page as number)}
-                      className="cursor-pointer"
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              )}
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => currentPage < totalPages && setCurrentPage(p => p + 1)}
-                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
         </div>
       )}
 
