@@ -21,7 +21,6 @@ async function fakturowniaCreateInvoice(
       sell_date: invoiceData.sell_date,
       issue_date: invoiceData.issue_date,
       payment_to: invoiceData.payment_to,
-      seller_name: invoiceData.seller_name || config.seller_name || "",
       buyer_name: invoiceData.buyer_name,
       buyer_tax_no: invoiceData.buyer_tax_no || "",
       buyer_email: invoiceData.buyer_email || "",
@@ -256,18 +255,6 @@ Deno.serve(async (req) => {
 
     if (action === "create_invoice") {
       const { invoiceData, calendarItemId, customerId } = params;
-
-      // Fetch instance name for seller_name if not provided
-      if (!invoiceData.seller_name) {
-        const { data: inst } = await supabase
-          .from("instances")
-          .select("name")
-          .eq("id", instanceId)
-          .single();
-        if (inst?.name) {
-          invoiceData.seller_name = inst.name;
-        }
-      }
 
       let result: any;
 
