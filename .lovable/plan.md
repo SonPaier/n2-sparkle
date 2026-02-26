@@ -1,59 +1,37 @@
 
 
-## Plan: MediaUploader — reużywalny komponent
+## Plan: Poprawki MediaUploader
 
-### Zakres zmian po uwagach użytkownika:
-- Akceptowane pliki: zdjęcia, video, nagrania głosowe, PDF/DOC/DOCX (nic więcej)
-- Każde usunięcie wymaga confirmation popup (ConfirmDialog)
-- Bez wyświetlania rozmiaru plików na UI
-- Wykorzystanie istniejących komponentów: PhotoFullscreenDialog, PhotoAnnotationDialog, ConfirmDialog
+### Problem z utratą danych (audio/video nie widoczne po ponownym otwarciu)
+Główny select w `Dashboard.tsx` (linia 120) i `EmployeeCalendarPage.tsx` (linia 118) nie zawiera kolumny `media_items`. Dane zapisują się do bazy prawidłowo, ale przy ponownym otwarciu drawera `item.media_items` jest `undefined` i fallback ładuje tylko zdjęcia z `photo_urls`.
 
-### Nowe pliki:
+### Zmiany
 
-**1. `src/components/media/mediaTypes.ts`** — typy
-```typescript
-interface MediaItem {
-  type: 'image' | 'video' | 'audio' | 'file';
-  url: string;
-  name?: string;
-  mimeType?: string;
-}
-```
+**1. Dodać `media_items` do selectów w:**
+- `src/pages/Dashboard.tsx` — linia 120 i linia 339
+- `src/pages/EmployeeCalendarPage.tsx` — linia 118
 
-**2. `src/components/media/mediaUtils.ts`** — kompresja obrazów (z ProtocolPhotosUploader), kompresja video (canvas re-encoding z obniżonym bitrate)
+**2. AudioRecorder — przywrócić czerwony "Stop"**
+- Zamienić przycisk "Zapisz" na czerwony "Stop" z ikoną Square
+- Zachować auto-start nagrywania
 
-**3. `src/components/media/MediaUploadProgress.tsx`** — overlay z progress bar (%), spinner, przycisk retry na błąd. Używa XMLHttpRequest.upload.onprogress
+**3. MediaUploadProgress — flat, białe tło**
+- Usunąć Loader2 spinner
+- Białe tło (`bg-background border`)
+- Prosty pasek postępu z % na końcu, bez labela nad paskiem
 
-**4. `src/components/media/AudioRecorder.tsx`** — MediaRecorder API, pulsujący dot + czas, po zakończeniu opcjonalny input na nazwę, przycisk "Zapisz"
+**4. Przywrócić nagłówki sekcji**
+- "Nagrania głosowe" nad listą audio
+- "Dokumenty" nad listą plików
+- "Video" nad listą video
 
-**5. `src/components/media/MediaUploader.tsx`** — główny komponent:
-- Przycisk "Dodaj plik" → DropdownMenu z 4 opcjami: Zdjęcie, Video, Nagranie głosowe, Dokument (PDF/DOC/DOCX)
-- Sekcja zdjęcia+video: grid 4 kolumny, kafelki aspect-square, zdjęcia klikalne → PhotoFullscreenDialog z rysikiem, video z ikoną play
-- Sekcja nagrania głosowe: lista z play/pause, nazwa, przycisk usuń
-- Sekcja dokumenty: lista z ikoną, nazwa, przycisk usuń
-- Każdy delete → ConfirmDialog (istniejący komponent)
-- Upload z progress bar (MediaUploadProgress)
-- Retry na błąd uploadu
+**5. Ujednolicić fonty**
+- Wszystkie pozycje (video, audio, pliki): ten sam `text-sm` styl
 
-### Edycje istniejących plików:
-
-**6. `src/components/admin/CalendarItemDetailsDrawer.tsx`**
-- Tab "Pliki": zamiana ProtocolPhotosUploader na MediaUploader
-- Dane: kolumna `media_items` (JSONB) w calendar_items + fallback z `photo_urls`
-
-### Backend:
-
-**7. Migracja SQL:**
-- `ALTER TABLE calendar_items ADD COLUMN media_items jsonb DEFAULT '[]'`
-- Nowy storage bucket `media-files` (public)
-- RLS policies na bucket
-
-### Pliki do edycji/utworzenia:
-1. `src/components/media/mediaTypes.ts` (nowy)
-2. `src/components/media/mediaUtils.ts` (nowy)
-3. `src/components/media/MediaUploadProgress.tsx` (nowy)
-4. `src/components/media/AudioRecorder.tsx` (nowy)
-5. `src/components/media/MediaUploader.tsx` (nowy)
-6. `src/components/admin/CalendarItemDetailsDrawer.tsx` (edycja)
-7. Migracja SQL (nowa kolumna + bucket)
+### Pliki do edycji:
+- `src/pages/Dashboard.tsx` (2 selecty)
+- `src/pages/EmployeeCalendarPage.tsx` (1 select)
+- `src/components/media/AudioRecorder.tsx`
+- `src/components/media/MediaUploadProgress.tsx`
+- `src/components/media/MediaUploader.tsx`
 
