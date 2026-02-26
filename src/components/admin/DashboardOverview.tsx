@@ -216,9 +216,9 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
   const today = format(new Date(), 'yyyy-MM-dd');
   const todayDate = new Date(today + 'T00:00:00');
 
-  // Orders: weekly split
-  const todayItems = items.filter(i => i.item_date === today);
-  const upcomingItems = items.filter(i => i.item_date > today);
+  // Orders: today + tomorrow
+  const tomorrow = format(new Date(todayDate.getTime() + 86400000), 'yyyy-MM-dd');
+  const dashboardItems = items.filter(i => i.item_date === today || i.item_date === tomorrow);
 
   // Reminders: notification window check (deadline - days_before <= today)
   const todayReminders = reminders.filter(r => {
@@ -227,17 +227,6 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
     notifyDate.setDate(notifyDate.getDate() - r.days_before);
     return notifyDate <= todayDate;
   });
-  const upcomingReminders = reminders.filter(r => {
-    const deadlineDate = new Date(r.deadline + 'T00:00:00');
-    const notifyDate = new Date(deadlineDate);
-    notifyDate.setDate(notifyDate.getDate() - r.days_before);
-    return notifyDate > todayDate;
-  });
-
-  // Payments "Dziś": all unsettled past items (overdue first, then oldest)
-  const todayPayments = allPaymentItems;
-  // Payments "Nadchodzące": weekly future items not paid
-  const upcomingPayments = items.filter(i => i.item_date > today && (i.price ?? 0) > 0 && i.payment_status !== 'paid');
 
   const formatDateLabel = (date: string) => {
     try {
@@ -271,42 +260,20 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
     <div>
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-      {/* DZIŚ */}
-      <h2 className="text-lg font-semibold text-center mb-4">Dziś</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={todayItems.length} emptyText="Brak zleceń na dziś">
-          {todayItems.map((item, idx) => (
-            <OrderCard key={item.id} item={item} fullAddress={buildFullAddress(item)} isFirst={idx === 0} onClick={() => onItemClick?.(item.id)} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={dashboardItems.length} emptyText="Brak zleceń na dziś i jutro">
+          {dashboardItems.map((item, idx) => (
+            <OrderCard key={item.id} item={item} fullAddress={buildFullAddress(item)} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onClick={() => onItemClick?.(item.id)} />
           ))}
         </DashboardColumn>
-        <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={todayReminders.length} emptyText="Brak przypomnień na dziś">
+        <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={todayReminders.length} emptyText="Brak przypomnień">
           {todayReminders.map((r, idx) => (
             <ReminderCard key={r.id} reminder={r} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />
           ))}
         </DashboardColumn>
-        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={todayPayments.length} emptyText="Brak płatności do rozliczenia">
-          {todayPayments.map((item, idx) => (
+        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={allPaymentItems.length} emptyText="Brak płatności do rozliczenia">
+          {allPaymentItems.map((item, idx) => (
             <PaymentCard key={item.id} item={item} isFirst={idx === 0} onClick={() => onPaymentClick?.(item.id)} />
-          ))}
-        </DashboardColumn>
-      </div>
-
-      {/* NADCHODZĄCE */}
-      <h2 className="text-lg font-semibold text-center mb-4">Nadchodzące</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={upcomingItems.length} emptyText="Brak nadchodzących zleceń">
-          {upcomingItems.slice(0, 3).map((item, idx) => (
-            <OrderCard key={item.id} item={item} fullAddress={buildFullAddress(item)} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onClick={() => onItemClick?.(item.id)} />
-          ))}
-        </DashboardColumn>
-        <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={upcomingReminders.length} emptyText="Brak nadchodzących przypomnień">
-          {upcomingReminders.slice(0, 3).map((r, idx) => (
-            <ReminderCard key={r.id} reminder={r} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />
-          ))}
-        </DashboardColumn>
-        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={upcomingPayments.length} emptyText="Brak nadchodzących płatności">
-          {upcomingPayments.slice(0, 3).map((item, idx) => (
-            <PaymentCard key={item.id} item={item} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onClick={() => onPaymentClick?.(item.id)} />
           ))}
         </DashboardColumn>
       </div>
