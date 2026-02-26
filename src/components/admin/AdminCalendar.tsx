@@ -40,6 +40,7 @@ export interface CalendarItem {
   address_lat?: number | null;
   address_lng?: number | null;
   address_city?: string | null;
+  address_street?: string | null;
   assigned_employee_ids?: string[] | null;
   assigned_employees?: AssignedEmployee[];
   item_date: string;
@@ -619,19 +620,19 @@ const AdminCalendar = ({
             </div>
           )}
           {/* Line 4: Address */}
-          {item.address_name && (
+          {(item.address_city || item.address_street) && (
+            <div className="flex items-center gap-0.5 text-[11px] md:text-[12px] truncate opacity-80">
+              <MapPin className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate">{[item.address_city, item.address_street].filter(Boolean).join(', ')}</span>
+            </div>
+          )}
+          {!item.address_city && !item.address_street && item.address_name && (
             <div className="flex items-center gap-0.5 text-[11px] md:text-[12px] truncate opacity-80">
               <MapPin className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate">{item.address_name}</span>
             </div>
           )}
-          {/* Line 5: Admin notes */}
-          {item.admin_notes && (
-            <div className="text-[10px] md:text-[11px] truncate opacity-75 italic">
-              {item.admin_notes}
-            </div>
-          )}
-          {/* Line 6: Payment status + Assigned employees chips */}
+          {/* Line 5: Payment status + Assigned employees chips */}
           <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
             {item.payment_status && item.payment_status !== 'not_invoiced' && (
               <InvoiceStatusBadge status={item.payment_status} size="sm" />
@@ -639,16 +640,22 @@ const AdminCalendar = ({
             {item.assigned_employees && item.assigned_employees.length > 0 && (
               <>
                 {item.assigned_employees.slice(0, 3).map(emp => (
-                  <div key={emp.id} className="flex items-center bg-primary rounded-full px-1.5 py-0">
-                    <span className="text-[9px] md:text-[10px] truncate max-w-[60px] text-primary-foreground font-medium">{emp.name.split(' ')[0]}</span>
-                  </div>
+                  <span key={emp.id} className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-primary text-primary-foreground">
+                    {emp.name.split(' ')[0]}
+                  </span>
                 ))}
                 {item.assigned_employees.length > 3 && (
-                  <span className="text-[9px] md:text-[10px] opacity-70">+{item.assigned_employees.length - 3}</span>
+                  <span className="text-[10px] opacity-70">+{item.assigned_employees.length - 3}</span>
                 )}
               </>
             )}
           </div>
+          {/* Line 6: Admin notes */}
+          {item.admin_notes && (
+            <div className="text-[10px] md:text-[11px] opacity-75 italic mt-[4px] whitespace-pre-wrap break-words">
+              {item.admin_notes}
+            </div>
+          )}
         </div>
       </div>
     );

@@ -130,11 +130,11 @@ const Dashboard = () => {
     if (addressIds.length > 0) {
       const { data: addresses } = await supabase
         .from('customer_addresses')
-        .select('id, name, lat, lng, city')
+        .select('id, name, lat, lng, city, street')
         .in('id', addressIds);
       
       if (addresses) {
-        const addressMap = new Map(addresses.map(a => [a.id, { name: a.name, lat: a.lat, lng: a.lng, city: a.city }]));
+        const addressMap = new Map(addresses.map(a => [a.id, { name: a.name, lat: a.lat, lng: a.lng, city: a.city, street: a.street }]));
         items.forEach(item => {
           if (item.customer_address_id) {
             const addr = addressMap.get(item.customer_address_id);
@@ -142,6 +142,7 @@ const Dashboard = () => {
             (item as any).address_lat = addr?.lat || null;
             (item as any).address_lng = addr?.lng || null;
             (item as any).address_city = addr?.city || null;
+            (item as any).address_street = addr?.street || null;
           }
         });
       }
