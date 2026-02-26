@@ -681,6 +681,9 @@ export type Database = {
           address_lng: number | null
           address_postal_code: string | null
           address_street: string | null
+          bank_account_number: string | null
+          bank_name: string | null
+          blik_phone: string | null
           contact_person: string | null
           created_at: string
           email: string | null
@@ -705,6 +708,9 @@ export type Database = {
           address_lng?: number | null
           address_postal_code?: string | null
           address_street?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          blik_phone?: string | null
           contact_person?: string | null
           created_at?: string
           email?: string | null
@@ -729,6 +735,9 @@ export type Database = {
           address_lng?: number | null
           address_postal_code?: string | null
           address_street?: string | null
+          bank_account_number?: string | null
+          bank_name?: string | null
+          blik_phone?: string | null
           contact_person?: string | null
           created_at?: string
           email?: string | null

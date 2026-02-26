@@ -46,6 +46,9 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
     contact_person: '',
     website: '',
     logo_url: '',
+    bank_name: '',
+    bank_account_number: '',
+    blik_phone: '',
   });
 
   // Fetch instance data
@@ -74,6 +77,9 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
             contact_person: (data as any).contact_person || '',
             website: (data as any).website || '',
             logo_url: data.logo_url || '',
+            bank_name: (data as any).bank_name || '',
+            bank_account_number: (data as any).bank_account_number || '',
+            blik_phone: (data as any).blik_phone || '',
           });
         }
         setInstanceLoading(false);
@@ -159,6 +165,9 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
           logo_url: companyForm.logo_url || null,
           website: companyForm.website || null,
           contact_person: companyForm.contact_person || null,
+          bank_name: companyForm.bank_name || null,
+          bank_account_number: companyForm.bank_account_number || null,
+          blik_phone: companyForm.blik_phone || null,
         } as any)
         .eq('id', instanceId);
       if (error) throw error;
@@ -267,6 +276,21 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
             <div className="space-y-2">
               <Label htmlFor="website">Strona www</Label>
               <Input id="website" type="url" className="bg-white" value={companyForm.website} onChange={(e) => handleInputChange('website', e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bank_name">Nazwa banku</Label>
+              <Input id="bank_name" className="bg-white" value={companyForm.bank_name} onChange={(e) => handleInputChange('bank_name', e.target.value)} placeholder="np. mBank, PKO BP" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bank_account_number">Numer konta bankowego</Label>
+              <Input id="bank_account_number" className="bg-white" value={companyForm.bank_account_number} onChange={(e) => handleInputChange('bank_account_number', e.target.value)} placeholder="XX XXXX XXXX XXXX XXXX XXXX XXXX" />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="blik_phone">Numer telefonu do rozliczeń BLIK</Label>
+              <Input id="blik_phone" type="tel" className="bg-white" value={companyForm.blik_phone} onChange={(e) => handleInputChange('blik_phone', e.target.value)} placeholder="np. 500 000 000" />
             </div>
 
             <Button onClick={handleSaveCompany} disabled={loading} className="w-full">
