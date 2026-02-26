@@ -289,43 +289,46 @@ export const MediaUploader = ({
         />
       )}
 
-      {/* Images grid — only images get thumbnails */}
+      {/* Images */}
       {images.length > 0 && (
-        <div className="grid grid-cols-4 gap-2">
-          {images.map((m) => {
-            const globalIdx = items.indexOf(m);
-            return (
-              <div key={m.url} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(m.url)}>
-                <img src={m.url} alt={m.name || ''} className="w-full h-full object-cover rounded-lg" />
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setDeleteIndex(globalIdx); }}
-                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
+        <div className="space-y-1">
+          <p className="text-xs font-medium text-foreground uppercase tracking-wide">Zdjęcia</p>
+          <div className="grid grid-cols-4 gap-2">
+            {images.map((m) => {
+              const globalIdx = items.indexOf(m);
+              return (
+                <div key={m.url} className="relative aspect-square group cursor-pointer hover:opacity-90 transition-opacity" onClick={() => setFullscreenPhoto(m.url)}>
+                  <img src={m.url} alt={m.name || ''} className="w-full h-full object-cover rounded-lg" />
+                  {!disabled && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setDeleteIndex(globalIdx); }}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 cursor-pointer"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Videos */}
       {videos.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Video</p>
+          <p className="text-xs font-medium text-foreground uppercase tracking-wide">Video</p>
           {videos.map((v) => {
             const globalIdx = items.indexOf(v);
             return (
               <div key={v.url} className="flex items-center gap-2 py-1">
                 <Video className="h-4 w-4 text-muted-foreground shrink-0" />
-                <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate flex-1 text-primary hover:underline">
+                <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate flex-1 text-primary hover:underline cursor-pointer">
                   {v.name || 'Video'}
                 </a>
                 {!disabled && (
-                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0">
+                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0 cursor-pointer">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
@@ -338,17 +341,17 @@ export const MediaUploader = ({
       {/* Audio */}
       {audios.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nagrania głosowe</p>
+          <p className="text-xs font-medium text-foreground uppercase tracking-wide">Nagrania głosowe</p>
           {audios.map((a) => {
             const globalIdx = items.indexOf(a);
             return (
               <div key={a.url} className="flex items-center gap-2 py-1">
-                <button type="button" onClick={() => toggleAudio(a.url)} className="shrink-0 text-muted-foreground hover:text-foreground">
+                <button type="button" onClick={() => toggleAudio(a.url)} className="shrink-0 text-muted-foreground hover:text-foreground cursor-pointer">
                   {playingAudio === a.url ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                 </button>
-                <span className="text-sm truncate flex-1">{a.name || 'Nagranie'}</span>
+                <span className="text-sm truncate flex-1 cursor-pointer hover:text-primary" onClick={() => toggleAudio(a.url)}>{a.name || 'Nagranie'}</span>
                 {!disabled && (
-                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0">
+                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0 cursor-pointer">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
@@ -361,17 +364,17 @@ export const MediaUploader = ({
       {/* Files */}
       {files.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dokumenty</p>
+          <p className="text-xs font-medium text-foreground uppercase tracking-wide">Dokumenty</p>
           {files.map((f) => {
             const globalIdx = items.indexOf(f);
             return (
               <div key={f.url} className="flex items-center gap-2 py-1">
                 <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate flex-1 text-primary hover:underline">
+                <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate flex-1 text-primary hover:underline cursor-pointer">
                   {f.name || 'Plik'}
                 </a>
                 {!disabled && (
-                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0">
+                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0 cursor-pointer">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 )}
