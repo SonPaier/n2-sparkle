@@ -1,0 +1,363 @@
+import { useState, useRef, useCallback } from 'react';
+import { Camera, Video, Mic, FileText, Plus, X, Play, Pause, FileIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { PhotoFullscreenDialog } from '@/components/protocols/PhotoFullscreenDialog';
+import { MediaUploadProgress } from './MediaUploadProgress';
+import { AudioRecorder } from './AudioRecorder';
+import type { MediaItem } from './mediaTypes';
+import {
+  compressImage,
+  compressVideo,
+  uploadFileWithProgress,
+  generateFileName,
+  getMediaTypeFromMime,
+} from './mediaUtils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+interface MediaUploaderProps {
+  items: MediaItem[];
+  onItemsChange: (items: MediaItem[]) => void;
+  onAutoSave?: (items: MediaItem[]) => void;
+  storageBucket?: string;
+  imageBucket?: string;
+  filePrefix?: string;
+  maxItems?: number;
+  disabled?: boolean;
+  enableAnnotation?: boolean;
+}
+
+export const MediaUploader = ({
+  items,
+  onItemsChange,
+  onAutoSave,
+  storageBucket = 'media-files',
+  imageBucket = 'protocol-photos',
+  filePrefix = 'media',
+  maxItems = 50,
+  disabled = false,
+  enableAnnotation = true,
+}: MediaUploaderProps) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadLabel, setUploadLabel] = useState('');
+  const [retryFn, setRetryFn] = useState<(() => void) | null>(null);
+  const [showAudioRecorder, setShowAudioRecorder] = useState(false);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null);
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const images = items.filter((i) => i.type === 'image');
+  const videos = items.filter((i) => i.type === 'video');
+  const visualMedia = items.filter((i) => i.type === 'image' || i.type === 'video');
+  const audios = items.filter((i) => i.type === 'audio');
+  const files = items.filter((i) => i.type === 'file');
+
+  const saveItems = useCallback(
+    (newItems: MediaItem[]) => {
+      onItemsChange(newItems);
+      onAutoSave?.(newItems);
+    },
+    [onItemsChange, onAutoSave],
+  );
+
+  const doUpload = async (
+    file: Blob,
+    bucket: string,
+    fileName: string,
+    contentType: string,
+    mediaType: MediaItem['type'],
+    displayName?: string,
+  ) => {
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadError(null);
+    setUploadLabel(displayName || fileName);
+    setRetryFn(null);
+
+    try {
+      const url = await uploadFileWithProgress(bucket, fileName, file, contentType, setUploadProgress);
+      const newItem: MediaItem = { type: mediaType, url, name: displayName || fileName, mimeType: contentType };
+      const newItems = [...items, newItem];
+      saveItems(newItems);
+      toast.success('Plik przesłany');
+    } catch (err: any) {
+      setUploadError(err?.message || 'Błąd przesyłania');
+      setRetryFn(() => () => doUpload(file, bucket, fileName, contentType, mediaType, displayName));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Image upload
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (imageInputRef.current) imageInputRef.current.value = '';
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+      setUploadLabel('Kompresja zdjęcia...');
+      setUploadError(null);
+      const compressed = await compressImage(file);
+      const fileName = generateFileName(filePrefix, 'jpg');
+      await doUpload(compressed, imageBucket, fileName, 'image/jpeg', 'image', file.name);
+    } catch {
+      setUploading(false);
+    }
+  };
+
+  // Video upload
+  const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (videoInputRef.current) videoInputRef.current.value = '';
+    try {
+      setUploading(true);
+      setUploadProgress(0);
+      setUploadLabel('Kompresja video...');
+      setUploadError(null);
+      const compressed = await compressVideo(file, (pct) => {
+        setUploadLabel(`Kompresja video... ${pct}%`);
+      });
+      const ext = file.name.split('.').pop() || 'webm';
+      const fileName = generateFileName(filePrefix, compressed === file ? ext : 'webm');
+      const ct = compressed === file ? file.type : 'video/webm';
+      await doUpload(compressed, storageBucket, fileName, ct, 'video', file.name);
+    } catch {
+      setUploading(false);
+    }
+  };
+
+  // File upload (PDF/DOC/DOCX)
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    const ext = file.name.split('.').pop() || 'bin';
+    const fileName = generateFileName(filePrefix, ext);
+    await doUpload(file, storageBucket, fileName, file.type, 'file', file.name);
+  };
+
+  // Audio recorded
+  const handleAudioRecorded = async (blob: Blob, name?: string) => {
+    setShowAudioRecorder(false);
+    const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+    const fileName = generateFileName(filePrefix + '-audio', ext);
+    await doUpload(blob, storageBucket, fileName, blob.type, 'audio', name || `Nagranie ${audios.length + 1}`);
+  };
+
+  // Delete
+  const handleDelete = async (index: number) => {
+    const item = items[index];
+    const newItems = items.filter((_, i) => i !== index);
+    saveItems(newItems);
+    // Try to remove from storage
+    try {
+      const bucket = item.type === 'image' ? imageBucket : storageBucket;
+      const urlParts = item.url.split('/');
+      const fName = urlParts[urlParts.length - 1];
+      if (fName) await supabase.storage.from(bucket).remove([fName]);
+    } catch {}
+    setDeleteIndex(null);
+  };
+
+  // Audio playback
+  const toggleAudio = (url: string) => {
+    if (playingAudio === url) {
+      audioRef.current?.pause();
+      setPlayingAudio(null);
+    } else {
+      if (audioRef.current) audioRef.current.pause();
+      const audio = new Audio(url);
+      audio.onended = () => setPlayingAudio(null);
+      audio.play();
+      audioRef.current = audio;
+      setPlayingAudio(url);
+    }
+  };
+
+  // Annotation handler for images
+  const handleAnnotate = async (newUrl: string) => {
+    const oldUrl = fullscreenPhoto;
+    if (!oldUrl) return;
+    const newItems = items.map((i) => (i.url === oldUrl ? { ...i, url: newUrl } : i));
+    saveItems(newItems);
+    setFullscreenPhoto(newUrl);
+  };
+
+  const allPhotos = images.map((i) => i.url);
+
+  return (
+    <div className="space-y-4">
+      {/* Hidden inputs */}
+      <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
+      <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={handleVideoSelect} className="hidden" />
+      <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileSelect} className="hidden" />
+
+      {/* Add button */}
+      {!disabled && items.length < maxItems && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Dodaj plik
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <DropdownMenuItem onClick={() => imageInputRef.current?.click()} className="gap-2">
+              <Camera className="h-4 w-4" /> Zdjęcie
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => videoInputRef.current?.click()} className="gap-2">
+              <Video className="h-4 w-4" /> Video
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowAudioRecorder(true)} className="gap-2">
+              <Mic className="h-4 w-4" /> Nagranie głosowe
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="gap-2">
+              <FileText className="h-4 w-4" /> Dokument (PDF/DOC)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      {/* Upload progress */}
+      {(uploading || uploadError) && (
+        <MediaUploadProgress
+          progress={uploadProgress}
+          error={uploadError}
+          onRetry={retryFn || undefined}
+          label={uploadLabel}
+        />
+      )}
+
+      {/* Audio recorder */}
+      {showAudioRecorder && (
+        <AudioRecorder
+          onRecorded={handleAudioRecorded}
+          onCancel={() => setShowAudioRecorder(false)}
+        />
+      )}
+
+      {/* Visual media grid (images + videos) */}
+      {visualMedia.length > 0 && (
+        <div className="grid grid-cols-4 gap-2">
+          {visualMedia.map((m) => {
+            const globalIdx = items.indexOf(m);
+            if (m.type === 'image') {
+              return (
+                <div key={m.url} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(m.url)}>
+                  <img src={m.url} alt={m.name || ''} className="w-full h-full object-cover rounded-lg" />
+                  {!disabled && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setDeleteIndex(globalIdx); }}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            }
+            // video
+            return (
+              <div key={m.url} className="relative aspect-square group">
+                <video src={m.url} className="w-full h-full object-cover rounded-lg" preload="metadata" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
+                  <a href={m.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                    <Play className="h-8 w-8 text-white" />
+                  </a>
+                </div>
+                {!disabled && (
+                  <button
+                    type="button"
+                    onClick={() => setDeleteIndex(globalIdx)}
+                    className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Audio list */}
+      {audios.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Nagrania głosowe</p>
+          {audios.map((a) => {
+            const globalIdx = items.indexOf(a);
+            return (
+              <div key={a.url} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => toggleAudio(a.url)}>
+                  {playingAudio === a.url ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                </Button>
+                <span className="text-sm truncate flex-1">{a.name || 'Nagranie'}</span>
+                {!disabled && (
+                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Files list */}
+      {files.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground">Dokumenty</p>
+          {files.map((f) => {
+            const globalIdx = items.indexOf(f);
+            return (
+              <div key={f.url} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+                <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate flex-1 text-primary hover:underline">
+                  {f.name || 'Plik'}
+                </a>
+                {!disabled && (
+                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80">
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Fullscreen photo dialog with annotation */}
+      <PhotoFullscreenDialog
+        open={!!fullscreenPhoto}
+        onOpenChange={(open) => { if (!open) setFullscreenPhoto(null); }}
+        photoUrl={fullscreenPhoto}
+        allPhotos={allPhotos}
+        initialIndex={fullscreenPhoto ? allPhotos.indexOf(fullscreenPhoto) : 0}
+        onAnnotate={enableAnnotation ? handleAnnotate : undefined}
+      />
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={deleteIndex !== null}
+        onOpenChange={(open) => { if (!open) setDeleteIndex(null); }}
+        title="Usuń plik"
+        description="Czy na pewno chcesz usunąć ten plik? Tej operacji nie można cofnąć."
+        confirmLabel="Usuń"
+        variant="destructive"
+        onConfirm={() => { if (deleteIndex !== null) handleDelete(deleteIndex); }}
+      />
+    </div>
+  );
+};
