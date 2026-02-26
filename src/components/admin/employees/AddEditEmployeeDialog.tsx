@@ -99,13 +99,13 @@ const AddEditEmployeeDialog = ({ open, onOpenChange, instanceId, employee, isAdm
         await updateEmployee.mutateAsync({ id: employee.id, ...data });
         toast.success('Pracownik został zaktualizowany');
       } else {
-        await createEmployee.mutateAsync(data);
+        const created = await createEmployee.mutateAsync(data);
         toast.success('Pracownik został dodany');
 
         if (createAccount && instanceId) {
           try {
             const response = await supabase.functions.invoke('manage-instance-users', {
-              body: { action: 'create', instanceId, username: username.trim(), password, role: 'employee' },
+              body: { action: 'create', instanceId, username: username.trim(), password, role: 'employee', employeeId: created.id },
             });
             if (response.error) throw new Error(response.error.message);
             if (response.data?.error) throw new Error(response.data.error);

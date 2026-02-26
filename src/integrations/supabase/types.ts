@@ -635,6 +635,7 @@ export type Database = {
           hourly_rate: number | null
           id: string
           instance_id: string
+          linked_user_id: string | null
           name: string
           photo_url: string | null
           sort_order: number | null
@@ -646,6 +647,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           instance_id: string
+          linked_user_id?: string | null
           name: string
           photo_url?: string | null
           sort_order?: number | null
@@ -657,6 +659,7 @@ export type Database = {
           hourly_rate?: number | null
           id?: string
           instance_id?: string
+          linked_user_id?: string | null
           name?: string
           photo_url?: string | null
           sort_order?: number | null
