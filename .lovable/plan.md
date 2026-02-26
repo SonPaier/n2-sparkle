@@ -1,33 +1,37 @@
 
 
-## Refaktor drawera szczegółów zlecenia
+## Ujednolicenie stylu tabów
 
-### Zmiany w `CalendarItemDetailsDrawer.tsx`:
+Przypomnienia używają własnych custom buttonów z `border-b-2` (lekkie taby z podkreśleniem). Drawer zlecenia i drawer klienta używają komponentów Radix Tabs z różnym stylem.
 
-**1. Szerokość drawera**
-- Zmiana z `sm:max-w-lg` na `sm:max-w-md` (taka sama jak drawer klienta)
+### Zmiany:
 
-**2. Nagłówek (fixed)**
-- Linia 1: Nazwa usługi (item.title) jako główny nagłówek + przycisk X
-- Linia 2: Data + godziny (np. "śr, 2 kwi 2026 · 08:00 - 16:00") + badge statusu + badge płatności
-- Usunięcie 3. labelki (nazwa kolumny, np. "Serwis")
+**1. `CalendarItemDetailsDrawer.tsx` — zamiana na lekkie taby (styl jak przypomnienia)**
+- Zamiana `TabsList`/`TabsTrigger` na `AdminTabsList`/`AdminTabsTrigger` (lub lepiej: custom border-bottom tabs jak w przypomnieniach)
+- Zmiana "Media" → "Pliki"
 
-**3. Klient — ikony telefon/SMS przy imieniu**
-- Przeniesienie ikon Phone i MessageSquare zaraz po imieniu klienta (nie `ml-auto` po prawej)
+**2. `CustomerEditDrawer.tsx` — zamiana AdminTabsList na lekkie taby**
+- Zamiana `AdminTabsList`/`AdminTabsTrigger` na taki sam styl border-bottom jak w przypomnieniach
+- Zachowanie `Tabs`/`TabsContent` z Radix, tylko zmiana wizualnego triggera
 
-**4. Scrollowalny content z 3 tabami**
-- Dodanie komponentu `Tabs` z zakładkami: **Ogólne / Media / Historia**
-- **Ogólne**: Klient, Lokalizacja, Pracownicy, Notatki, Cena netto, FV/SMS sekcje
-- **Media**: Zdjęcia (przeniesione z obecnego contentu)
-- **Historia**: Lista zleceń z tej samej lokalizacji (customer_address_id) — wykorzystanie `CustomerOrderCard`
+**3. Podejście implementacyjne**
+- Stworzyć reużywalny komponent `LightTabs` / `LightTabsTrigger` z border-bottom style (flex, border-b, active = border-primary + text-primary)
+- Użyć go w: CalendarItemDetailsDrawer, CustomerEditDrawer, RemindersView
+- RemindersView: zamienić custom buttony na ten sam komponent (opcjonalnie z badge/count)
 
-**5. Label "Cena" → "Cena netto"**
+### Komponent `LightTabs`:
+```
+<div className="flex border-b border-border/50">
+  <button className="flex-1 px-4 py-2.5 text-sm font-medium border-b-2 
+    active: border-primary text-primary
+    inactive: border-transparent text-muted-foreground hover:text-foreground">
+    Tab name
+  </button>
+</div>
+```
 
-**6. Footer — przycisk "Dodaj protokół"**
-- Przeniesienie z contentu do footera, obok przycisku "Edytuj", przed nim
-
-**7. Historia tab — implementacja**
-- Nowy query do `calendar_items` filtrujący po `customer_address_id` (z wykluczeniem bieżącego zlecenia)
-- Pobranie powiązanych usług i protokołów
-- Renderowanie jako lista `CustomerOrderCard`
+### Pliki do edycji:
+- `src/components/admin/CalendarItemDetailsDrawer.tsx` — użycie lekkich tabów, "Media" → "Pliki"
+- `src/components/admin/CustomerEditDrawer.tsx` — zamiana AdminTabsList na lekkie taby
+- Opcjonalnie: nowy komponent `LightTabTrigger` lub inline style
 
