@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Calendar, Bell, Clock, User, MapPin, Tag, CreditCard, DollarSign } from 'lucide-react';
+import { Calendar, Bell, Clock, User, MapPin, Tag, CreditCard, DollarSign, HardHat } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,11 +27,13 @@ interface CalendarItemRow {
   status: string;
   column_id: string | null;
   customer_address_id: string | null;
+  assigned_employee_ids: string[] | null;
   address_name?: string | null;
   address_street?: string | null;
   address_city?: string | null;
   payment_status: string | null;
   price: number | null;
+  employee_names?: string[];
 }
 
 interface ReminderRow {
@@ -59,7 +61,7 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
     const [itemsRes, remindersRes] = await Promise.all([
       supabase
         .from('calendar_items')
-        .select('id, title, customer_name, customer_phone, item_date, start_time, end_time, status, column_id, customer_address_id, payment_status, price')
+        .select('id, title, customer_name, customer_phone, item_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price')
         .eq('instance_id', instanceId)
         .gte('item_date', weekStart)
         .lte('item_date', weekEnd)
@@ -93,6 +95,20 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
               i.address_street = addr.street;
               i.address_city = addr.city;
             }
+          }
+        });
+      }
+    }
+
+    // Fetch employee names
+    const allEmpIds = [...new Set(calItems.flatMap(i => i.assigned_employee_ids || []))];
+    if (allEmpIds.length > 0) {
+      const { data: employees } = await supabase.from('employees').select('id, name').in('id', allEmpIds);
+      if (employees) {
+        const empMap = new Map(employees.map(e => [e.id, e.name]));
+        calItems.forEach(i => {
+          if (i.assigned_employee_ids?.length) {
+            i.employee_names = i.assigned_employee_ids.map(id => empMap.get(id)).filter(Boolean) as string[];
           }
         });
       }
@@ -267,6 +283,12 @@ const OrderCard = ({ item, fullAddress, showDate, formatDateLabel, isFirst, onCl
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <MapPin className="w-3 h-3" />
           <span>{fullAddress}</span>
+        </div>
+      )}
+      {item.employee_names && item.employee_names.length > 0 && (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <HardHat className="w-3 h-3" />
+          <span>{item.employee_names.join(', ')}</span>
         </div>
       )}
     </div>
