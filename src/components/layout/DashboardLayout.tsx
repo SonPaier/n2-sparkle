@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,14 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'ustawienia', label: 'Ustawienia', icon: Settings },
 ];
 
+// Bottom bar items for mobile
+const bottomBarItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
+  { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
+  { id: 'klienci', label: 'Klienci', icon: Users },
+];
+
 interface DashboardLayoutProps {
   currentView: ViewType;
   onViewChange: (view: ViewType) => void;
@@ -42,6 +51,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   });
   const [instanceLogo, setInstanceLogo] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!instanceId) return;
@@ -77,13 +87,13 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 z-[60] bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky top-0 inset-y-0 left-0 z-50 h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0",
+          "fixed lg:sticky top-0 inset-y-0 left-0 z-[70] h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           sidebarCollapsed ? "lg:w-16" : "w-64"
         )}
@@ -178,22 +188,36 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile header */}
-        <header className="lg:hidden flex items-center gap-3 p-4 border-b border-border/50 bg-card">
-          <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-            <Menu className="w-5 h-5" />
-          </Button>
-          {instanceLogo ? (
-            <img src={instanceLogo} alt={instanceName || 'Logo'} className="h-8 object-contain" />
-          ) : (
-            <h1 className="font-semibold text-foreground">N2Service</h1>
-          )}
-        </header>
-
-        <main className="flex-1 overflow-auto p-6">
+        <main className={cn("flex-1 overflow-auto p-4 lg:p-6", isMobile && "pb-20")}>
           {children}
         </main>
       </div>
+
+      {/* Mobile bottom bar */}
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 flex items-center justify-around h-16 px-2">
+          {bottomBarItems.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => handleNavClick(id)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer transition-colors",
+                currentView === id ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{label}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Więcej</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };
