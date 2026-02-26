@@ -611,11 +611,14 @@ const CalendarItemDetailsDrawer = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {/* Line 2: date + time + badges */}
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {/* Line 2: date + time */}
+            <div className="flex items-center gap-2 mt-1">
               <span className="text-[14px] text-muted-foreground capitalize">{shortDate}</span>
               <span className="text-muted-foreground">·</span>
               <span className="text-[14px] font-medium">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
+            </div>
+            {/* Line 3: badges */}
+            <div className="flex items-center gap-2 mt-1.5">
               <Badge className={statusColors[item.status] || 'bg-muted'}>
                 {statusLabels[item.status] || item.status}
               </Badge>
