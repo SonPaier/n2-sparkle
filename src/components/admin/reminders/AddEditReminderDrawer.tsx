@@ -11,13 +11,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Trash2, X, CalendarIcon } from 'lucide-react';
+import { Trash2, X, CalendarIcon, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Reminder, ReminderType } from '@/hooks/useReminders';
 import CustomerSearchInput from '@/components/admin/CustomerSearchInput';
 import { useEmployees } from '@/hooks/useEmployees';
+import EmployeeSelectionDrawer from '@/components/admin/EmployeeSelectionDrawer';
 
 const DAYS_OF_WEEK = [
   { value: 0, label: 'Poniedziałek' },
@@ -59,6 +60,7 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
   const [recurringValue, setRecurringValue] = useState<number | null>(null);
   const [assignedEmployeeId, setAssignedEmployeeId] = useState<string | null>(null);
   const [visibleForEmployee, setVisibleForEmployee] = useState(false);
+  const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const { data: employees = [] } = useEmployees(instanceId);
@@ -293,18 +295,19 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
 
       {/* Employee assignment */}
       <div>
-        <Label className="mb-1.5 block">Przypisz pracownika <span className="text-muted-foreground text-xs">(opcjonalne)</span></Label>
-        <Select value={assignedEmployeeId || '__none__'} onValueChange={v => { setAssignedEmployeeId(v === '__none__' ? null : v); if (v === '__none__') setVisibleForEmployee(false); }}>
-          <SelectTrigger className="bg-white">
-            <SelectValue placeholder="Wybierz pracownika..." />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__none__">Brak</SelectItem>
-            {activeEmployees.map(e => (
-              <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label className="mb-1.5 block">Powiąż pracownika <span className="text-muted-foreground text-xs">(opcjonalne)</span></Label>
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full justify-start text-left font-normal bg-white"
+          onClick={() => setEmployeeDrawerOpen(true)}
+        >
+          <User className="w-4 h-4 mr-2 shrink-0" />
+          {assignedEmployeeId
+            ? activeEmployees.find(e => e.id === assignedEmployeeId)?.name || 'Wybrany pracownik'
+            : <span className="text-muted-foreground">Wybierz pracownika...</span>
+          }
+        </Button>
       </div>
 
       {assignedEmployeeId && (
@@ -346,26 +349,47 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
     </div>
   );
 
+  const employeeDrawer = (
+    <EmployeeSelectionDrawer
+      open={employeeDrawerOpen}
+      onClose={() => setEmployeeDrawerOpen(false)}
+      employees={employees}
+      selectedIds={assignedEmployeeId ? [assignedEmployeeId] : []}
+      singleSelect
+      onConfirm={(ids) => {
+        const newId = ids[0] || null;
+        setAssignedEmployeeId(newId);
+        if (!newId) setVisibleForEmployee(false);
+      }}
+    />
+  );
+
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={v => !v && onClose()} dismissible={false}>
-        <DrawerContent className="h-full max-h-full flex flex-col p-0 gap-0 bg-card" hideHandle>
-          {header}
-          {formContent}
-          {footer}
-        </DrawerContent>
-      </Drawer>
+      <>
+        <Drawer open={open} onOpenChange={v => !v && onClose()} dismissible={false}>
+          <DrawerContent className="h-full max-h-full flex flex-col p-0 gap-0 bg-card" hideHandle>
+            {header}
+            {formContent}
+            {footer}
+          </DrawerContent>
+        </Drawer>
+        {employeeDrawer}
+      </>
     );
   }
 
   return (
-    <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent className="w-[480px] sm:max-w-[480px] flex flex-col p-0 gap-0 bg-card" hideCloseButton>
-        {header}
-        {formContent}
-        {footer}
-      </SheetContent>
-    </Sheet>
+    <>
+      <Sheet open={open} onOpenChange={v => !v && onClose()}>
+        <SheetContent className="w-[480px] sm:max-w-[480px] flex flex-col p-0 gap-0 bg-card" hideCloseButton>
+          {header}
+          {formContent}
+          {footer}
+        </SheetContent>
+      </Sheet>
+      {employeeDrawer}
+    </>
   );
 }
 
