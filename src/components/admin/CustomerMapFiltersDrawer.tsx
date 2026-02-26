@@ -61,7 +61,7 @@ const CustomerMapFiltersDrawer = ({
 
   return (
     <Drawer open={open} onOpenChange={v => { if (!v) onClose(); }} direction="right">
-      <DrawerContent className="ml-auto h-full w-full sm:max-w-sm max-w-none rounded-none">
+      <DrawerContent className="ml-auto h-full w-full sm:max-w-sm max-w-none rounded-none bg-white">
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-border">
           <h2 className="text-lg font-semibold">Filtry</h2>

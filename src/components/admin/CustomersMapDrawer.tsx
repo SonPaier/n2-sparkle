@@ -208,14 +208,14 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
         hideHandle
         className={
           isMobile
-            ? 'h-[100dvh] rounded-none'
-            : 'ml-auto h-full w-full max-w-none rounded-none'
+            ? 'h-[100dvh] rounded-none bg-white'
+            : 'ml-auto h-full w-full max-w-none rounded-none bg-white'
         }
       >
         {isMobile ? (
           // Mobile layout
           <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between p-3 border-b border-border">
+             <div className="flex items-center justify-between p-3 border-b border-border bg-white">
               <h2 className="text-lg font-semibold">Mapa klientów</h2>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" onClick={() => setMobileFiltersOpen(true)}>
@@ -249,9 +249,9 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
           // Desktop layout: sidebar + map
           <div className="flex flex-row h-full">
             {/* Left sidebar: filters */}
-            <div className="min-w-[250px] w-[20%] border-r border-border flex flex-col">
-              <div className="flex items-center justify-between p-3 border-b border-border">
-                <h2 className="text-lg font-semibold">Filtry</h2>
+             <div className="min-w-[250px] w-[20%] border-r border-border flex flex-col bg-white">
+              <div className="flex items-center justify-between p-3 border-b border-border bg-white">
+                <h2 className="text-lg font-semibold text-foreground">Filtry</h2>
               </div>
               <div className="flex-1 overflow-y-auto">
                 <CustomerMapFilters
@@ -269,8 +269,8 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
 
             {/* Right side: header + active filters + map */}
             <div className="flex-1 flex flex-col">
-              <div className="flex items-center justify-between p-3 border-b border-border">
-                <h2 className="text-lg font-semibold">Mapa klientów</h2>
+               <div className="flex items-center justify-between p-3 border-b border-border bg-white">
+                 <h2 className="text-lg font-semibold text-foreground">Mapa klientów</h2>
                 <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
                   <X className="w-4 h-4" />
                 </Button>

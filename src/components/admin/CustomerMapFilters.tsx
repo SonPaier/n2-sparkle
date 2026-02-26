@@ -45,7 +45,7 @@ const CustomerMapFilters = ({
         <label className="text-sm font-medium text-foreground">Usługi</label>
         <Button
           variant="outline"
-          className="w-full justify-start text-muted-foreground font-normal"
+          className="w-full justify-start font-normal bg-white text-foreground"
           onClick={() => setServiceDrawerOpen(true)}
         >
           <ListFilter className="w-4 h-4 mr-2" />
@@ -54,26 +54,6 @@ const CustomerMapFilters = ({
             : 'Wybierz usługi...'}
         </Button>
 
-        {/* Selected service chips */}
-        {selectedServiceNames.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {selectedServiceNames.map((name, idx) => (
-              <span
-                key={selectedServiceIds[idx]}
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
-              >
-                {name}
-                <button
-                  type="button"
-                  onClick={() => onRemoveService(selectedServiceIds[idx])}
-                  className="hover:text-primary/70"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       <ServiceSelectionDrawer
@@ -82,7 +62,7 @@ const CustomerMapFilters = ({
         instanceId={instanceId}
         selectedServiceIds={selectedServiceIds}
         onConfirm={onServicesConfirm}
-        hideSelectedSection={false}
+        hideSelectedSection={true}
       />
     </div>
   );
