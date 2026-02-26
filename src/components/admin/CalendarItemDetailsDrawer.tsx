@@ -12,7 +12,8 @@ import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { LightTabsList, LightTabsTrigger } from '@/components/ui/light-tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmployees } from '@/hooks/useEmployees';
@@ -625,11 +626,11 @@ const CalendarItemDetailsDrawer = ({
           {/* Tabbed Content */}
           <Tabs defaultValue="general" className="flex-1 flex flex-col min-h-0">
             <div className="px-6 shrink-0">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="general">Ogólne</TabsTrigger>
-                <TabsTrigger value="media">Media</TabsTrigger>
-                <TabsTrigger value="history">Historia</TabsTrigger>
-              </TabsList>
+              <LightTabsList>
+                <LightTabsTrigger value="general">Ogólne</LightTabsTrigger>
+                <LightTabsTrigger value="media">Pliki</LightTabsTrigger>
+                <LightTabsTrigger value="history">Historia</LightTabsTrigger>
+              </LightTabsList>
             </div>
 
             {/* Tab: Ogólne */}
