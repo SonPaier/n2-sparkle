@@ -695,7 +695,7 @@ const AddCalendarItemDialog = ({
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 z-[60]" align="start">
+                <PopoverContent className="w-auto p-0 z-[1200]" align="start">
                   {reservationType === 'single' ? (
                     <Calendar
                       mode="single"
@@ -736,7 +736,7 @@ const AddCalendarItemDialog = ({
                 <Label>Od</Label>
                 <Select value={startTime} onValueChange={setStartTime}>
                   <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[1200]">
                     {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -745,7 +745,7 @@ const AddCalendarItemDialog = ({
                 <Label>Do</Label>
                 <Select value={endTime} onValueChange={setEndTime}>
                   <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[1200]">
                     {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                   </SelectContent>
                 </Select>
