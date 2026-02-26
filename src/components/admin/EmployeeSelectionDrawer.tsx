@@ -53,10 +53,10 @@ const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConf
               localSelected.length === 0 ? "bg-primary/10 border border-primary/30" : "hover:bg-muted border border-transparent"
             )}
           >
+            <span className="flex-1 text-sm font-medium text-muted-foreground">Brak</span>
             <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center shrink-0">
               {localSelected.length === 0 && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
             </div>
-            <span className="flex-1 text-sm font-medium text-muted-foreground">Brak</span>
           </button>
         )}
         {activeEmployees.map(emp => {
@@ -71,17 +71,18 @@ const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConf
                 isSelected ? "bg-primary/10 border border-primary/30" : "hover:bg-muted border border-transparent"
               )}
             >
-              {singleSelect && (
-                <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center shrink-0">
-                  {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-                </div>
-              )}
               <Avatar className="w-8 h-8">
                 {emp.photo_url && <AvatarImage src={emp.photo_url} />}
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs">{emp.name.charAt(0)}</AvatarFallback>
               </Avatar>
               <span className="flex-1 text-sm font-medium">{emp.name}</span>
-              {!singleSelect && isSelected && <Check className="w-4 h-4 text-primary" />}
+              {singleSelect ? (
+                <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center shrink-0">
+                  {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                </div>
+              ) : (
+                isSelected && <Check className="w-4 h-4 text-primary" />
+              )}
             </button>
           );
         })}
