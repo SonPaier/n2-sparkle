@@ -2,7 +2,7 @@
 
 export type InvoicingProvider = 'fakturownia' | 'ifirma';
 
-export type PaymentStatus = 'not_invoiced' | 'invoice_sent' | 'paid' | 'overdue';
+export type PaymentStatus = 'not_invoiced' | 'invoice_sent' | 'paid' | 'overdue' | 'collective' | 'non_payable';
 
 export type DocumentKind = 'vat' | 'proforma' | 'receipt';
 
@@ -90,4 +90,6 @@ export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { label: string; color
   invoice_sent: { label: 'Wysłano FV', color: 'bg-yellow-400 text-gray-900' },
   paid: { label: 'Opłacony', color: 'bg-emerald-600 text-white' },
   overdue: { label: 'Przeterminowana', color: 'bg-red-600 text-white' },
+  collective: { label: 'Zbiorczy', color: 'bg-blue-600 text-white' },
+  non_payable: { label: 'Niepłatny', color: 'bg-gray-400 text-white' },
 };
