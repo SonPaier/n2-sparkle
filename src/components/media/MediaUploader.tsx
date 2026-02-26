@@ -312,9 +312,10 @@ export const MediaUploader = ({
         </div>
       )}
 
-      {/* Videos — inline links */}
+      {/* Videos */}
       {videos.length > 0 && (
         <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Video</p>
           {videos.map((v) => {
             const globalIdx = items.indexOf(v);
             return (
@@ -334,9 +335,10 @@ export const MediaUploader = ({
         </div>
       )}
 
-      {/* Audio — inline links */}
+      {/* Audio */}
       {audios.length > 0 && (
         <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nagrania głosowe</p>
           {audios.map((a) => {
             const globalIdx = items.indexOf(a);
             return (
@@ -356,9 +358,10 @@ export const MediaUploader = ({
         </div>
       )}
 
-      {/* Files — inline links */}
+      {/* Files */}
       {files.length > 0 && (
         <div className="space-y-1">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dokumenty</p>
           {files.map((f) => {
             const globalIdx = items.indexOf(f);
             return (
