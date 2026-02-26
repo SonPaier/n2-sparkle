@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText } from 'lucide-react';
+import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText, RefreshCw } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PAYMENT_STATUS_CONFIG, type PaymentStatus } from '@/components/invoicing/invoicing.types';
+import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { CreateInvoiceDrawer } from '@/components/invoicing/CreateInvoiceDrawer';
 import CalendarItemDetailsDrawer from './CalendarItemDetailsDrawer';
 import type { CalendarItem } from './AdminCalendar';
@@ -52,6 +53,7 @@ interface InvoiceRow {
   id: string;
   calendar_item_id: string;
   pdf_url: string | null;
+  payment_to: string | null;
 }
 
 const formatCurrency = (value: number | null) => {
@@ -80,6 +82,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   const [invoiceTarget, setInvoiceTarget] = useState<CalendarItemRow | null>(null);
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [detailsItem, setDetailsItem] = useState<CalendarItem | null>(null);
+  const [syncing, setSyncing] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: items = [], isLoading } = useQuery({
@@ -102,7 +105,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('invoices')
-        .select('id, calendar_item_id, pdf_url')
+        .select('id, calendar_item_id, pdf_url, payment_to')
         .eq('instance_id', instanceId);
       if (error) throw error;
       return (data || []) as InvoiceRow[];
@@ -169,6 +172,23 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     return STATUS_CONFIG[status] || { label: status, badgeClass: 'border-muted text-muted-foreground' };
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-invoice-statuses', {
+        body: { instanceId },
+      });
+      if (error) throw error;
+      toast.success(`Zsynchronizowano ${data?.synced || 0} z ${data?.total || 0} faktur`);
+      queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+      queryClient.invalidateQueries({ queryKey: ['settlements-invoices', instanceId] });
+    } catch (e: any) {
+      toast.error('Błąd synchronizacji: ' + (e.message || 'Nieznany błąd'));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const formatOrderNumber = (item: CalendarItemRow) => {
     try {
       return format(parseISO(item.item_date), 'dd.MM.yyyy');
@@ -225,6 +245,15 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
             className="pl-9"
           />
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleSync}
+          disabled={syncing}
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+          Synchronizuj
+        </Button>
       </div>
 
       {/* Table */}
@@ -316,11 +345,11 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
-                              <span
-                                className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer ${paymentConfig.color}`}
-                              >
-                                {paymentConfig.label}
-                              </span>
+                              <InvoiceStatusBadge
+                                status={order.payment_status}
+                                paymentTo={invoice?.payment_to}
+                                className="cursor-pointer"
+                              />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
