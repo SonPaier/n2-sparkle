@@ -1,15 +1,19 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, Clock, User, MapPin, Tag, CreditCard, DollarSign } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
+import { toast } from 'sonner';
 
 interface DashboardOverviewProps {
   instanceId: string;
+  onItemClick?: (itemId: string) => void;
+  onReminderClick?: (reminderId: string) => void;
+  onPaymentClick?: (itemId: string) => void;
 }
 
 interface CalendarItemRow {
@@ -24,6 +28,8 @@ interface CalendarItemRow {
   column_id: string | null;
   customer_address_id: string | null;
   address_name?: string | null;
+  address_street?: string | null;
+  address_city?: string | null;
   payment_status: string | null;
   price: number | null;
 }
@@ -39,13 +45,7 @@ interface ReminderRow {
   reminder_type_name?: string;
 }
 
-const statusLabels: Record<string, { label: string; className: string }> = {
-  in_progress: { label: 'W trakcie', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  completed: { label: 'Zakończone', className: 'bg-green-100 text-green-800 border-green-200' },
-  cancelled: { label: 'Anulowane', className: 'bg-red-100 text-red-800 border-red-200' },
-};
-
-const DashboardOverview = ({ instanceId }: DashboardOverviewProps) => {
+const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPaymentClick }: DashboardOverviewProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,13 +79,22 @@ const DashboardOverview = ({ instanceId }: DashboardOverviewProps) => {
     const calItems = (itemsRes.data as CalendarItemRow[]) || [];
     const remItems = (remindersRes.data as ReminderRow[]) || [];
 
-    // Fetch addresses
+    // Fetch addresses with full details
     const addressIds = [...new Set(calItems.filter(i => i.customer_address_id).map(i => i.customer_address_id!))];
     if (addressIds.length > 0) {
-      const { data: addresses } = await supabase.from('customer_addresses').select('id, name').in('id', addressIds);
+      const { data: addresses } = await supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds);
       if (addresses) {
-        const addrMap = new Map(addresses.map(a => [a.id, a.name]));
-        calItems.forEach(i => { if (i.customer_address_id) i.address_name = addrMap.get(i.customer_address_id); });
+        const addrMap = new Map(addresses.map(a => [a.id, a]));
+        calItems.forEach(i => {
+          if (i.customer_address_id) {
+            const addr = addrMap.get(i.customer_address_id);
+            if (addr) {
+              i.address_name = addr.name;
+              i.address_street = addr.street;
+              i.address_city = addr.city;
+            }
+          }
+        });
       }
     }
 
@@ -112,6 +121,17 @@ const DashboardOverview = ({ instanceId }: DashboardOverviewProps) => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const handleReminderDone = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const { error } = await supabase.from('reminders').update({ status: 'done' }).eq('id', id);
+    if (error) {
+      toast.error('Błąd zmiany statusu');
+      return;
+    }
+    toast.success('Przypomnienie oznaczone jako wykonane');
+    fetchData();
+  };
+
   const today = format(new Date(), 'yyyy-MM-dd');
 
   const todayItems = items.filter(i => i.item_date === today);
@@ -125,35 +145,15 @@ const DashboardOverview = ({ instanceId }: DashboardOverviewProps) => {
   const todayPayments = paymentItems.filter(i => i.item_date === today);
   const upcomingPayments = paymentItems.filter(i => i.item_date > today);
 
-  // Mock data for demo purposes
-  const mockReminders = useMemo<ReminderRow[]>(() => {
-    if (reminders.length > 0) return [];
-    return [
-      { id: 'mock-r1', name: 'Przegląd klimatyzacji', deadline: today, customer_id: null, reminder_type_id: null, status: 'todo', customer_name: 'Jan Kowalski', reminder_type_name: 'Przegląd' },
-      { id: 'mock-r2', name: 'Odnowienie ubezpieczenia', deadline: today, customer_id: null, reminder_type_id: null, status: 'todo', customer_name: 'Anna Nowak', reminder_type_name: 'Ubezpieczenie' },
-      { id: 'mock-r3', name: 'Badanie techniczne', deadline: format(new Date(Date.now() + 86400000 * 2), 'yyyy-MM-dd'), customer_id: null, reminder_type_id: null, status: 'todo', customer_name: 'Firma XYZ', reminder_type_name: 'Badanie' },
-    ];
-  }, [reminders.length, today]);
-
-  const mockPayments = useMemo<CalendarItemRow[]>(() => {
-    if (paymentItems.length > 0) return [];
-    return items.slice(0, 3).map((item, idx) => ({
-      ...item,
-      id: `mock-p-${item.id}`,
-      price: [350, 1200, 580][idx] ?? 500,
-      payment_status: ['invoice_sent', 'overdue', 'not_invoiced'][idx] ?? 'not_invoiced',
-    }));
-  }, [paymentItems.length, items]);
-
-  const allTodayReminders = todayReminders.length > 0 ? todayReminders : mockReminders.filter(r => r.deadline === today);
-  const allUpcomingReminders = upcomingReminders.length > 0 ? upcomingReminders : mockReminders.filter(r => r.deadline > today);
-  const allTodayPayments = todayPayments.length > 0 ? todayPayments : mockPayments.filter(i => i.item_date === today);
-  const allUpcomingPayments = upcomingPayments.length > 0 ? upcomingPayments : mockPayments.filter(i => i.item_date > today);
-
   const formatDateLabel = (date: string) => {
     try {
       return format(new Date(date + 'T00:00:00'), 'EEEE, d MMM', { locale: pl });
     } catch { return date; }
+  };
+
+  const buildFullAddress = (item: CalendarItemRow) => {
+    const parts = [item.address_name, item.address_street, item.address_city].filter(Boolean);
+    return parts.join(', ');
   };
 
   if (loading) {
@@ -181,13 +181,19 @@ const DashboardOverview = ({ instanceId }: DashboardOverviewProps) => {
       <h2 className="text-lg font-semibold text-center mb-4">Dziś</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={todayItems.length} emptyText="Brak zleceń na dziś">
-          {todayItems.map(item => <OrderCard key={item.id} item={item} />)}
+          {todayItems.map((item, idx) => (
+            <OrderCard key={item.id} item={item} fullAddress={buildFullAddress(item)} isFirst={idx === 0} onClick={() => onItemClick?.(item.id)} />
+          ))}
         </DashboardColumn>
-        <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={allTodayReminders.length} emptyText="Brak przypomnień na dziś">
-          {allTodayReminders.map(r => <ReminderCard key={r.id} reminder={r} />)}
+        <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={todayReminders.length} emptyText="Brak przypomnień na dziś">
+          {todayReminders.map((r, idx) => (
+            <ReminderCard key={r.id} reminder={r} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />
+          ))}
         </DashboardColumn>
-        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={allTodayPayments.length} emptyText="Brak płatności na dziś">
-          {allTodayPayments.map(item => <PaymentCard key={item.id} item={item} />)}
+        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={todayPayments.length} emptyText="Brak płatności na dziś">
+          {todayPayments.map((item, idx) => (
+            <PaymentCard key={item.id} item={item} isFirst={idx === 0} onClick={() => onPaymentClick?.(item.id)} />
+          ))}
         </DashboardColumn>
       </div>
 
@@ -195,13 +201,19 @@ const DashboardOverview = ({ instanceId }: DashboardOverviewProps) => {
       <h2 className="text-lg font-semibold text-center mb-4">Nadchodzące</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={upcomingItems.length} emptyText="Brak nadchodzących zleceń">
-          {upcomingItems.slice(0, 3).map(item => <OrderCard key={item.id} item={item} showDate formatDateLabel={formatDateLabel} />)}
+          {upcomingItems.slice(0, 3).map((item, idx) => (
+            <OrderCard key={item.id} item={item} fullAddress={buildFullAddress(item)} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onClick={() => onItemClick?.(item.id)} />
+          ))}
         </DashboardColumn>
-        <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={allUpcomingReminders.length} emptyText="Brak nadchodzących przypomnień">
-          {allUpcomingReminders.slice(0, 3).map(r => <ReminderCard key={r.id} reminder={r} showDate formatDateLabel={formatDateLabel} />)}
+        <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={upcomingReminders.length} emptyText="Brak nadchodzących przypomnień">
+          {upcomingReminders.slice(0, 3).map((r, idx) => (
+            <ReminderCard key={r.id} reminder={r} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />
+          ))}
         </DashboardColumn>
-        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={allUpcomingPayments.length} emptyText="Brak nadchodzących płatności">
-          {allUpcomingPayments.slice(0, 3).map(item => <PaymentCard key={item.id} item={item} showDate formatDateLabel={formatDateLabel} />)}
+        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={upcomingPayments.length} emptyText="Brak nadchodzących płatności">
+          {upcomingPayments.slice(0, 3).map((item, idx) => (
+            <PaymentCard key={item.id} item={item} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onClick={() => onPaymentClick?.(item.id)} />
+          ))}
         </DashboardColumn>
       </div>
     </div>
@@ -222,75 +234,89 @@ const DashboardColumn = ({ icon, title, count, emptyText, children }: {
       {count === 0 ? (
         <p className="text-sm text-muted-foreground/60 italic py-3">{emptyText}</p>
       ) : (
-        <div className="space-y-2">{children}</div>
+        <div>{children}</div>
       )}
     </CardContent>
   </Card>
 );
 
-const OrderCard = ({ item, showDate, formatDateLabel }: { item: CalendarItemRow; showDate?: boolean; formatDateLabel?: (d: string) => string }) => {
-  const st = statusLabels[item.status] || { label: item.status, className: 'bg-muted text-muted-foreground' };
-  return (
-    <Card className="shadow-sm">
-      <CardContent className="p-3 space-y-1">
-        <div className="flex items-start justify-between gap-2">
-          <span className="font-medium text-sm leading-tight">{item.title}</span>
-          {item.status !== 'confirmed' && (
-            <Badge variant="outline" className={`text-[10px] shrink-0 ${st.className}`}>{st.label}</Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock className="w-3 h-3" />
-          {showDate && formatDateLabel ? (
-            <span>{formatDateLabel(item.item_date)}, {item.start_time}–{item.end_time}</span>
-          ) : (
-            <span>{item.start_time}–{item.end_time}</span>
-          )}
-        </div>
-        {item.customer_name && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <User className="w-3 h-3" />
-            <span>{item.customer_name}</span>
-          </div>
-        )}
-        {item.address_name && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <MapPin className="w-3 h-3" />
-            <span>{item.address_name}</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
-const ReminderCard = ({ reminder, showDate, formatDateLabel }: { reminder: ReminderRow; showDate?: boolean; formatDateLabel?: (d: string) => string }) => (
-  <Card className="shadow-sm">
-    <CardContent className="p-3 space-y-1">
-      <span className="font-medium text-sm leading-tight">{reminder.name}</span>
+const OrderCard = ({ item, fullAddress, showDate, formatDateLabel, isFirst, onClick }: {
+  item: CalendarItemRow; fullAddress: string; showDate?: boolean; formatDateLabel?: (d: string) => string; isFirst?: boolean; onClick?: () => void;
+}) => (
+  <div
+    className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
+    onClick={onClick}
+  >
+    <div className="space-y-1">
+      <span className="font-medium text-sm leading-tight">{item.title}</span>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Clock className="w-3 h-3" />
-        <span>{showDate && formatDateLabel ? formatDateLabel(reminder.deadline) : 'Dziś'}</span>
+        {showDate && formatDateLabel ? (
+          <span>{formatDateLabel(item.item_date)}, {item.start_time}–{item.end_time}</span>
+        ) : (
+          <span>{item.start_time}–{item.end_time}</span>
+        )}
       </div>
-      {reminder.customer_name && (
+      {item.customer_name && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <User className="w-3 h-3" />
-          <span>{reminder.customer_name}</span>
+          <span>{item.customer_name}</span>
         </div>
       )}
-      {reminder.reminder_type_name && (
+      {fullAddress && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Tag className="w-3 h-3" />
-          <span>{reminder.reminder_type_name}</span>
+          <MapPin className="w-3 h-3" />
+          <span>{fullAddress}</span>
         </div>
       )}
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 );
 
-const PaymentCard = ({ item, showDate, formatDateLabel }: { item: CalendarItemRow; showDate?: boolean; formatDateLabel?: (d: string) => string }) => (
-  <Card className="shadow-sm">
-    <CardContent className="p-3 space-y-1">
+const ReminderCard = ({ reminder, showDate, formatDateLabel, isFirst, onDone, onClick }: {
+  reminder: ReminderRow; showDate?: boolean; formatDateLabel?: (d: string) => string; isFirst?: boolean;
+  onDone: (e: React.MouseEvent) => void; onClick?: () => void;
+}) => (
+  <div
+    className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
+    onClick={onClick}
+  >
+    <div className="flex items-start gap-2">
+      <Checkbox
+        className="mt-0.5 shrink-0"
+        onClick={onDone}
+      />
+      <div className="space-y-1 min-w-0">
+        <span className="font-medium text-sm leading-tight">{reminder.name}</span>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Clock className="w-3 h-3" />
+          <span>{showDate && formatDateLabel ? formatDateLabel(reminder.deadline) : 'Dziś'}</span>
+        </div>
+        {reminder.customer_name && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <User className="w-3 h-3" />
+            <span>{reminder.customer_name}</span>
+          </div>
+        )}
+        {reminder.reminder_type_name && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Tag className="w-3 h-3" />
+            <span>{reminder.reminder_type_name}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const PaymentCard = ({ item, showDate, formatDateLabel, isFirst, onClick }: {
+  item: CalendarItemRow; showDate?: boolean; formatDateLabel?: (d: string) => string; isFirst?: boolean; onClick?: () => void;
+}) => (
+  <div
+    className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
+    onClick={onClick}
+  >
+    <div className="space-y-1">
       <div className="flex items-start justify-between gap-2">
         <span className="font-medium text-sm leading-tight">{item.title}</span>
         <InvoiceStatusBadge status={item.payment_status} size="sm" />
@@ -313,8 +339,8 @@ const PaymentCard = ({ item, showDate, formatDateLabel }: { item: CalendarItemRo
           <span>{item.price?.toFixed(2)} PLN</span>
         </div>
       )}
-    </CardContent>
-  </Card>
+    </div>
+  </div>
 );
 
 export default DashboardOverview;

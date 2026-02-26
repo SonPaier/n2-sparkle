@@ -21,11 +21,14 @@ import ProtocolsView from '@/components/protocols/ProtocolsView';
 import SettlementsView from '@/components/admin/SettlementsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import RemindersView from '@/components/admin/reminders/RemindersView';
+import AddEditReminderDrawer from '@/components/admin/reminders/AddEditReminderDrawer';
 import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import DashboardOverview from '@/components/admin/DashboardOverview';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { useReminders, useReminderTypes } from '@/hooks/useReminders';
+import type { Reminder } from '@/hooks/useReminders';
 
 const validViews: ViewType[] = ['dashboard', 'kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'przypomnienia', 'powiadomienia-sms', 'ustawienia'];
 
@@ -84,6 +87,15 @@ const Dashboard = () => {
     customerAddressId?: string | null;
     calendarItemId?: string | null;
   }>({});
+
+  // Dashboard drawer state
+  const [dashboardSelectedItem, setDashboardSelectedItem] = useState<CalendarItem | null>(null);
+  const [dashboardDetailsOpen, setDashboardDetailsOpen] = useState(false);
+  const [dashboardReminderOpen, setDashboardReminderOpen] = useState(false);
+  const [dashboardEditingReminder, setDashboardEditingReminder] = useState<Reminder | null>(null);
+
+  const { types: reminderTypes } = useReminderTypes(instanceId);
+  const { saveReminder, deleteReminder } = useReminders(instanceId || '');
 
   // Fetch columns
   const fetchColumns = useCallback(async () => {
@@ -178,6 +190,9 @@ const Dashboard = () => {
       fetchColumns();
       fetchItems();
       fetchBreaks();
+    }
+    if (currentView === 'dashboard') {
+      fetchColumns();
     }
   }, [currentView, fetchColumns, fetchItems, fetchBreaks]);
 
@@ -316,9 +331,62 @@ const Dashboard = () => {
     setCurrentCalendarDate(date);
   };
 
+  // Dashboard click handlers
+  const handleDashboardItemClick = async (itemId: string) => {
+    if (!instanceId) return;
+    const { data } = await supabase
+      .from('calendar_items')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, payment_status')
+      .eq('id', itemId)
+      .single();
+    if (!data) return;
+
+    // Fetch address
+    if (data.customer_address_id) {
+      const { data: addr } = await supabase.from('customer_addresses').select('id, name, lat, lng, city').eq('id', data.customer_address_id).single();
+      if (addr) {
+        (data as any).address_name = addr.name;
+        (data as any).address_lat = addr.lat;
+        (data as any).address_lng = addr.lng;
+        (data as any).address_city = addr.city;
+      }
+    }
+
+    // Fetch employees
+    if (data.assigned_employee_ids?.length) {
+      const { data: employees } = await supabase.from('employees').select('id, name, photo_url').in('id', data.assigned_employee_ids);
+      if (employees) {
+        (data as any).assigned_employees = employees as AssignedEmployee[];
+      }
+    }
+
+    setDashboardSelectedItem(data as CalendarItem);
+    setDashboardDetailsOpen(true);
+  };
+
+  const handleDashboardReminderClick = async (reminderId: string) => {
+    const { data } = await supabase.from('reminders').select('*').eq('id', reminderId).single();
+    if (!data) return;
+    setDashboardEditingReminder(data as Reminder);
+    setDashboardReminderOpen(true);
+  };
+
+  const handleDashboardPaymentClick = async (itemId: string) => {
+    // Open item details drawer (which has invoice section)
+    await handleDashboardItemClick(itemId);
+  };
+
   const renderContent = () => {
     if (currentView === 'dashboard' && instanceId) {
-      return <DashboardOverview instanceId={instanceId} />;
+      return (
+        <DashboardOverview
+          instanceId={instanceId}
+          onItemClick={handleDashboardItemClick}
+          onReminderClick={handleDashboardReminderClick}
+          onPaymentClick={handleDashboardPaymentClick}
+        />
+      );
+    }
     }
 
     if (currentView === 'ustawienia') {
@@ -498,6 +566,35 @@ const Dashboard = () => {
           prefillCustomerEmail={protocolPrefill.customerEmail}
           prefillCustomerAddressId={protocolPrefill.customerAddressId}
           prefillCalendarItemId={protocolPrefill.calendarItemId}
+        />
+      )}
+
+      {/* Dashboard drawers */}
+      <CalendarItemDetailsDrawer
+        item={dashboardSelectedItem}
+        open={dashboardDetailsOpen}
+        onClose={() => { setDashboardDetailsOpen(false); setDashboardSelectedItem(null); }}
+        columns={calendarColumns}
+        onDelete={handleDeleteItem}
+        onStatusChange={handleStatusChange}
+        onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
+        onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+        instanceId={instanceId || undefined}
+      />
+
+      {instanceId && (
+        <AddEditReminderDrawer
+          open={dashboardReminderOpen}
+          onClose={() => { setDashboardReminderOpen(false); setDashboardEditingReminder(null); }}
+          instanceId={instanceId}
+          reminderTypes={reminderTypes}
+          onSave={async (data, id) => {
+            const ok = await saveReminder(data, id);
+            if (ok) { setDashboardReminderOpen(false); setDashboardEditingReminder(null); }
+            return ok;
+          }}
+          onDelete={async (id) => { await deleteReminder(id); setDashboardReminderOpen(false); setDashboardEditingReminder(null); }}
+          editingReminder={dashboardEditingReminder}
         />
       )}
     </DashboardLayout>
