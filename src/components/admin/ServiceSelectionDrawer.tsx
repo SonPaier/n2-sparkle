@@ -46,6 +46,7 @@ interface ServiceSelectionDrawerProps {
   selectedServiceIds: string[];
   onConfirm: (serviceIds: string[], totalDuration: number, services: ServiceWithCategory[]) => void;
   hideSelectedSection?: boolean;
+  hidePricesAndDuration?: boolean;
 }
 
 // Round to nearest 5 PLN
@@ -66,6 +67,7 @@ const ServiceSelectionDrawer = ({
   selectedServiceIds: initialSelectedIds,
   onConfirm,
   hideSelectedSection = false,
+  hidePricesAndDuration = false,
 }: ServiceSelectionDrawerProps) => {
   const [loading, setLoading] = useState(true);
   const [services, setServices] = useState<Service[]>([]);
@@ -313,7 +315,7 @@ const ServiceSelectionDrawer = ({
         side="right"
         hideOverlay
         hideCloseButton
-        className="w-full sm:max-w-lg p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] z-[1000]"
+        className="w-full sm:max-w-lg p-0 flex flex-col shadow-[-8px_0_30px_-12px_rgba(0,0,0,0.15)] z-[1000] bg-white"
         onFocusOutside={(e) => e.preventDefault()}
       >
         {/* Header */}
@@ -446,10 +448,12 @@ const ServiceSelectionDrawer = ({
                             )}
                           </div>
 
-                          <div className="text-right mr-4">
-                            <p className="font-semibold text-foreground">{formatPrice(price)}</p>
-                            <p className="text-xs text-muted-foreground">{formatDuration(duration)}</p>
-                          </div>
+                          {!hidePricesAndDuration && (
+                            <div className="text-right mr-4">
+                              <p className="font-semibold text-foreground">{formatPrice(price)}</p>
+                              <p className="text-xs text-muted-foreground">{formatDuration(duration)}</p>
+                            </div>
+                          )}
 
                           <div className={cn(
                             "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
@@ -470,27 +474,36 @@ const ServiceSelectionDrawer = ({
         </div>
 
         {/* Fixed Footer */}
-        <div className="border-t px-4 py-4 shrink-0 bg-background">
-          <div className="mb-3 space-y-1">
-            <div className="flex items-center justify-between">
+        <div className="border-t px-4 py-4 shrink-0 bg-white">
+          {!hidePricesAndDuration && (
+            <div className="mb-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-semibold text-foreground">
+                  Wybrano: {selectedIds.length}
+                </span>
+                {totalDuration > 0 && (
+                  <span className="text-lg font-bold text-foreground">
+                    {formatDuration(totalDuration)}
+                  </span>
+                )}
+              </div>
+              {selectedIds.length > 0 && (
+                <div className="text-right">
+                  <span className="text-xl font-bold text-foreground">
+                    {totalPrice.hasVariablePrice ? 'od ' : ''}
+                    {totalPrice.total.toFixed(0)} zł
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          {hidePricesAndDuration && selectedIds.length > 0 && (
+            <div className="mb-3">
               <span className="text-lg font-semibold text-foreground">
                 Wybrano: {selectedIds.length}
               </span>
-              {totalDuration > 0 && (
-                <span className="text-lg font-bold text-foreground">
-                  {formatDuration(totalDuration)}
-                </span>
-              )}
             </div>
-            {selectedIds.length > 0 && (
-              <div className="text-right">
-                <span className="text-xl font-bold text-foreground">
-                  {totalPrice.hasVariablePrice ? 'od ' : ''}
-                  {totalPrice.total.toFixed(0)} zł
-                </span>
-              </div>
-            )}
-          </div>
+          )}
           <Button
             onClick={handleConfirm}
             disabled={selectedIds.length === 0}

@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ExternalLink, MapPin } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface CustomerOrderCardProps {
@@ -58,14 +58,11 @@ const CustomerOrderCard = ({
 
       {/* Address */}
       {hasAddress && (
-        <div className="flex items-start gap-1.5 text-sm text-muted-foreground">
-          <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-          <div>
-            {addressName && <div className="font-medium text-foreground">{addressName}</div>}
-            {(addressStreet || addressCity) && (
-              <div>{[addressStreet, addressCity].filter(Boolean).join(', ')}</div>
-            )}
-          </div>
+        <div className="text-sm text-foreground">
+          {addressName && <div className="font-medium">{addressName}</div>}
+          {(addressStreet || addressCity) && (
+            <div>{[addressStreet, addressCity].filter(Boolean).join(', ')}</div>
+          )}
         </div>
       )}
 
@@ -73,7 +70,7 @@ const CustomerOrderCard = ({
       {services.length > 0 && (
         <div className="text-sm space-y-0.5">
           {services.map((s, i) => (
-            <div key={i} className="flex justify-between text-muted-foreground">
+            <div key={i} className="flex justify-between text-foreground">
               <span>{s.name}</span>
               {!hidePrices && s.price != null && <span>{s.price.toFixed(2)} zł</span>}
             </div>

@@ -88,15 +88,15 @@ const CustomerAddressesSection = ({
         <div className="space-y-2">
           {activeAddresses.map((addr, idx) => (
             <div key={addr.id || idx} className="bg-white p-3 border border-border rounded-lg text-sm space-y-1 shadow-sm">
-              <div className="font-medium">{addr.name}</div>
-              {addr.street && <div className="text-muted-foreground">{addr.street}</div>}
+              <div className="font-medium text-foreground">{addr.name}</div>
+              {addr.street && <div className="text-foreground">{addr.street}</div>}
               {(addr.postal_code || addr.city) && (
-                <div className="text-muted-foreground">
+                <div className="text-foreground">
                   {addr.postal_code} {addr.city}
                 </div>
               )}
               {addr.contact_person && (
-                <div className="text-muted-foreground">
+                <div className="text-foreground">
                   Kontakt: {addr.contact_person} {addr.contact_phone && `• ${addr.contact_phone}`}
                 </div>
               )}

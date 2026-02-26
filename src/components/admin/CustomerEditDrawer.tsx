@@ -507,29 +507,29 @@ const CustomerEditDrawer = ({
                   <div className="space-y-4 mt-4">
                     <div className="flex items-center gap-3 text-lg">
                       <Phone className="w-5 h-5 text-muted-foreground" />
-                      <span className="font-medium">{customer?.phone}</span>
+                      <span className="font-medium text-foreground">{customer?.phone}</span>
                     </div>
 
                     <div className="space-y-2 text-sm">
                       {customer?.email && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 text-foreground">
                           <Mail className="w-4 h-4 text-muted-foreground" />
                           <span>{customer.email}</span>
                         </div>
                       )}
                       {customer?.company && (
-                        <div className="text-muted-foreground">
-                          <span className="font-medium text-foreground">Firma:</span> {customer.company}
+                        <div className="text-foreground">
+                          <span className="font-medium">Firma:</span> {customer.company}
                         </div>
                       )}
                       {customer?.nip && (
-                        <div className="text-muted-foreground">
-                          <span className="font-medium text-foreground">NIP:</span> {customer.nip}
+                        <div className="text-foreground">
+                          <span className="font-medium">NIP:</span> {customer.nip}
                         </div>
                       )}
                       {customer?.contact_person && (
-                        <div className="text-muted-foreground">
-                          <span className="font-medium text-foreground">Osoba kontaktowa:</span> {customer.contact_person}
+                        <div className="text-foreground">
+                          <span className="font-medium">Osoba kontaktowa:</span> {customer.contact_person}
                         </div>
                       )}
                     </div>
@@ -543,7 +543,7 @@ const CustomerEditDrawer = ({
                     {customer?.notes && (
                       <div>
                         <h4 className="text-sm font-medium mb-2">Notatki</h4>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">{customer.notes}</p>
+                        <p className="text-sm text-foreground whitespace-pre-wrap">{customer.notes}</p>
                       </div>
                     )}
                   </div>
