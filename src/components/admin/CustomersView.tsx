@@ -278,10 +278,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   };
 
   // Address display helper for desktop: comma-separated "city, street" per address
-  const getAddressDisplay = (customerId: string) => {
+  const getAddressDisplay = (customerId: string): string | string[] => {
     const addrs = addressMap.get(customerId);
     if (!addrs || addrs.length === 0) return '—';
-    return addrs.map(a => formatAddressShort(a)).join('; ');
+    return addrs.map(a => formatAddressShort(a));
   };
 
   // Pagination page numbers with ellipsis
@@ -363,10 +363,9 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                     {customer.name}
                   </div>
                   {addrs.length > 0 && (
-                    <div className="text-sm text-foreground">
-                      {visibleAddrs.map((a, i) => (
+                    <div className="text-sm text-foreground flex flex-col">
+                      {visibleAddrs.map((a) => (
                         <span key={a.id}>
-                          {i > 0 && ', '}
                           {formatAddressShort(a)}
                         </span>
                       ))}
@@ -427,8 +426,18 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                   onClick={() => openCustomer(customer)}
                 >
                   <TableCell className="font-medium">{customer.name}</TableCell>
-                  <TableCell className="max-w-[300px] truncate">
-                    {getAddressDisplay(customer.id)}
+                  <TableCell className="max-w-[300px]">
+                    {(() => {
+                      const display = getAddressDisplay(customer.id);
+                      if (typeof display === 'string') return display;
+                      return (
+                        <div className="flex flex-col">
+                          {display.map((line, i) => (
+                            <span key={i} className="truncate">{line}</span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{formatPhoneDisplay(customer.phone)}</TableCell>
                   <TableCell className="text-right">
