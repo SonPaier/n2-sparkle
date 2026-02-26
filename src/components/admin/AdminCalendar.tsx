@@ -633,7 +633,7 @@ const AdminCalendar = ({
             </div>
           )}
           {/* Line 5: Payment status + Assigned employees chips */}
-          <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
+          <div className="flex items-center gap-0.5 mt-[4px] flex-wrap">
             {item.payment_status && item.payment_status !== 'not_invoiced' && (
               <InvoiceStatusBadge status={item.payment_status} size="sm" />
             )}
