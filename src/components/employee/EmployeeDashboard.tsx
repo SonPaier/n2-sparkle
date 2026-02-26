@@ -231,27 +231,27 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, lin
                     className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
                     onClick={() => onItemClick?.(item)}
                   >
-                    <div className="space-y-1">
-                      <span className="font-medium text-sm leading-tight">{item.title}</span>
-                      <div className="flex items-center gap-1.5 text-xs text-foreground">
-                        <Clock className="w-3 h-3" />
+                    <div className="space-y-1.5">
+                      <span className="font-semibold text-base leading-tight">{item.title}</span>
+                      <div className="flex items-center gap-1.5 text-sm text-foreground">
+                        <Clock className="w-3.5 h-3.5" />
                         <span>{formatDateLabel(item.item_date)}, {item.start_time}–{item.end_time}</span>
                       </div>
                       {item.customer_name && (
-                        <div className="flex items-center gap-1.5 text-xs text-foreground">
-                          <User className="w-3 h-3" />
+                        <div className="flex items-center gap-1.5 text-sm text-foreground">
+                          <User className="w-3.5 h-3.5" />
                           <span>{item.customer_name}</span>
                         </div>
                       )}
                       {buildFullAddress(item) && (
-                        <div className="flex items-center gap-1.5 text-xs text-foreground">
-                          <MapPin className="w-3 h-3" />
+                        <div className="flex items-center gap-1.5 text-sm text-foreground">
+                          <MapPin className="w-3.5 h-3.5" />
                           <span>{buildFullAddress(item)}</span>
                         </div>
                       )}
-                      {item.employee_names && item.employee_names.length > 0 && (
-                        <div className="flex items-center gap-1.5 text-xs text-foreground">
-                          <HardHat className="w-3 h-3" />
+                      {item.employee_names && item.employee_names.length > 1 && (
+                        <div className="flex items-center gap-1.5 text-sm text-foreground">
+                          <HardHat className="w-3.5 h-3.5" />
                           <span>{item.employee_names.join(', ')}</span>
                         </div>
                       )}
@@ -293,20 +293,20 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, lin
                           onClick={(e) => handleReminderDone(r.id, e)}
                         />
                         <div className="space-y-1 min-w-0">
-                          <span className="font-medium text-sm leading-tight">{r.name}</span>
-                          <div className="flex items-center gap-1.5 text-xs text-foreground">
-                            <Clock className="w-3 h-3" />
+                          <span className="font-semibold text-base leading-tight">{r.name}</span>
+                          <div className="flex items-center gap-1.5 text-sm text-foreground">
+                            <Clock className="w-3.5 h-3.5" />
                             <span>{deadlineLabel}</span>
                           </div>
                           {r.customer_name && (
-                            <div className="flex items-center gap-1.5 text-xs text-foreground">
-                              <User className="w-3 h-3" />
+                            <div className="flex items-center gap-1.5 text-sm text-foreground">
+                              <User className="w-3.5 h-3.5" />
                               <span>{r.customer_name}</span>
                             </div>
                           )}
                           {r.reminder_type_name && (
-                            <div className="flex items-center gap-1.5 text-xs text-foreground">
-                              <Tag className="w-3 h-3" />
+                            <div className="flex items-center gap-1.5 text-sm text-foreground">
+                              <Tag className="w-3.5 h-3.5" />
                               <span>{r.reminder_type_name}</span>
                             </div>
                           )}
