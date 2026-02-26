@@ -75,14 +75,13 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
         .neq('status', 'cancelled')
         .order('item_date')
         .order('start_time'),
-      // Unsettled completed items for payments section (not_invoiced + completed/done status)
+      // Unsettled completed items for payments section (completed + not_invoiced, no date filter)
       supabase
         .from('calendar_items')
         .select(selectFields)
         .eq('instance_id', instanceId)
         .eq('status', 'completed')
         .eq('payment_status', 'not_invoiced')
-        .lte('item_date', today)
         .order('item_date')
         .limit(100),
       // All todo reminders (no date range filter)
