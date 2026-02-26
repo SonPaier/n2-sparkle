@@ -50,10 +50,11 @@ interface CalendarItemDetailsDrawerProps {
   onEndWork?: (itemId: string) => void;
   onAddProtocol?: (item: CalendarItem) => void;
   instanceId?: string;
+  hidePrices?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
-  confirmed: 'Potwierdzone',
+  confirmed: 'Do wykonania',
   in_progress: 'W trakcie',
   completed: 'Zakończone',
   cancelled: 'Anulowane',
@@ -80,6 +81,7 @@ const CalendarItemDetailsDrawer = ({
   onEndWork,
   onAddProtocol,
   instanceId,
+  hidePrices,
 }: CalendarItemDetailsDrawerProps) => {
   const isMobile = useIsMobile();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -418,7 +420,7 @@ const CalendarItemDetailsDrawer = ({
           () => onEndWork(item.id),
           'bg-sky-500 hover:bg-sky-600 text-white',
           [
-            { label: 'Potwierdzone', status: 'confirmed', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
+            { label: 'Do wykonania', status: 'confirmed', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
             { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
             { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
           ]
@@ -435,7 +437,7 @@ const CalendarItemDetailsDrawer = ({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Potwierdzone
+                Do wykonania
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
                 <RotateCcw className="w-4 h-4 mr-2" />
@@ -464,7 +466,7 @@ const CalendarItemDetailsDrawer = ({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
                 <RotateCcw className="w-4 h-4 mr-2" />
-                Potwierdzone
+                Do wykonania
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
                 <Clock className="w-4 h-4 mr-2" />
@@ -493,7 +495,7 @@ const CalendarItemDetailsDrawer = ({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
                 <Check className="w-4 h-4 mr-2" />
-                Potwierdzone
+                Do wykonania
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
                 <Clock className="w-4 h-4 mr-2" />
@@ -699,7 +701,7 @@ const CalendarItemDetailsDrawer = ({
             </div>
 
             {/* Price */}
-            {item.price != null && (
+            {!hidePrices && item.price != null && (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">Cena</span>
                 <span className="font-bold text-[15px]">{item.price.toFixed(2)} PLN</span>
@@ -708,9 +710,11 @@ const CalendarItemDetailsDrawer = ({
 
             {/* Photos */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                Zdjęcia
-              </div>
+              {itemPhotos.length > 0 && (
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  Zdjęcia
+                </div>
+              )}
               <ProtocolPhotosUploader
                 photos={itemPhotos}
                 onPhotosChange={(newPhotos) => {
@@ -738,10 +742,11 @@ const CalendarItemDetailsDrawer = ({
               />
             </div>
 
-            {/* Add Protocol button - normal width */}
+            {/* Add Protocol button */}
             {onAddProtocol && (
               <Button
                 variant="outline"
+                className="w-full bg-white"
                 onClick={() => onAddProtocol(item)}
               >
                 <ClipboardCheck className="w-4 h-4 mr-2" />
@@ -750,7 +755,7 @@ const CalendarItemDetailsDrawer = ({
             )}
 
             {/* Completed: FV + SMS buttons */}
-            {(item.status === 'completed' || item.status === 'in_progress') && (
+            {!hidePrices && (item.status === 'completed' || item.status === 'in_progress') && (
               <div className="space-y-2 pt-2 border-t border-border">
                 {invoicingSettings?.active && itemInvoices.length === 0 && (
                   <Button

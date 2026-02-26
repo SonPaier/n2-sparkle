@@ -419,6 +419,7 @@ const EmployeeCalendarPage = () => {
                     onStatusChange={handleStatusChange}
                     onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                     onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+                    hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                     onAddProtocol={(item) => {
                       setDetailsOpen(false);
                       setProtocolPrefill({
