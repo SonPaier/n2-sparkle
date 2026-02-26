@@ -652,7 +652,7 @@ const AdminCalendar = ({
           </div>
           {/* Line 6: Admin notes */}
           {item.admin_notes && (
-            <div className="text-[10px] md:text-[11px] opacity-75 italic mt-[4px] whitespace-pre-wrap break-words">
+            <div className="text-[10px] md:text-[11px] opacity-75 italic mt-[6px] whitespace-pre-wrap break-words">
               {item.admin_notes}
             </div>
           )}
