@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { Camera, Video, Mic, FileText, Plus, X, Play, Pause, FileIcon } from 'lucide-react';
+import { Camera, Video, Mic, FileText, Plus, Play, Pause, Trash2, FileIcon, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -12,11 +12,9 @@ import {
   compressVideo,
   uploadFileWithProgress,
   generateFileName,
-  getMediaTypeFromMime,
 } from './mediaUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 interface MediaUploaderProps {
   items: MediaItem[];
@@ -57,7 +55,6 @@ export const MediaUploader = ({
 
   const images = items.filter((i) => i.type === 'image');
   const videos = items.filter((i) => i.type === 'video');
-  const visualMedia = items.filter((i) => i.type === 'image' || i.type === 'video');
   const audios = items.filter((i) => i.type === 'audio');
   const files = items.filter((i) => i.type === 'file');
 
@@ -97,7 +94,6 @@ export const MediaUploader = ({
     }
   };
 
-  // Image upload
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -115,7 +111,6 @@ export const MediaUploader = ({
     }
   };
 
-  // Video upload
   const handleVideoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -137,7 +132,6 @@ export const MediaUploader = ({
     }
   };
 
-  // File upload (PDF/DOC/DOCX)
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -147,7 +141,6 @@ export const MediaUploader = ({
     await doUpload(file, storageBucket, fileName, file.type, 'file', file.name);
   };
 
-  // Audio recorded
   const handleAudioRecorded = async (blob: Blob, name?: string) => {
     setShowAudioRecorder(false);
     const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
@@ -155,12 +148,10 @@ export const MediaUploader = ({
     await doUpload(blob, storageBucket, fileName, blob.type, 'audio', name || `Nagranie ${audios.length + 1}`);
   };
 
-  // Delete
   const handleDelete = async (index: number) => {
     const item = items[index];
     const newItems = items.filter((_, i) => i !== index);
     saveItems(newItems);
-    // Try to remove from storage
     try {
       const bucket = item.type === 'image' ? imageBucket : storageBucket;
       const urlParts = item.url.split('/');
@@ -170,22 +161,30 @@ export const MediaUploader = ({
     setDeleteIndex(null);
   };
 
-  // Audio playback
   const toggleAudio = (url: string) => {
     if (playingAudio === url) {
       audioRef.current?.pause();
       setPlayingAudio(null);
     } else {
-      if (audioRef.current) audioRef.current.pause();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
       const audio = new Audio(url);
       audio.onended = () => setPlayingAudio(null);
-      audio.play();
+      audio.onerror = () => {
+        toast.error('Nie udało się odtworzyć nagrania');
+        setPlayingAudio(null);
+      };
+      audio.play().catch(() => {
+        toast.error('Nie udało się odtworzyć nagrania');
+        setPlayingAudio(null);
+      });
       audioRef.current = audio;
       setPlayingAudio(url);
     }
   };
 
-  // Annotation handler for images
   const handleAnnotate = async (newUrl: string) => {
     const oldUrl = fullscreenPhoto;
     if (!oldUrl) return;
@@ -195,6 +194,49 @@ export const MediaUploader = ({
   };
 
   const allPhotos = images.map((i) => i.url);
+
+  // Empty state
+  if (items.length === 0 && !uploading && !uploadError && !showAudioRecorder) {
+    return (
+      <div className="space-y-4">
+        <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
+        <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={handleVideoSelect} className="hidden" />
+        <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileSelect} className="hidden" />
+
+        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+          <FolderOpen className="h-12 w-12 mb-3 opacity-40" />
+          <p className="text-sm">To zlecenie nie ma dodanych plików</p>
+        </div>
+
+        {!disabled && (
+          <div className="flex justify-center">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <Plus className="h-4 w-4" />
+                  Dodaj plik
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                <DropdownMenuItem onClick={() => imageInputRef.current?.click()} className="gap-2">
+                  <Camera className="h-4 w-4" /> Zdjęcie
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => videoInputRef.current?.click()} className="gap-2">
+                  <Video className="h-4 w-4" /> Video
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowAudioRecorder(true)} className="gap-2">
+                  <Mic className="h-4 w-4" /> Nagranie głosowe
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="gap-2">
+                  <FileText className="h-4 w-4" /> Dokument (PDF/DOC)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -247,43 +289,21 @@ export const MediaUploader = ({
         />
       )}
 
-      {/* Visual media grid (images + videos) */}
-      {visualMedia.length > 0 && (
+      {/* Images grid — only images get thumbnails */}
+      {images.length > 0 && (
         <div className="grid grid-cols-4 gap-2">
-          {visualMedia.map((m) => {
+          {images.map((m) => {
             const globalIdx = items.indexOf(m);
-            if (m.type === 'image') {
-              return (
-                <div key={m.url} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(m.url)}>
-                  <img src={m.url} alt={m.name || ''} className="w-full h-full object-cover rounded-lg" />
-                  {!disabled && (
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setDeleteIndex(globalIdx); }}
-                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              );
-            }
-            // video
             return (
-              <div key={m.url} className="relative aspect-square group">
-                <video src={m.url} className="w-full h-full object-cover rounded-lg" preload="metadata" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg">
-                  <a href={m.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
-                    <Play className="h-8 w-8 text-white" />
-                  </a>
-                </div>
+              <div key={m.url} className="relative aspect-square group cursor-pointer" onClick={() => setFullscreenPhoto(m.url)}>
+                <img src={m.url} alt={m.name || ''} className="w-full h-full object-cover rounded-lg" />
                 {!disabled && (
                   <button
                     type="button"
-                    onClick={() => setDeleteIndex(globalIdx)}
+                    onClick={(e) => { e.stopPropagation(); setDeleteIndex(globalIdx); }}
                     className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1"
                   >
-                    <X className="h-3 w-3" />
+                    <Trash2 className="h-3 w-3" />
                   </button>
                 )}
               </div>
@@ -292,21 +312,42 @@ export const MediaUploader = ({
         </div>
       )}
 
-      {/* Audio list */}
+      {/* Videos — inline links */}
+      {videos.length > 0 && (
+        <div className="space-y-1">
+          {videos.map((v) => {
+            const globalIdx = items.indexOf(v);
+            return (
+              <div key={v.url} className="flex items-center gap-2 py-1">
+                <Video className="h-4 w-4 text-muted-foreground shrink-0" />
+                <a href={v.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate flex-1 text-primary hover:underline">
+                  {v.name || 'Video'}
+                </a>
+                {!disabled && (
+                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Audio — inline links */}
       {audios.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Nagrania głosowe</p>
+        <div className="space-y-1">
           {audios.map((a) => {
             const globalIdx = items.indexOf(a);
             return (
-              <div key={a.url} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
-                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => toggleAudio(a.url)}>
+              <div key={a.url} className="flex items-center gap-2 py-1">
+                <button type="button" onClick={() => toggleAudio(a.url)} className="shrink-0 text-muted-foreground hover:text-foreground">
                   {playingAudio === a.url ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                </Button>
+                </button>
                 <span className="text-sm truncate flex-1">{a.name || 'Nagranie'}</span>
                 {!disabled && (
-                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80">
-                    <X className="h-4 w-4" />
+                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0">
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -315,21 +356,20 @@ export const MediaUploader = ({
         </div>
       )}
 
-      {/* Files list */}
+      {/* Files — inline links */}
       {files.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Dokumenty</p>
+        <div className="space-y-1">
           {files.map((f) => {
             const globalIdx = items.indexOf(f);
             return (
-              <div key={f.url} className="flex items-center gap-2 p-2 rounded-md bg-muted/50">
+              <div key={f.url} className="flex items-center gap-2 py-1">
                 <FileIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                 <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-sm truncate flex-1 text-primary hover:underline">
                   {f.name || 'Plik'}
                 </a>
                 {!disabled && (
-                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80">
-                    <X className="h-4 w-4" />
+                  <button type="button" onClick={() => setDeleteIndex(globalIdx)} className="text-destructive hover:text-destructive/80 shrink-0">
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -338,7 +378,7 @@ export const MediaUploader = ({
         </div>
       )}
 
-      {/* Fullscreen photo dialog with annotation */}
+      {/* Fullscreen photo dialog */}
       <PhotoFullscreenDialog
         open={!!fullscreenPhoto}
         onOpenChange={(open) => { if (!open) setFullscreenPhoto(null); }}
