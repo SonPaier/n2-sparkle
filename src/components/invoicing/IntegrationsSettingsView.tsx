@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import { useInvoicingSettings } from './useInvoicingSettings';
 import { FakturowniaConfigForm } from './FakturowniaConfigForm';
 import { IfirmaConfigForm } from './IfirmaConfigForm';
@@ -61,7 +62,7 @@ export function IntegrationsSettingsView({ instanceId }: IntegrationsSettingsVie
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const config: ProviderConfig | Record<string, never> = activeProvider === 'fakturownia'
       ? fakturowniaConfig
       : activeProvider === 'ifirma'
@@ -78,6 +79,39 @@ export function IntegrationsSettingsView({ instanceId }: IntegrationsSettingsVie
       auto_send_email: autoSendEmail,
       active: !!activeProvider,
     });
+
+    // Auto-register webhook for Fakturownia
+    if (activeProvider === 'fakturownia' && fakturowniaConfig.domain && fakturowniaConfig.api_token) {
+      try {
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const webhookUrl = `https://${projectId}.supabase.co/functions/v1/fakturownia-webhook`;
+
+        const res = await fetch(
+          `https://${fakturowniaConfig.domain}.fakturownia.pl/webhooks.json`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              api_token: fakturowniaConfig.api_token,
+              webhook: {
+                url: webhookUrl,
+                kind: 'invoice:update',
+                enabled: true,
+              },
+            }),
+          }
+        );
+
+        if (res.ok) {
+          toast.success('Webhook Fakturowni zarejestrowany');
+        } else {
+          // Non-critical — webhook may already exist
+          console.warn('Webhook registration response:', res.status);
+        }
+      } catch (e) {
+        console.warn('Webhook registration failed (non-critical):', e);
+      }
+    }
   };
 
   if (isLoading) {

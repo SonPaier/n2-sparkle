@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.invoicing-api]
 verify_jwt = false
+
+[functions.fakturownia-webhook]
+verify_jwt = false
+
+[functions.sync-invoice-statuses]
+verify_jwt = false
