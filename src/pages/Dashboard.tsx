@@ -575,9 +575,22 @@ const Dashboard = () => {
         onClose={() => { setDashboardDetailsOpen(false); setDashboardSelectedItem(null); }}
         columns={calendarColumns}
         onDelete={handleDeleteItem}
+        onEdit={handleEditItem}
         onStatusChange={handleStatusChange}
         onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
         onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+        onAddProtocol={(item) => {
+          setDashboardDetailsOpen(false);
+          setProtocolPrefill({
+            customerId: item.customer_id,
+            customerName: item.customer_name || '',
+            customerPhone: item.customer_phone || '',
+            customerEmail: item.customer_email || '',
+            customerAddressId: item.customer_address_id,
+            calendarItemId: item.id,
+          });
+          setProtocolFormOpen(true);
+        }}
         instanceId={instanceId || undefined}
       />
 

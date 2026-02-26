@@ -278,7 +278,7 @@ export function CreateInvoiceDrawer({
               </Button>
             </div>
             {positions.map((pos, idx) => (
-              <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-muted/30">
+              <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-white">
                 <div className="flex items-center gap-2">
                   <Input
                     value={pos.name}
@@ -338,14 +338,14 @@ export function CreateInvoiceDrawer({
           <Separator />
 
           {/* Summary */}
-          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+          <div className="bg-white rounded-lg border border-border p-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Razem brutto</span>
-              <span className="text-lg font-bold">{totalGross.toFixed(2)} {currency}</span>
+              <span className="text-foreground">Razem brutto</span>
+              <span className="text-lg font-bold text-foreground">{totalGross.toFixed(2)} {currency}</span>
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Termin płatności</span>
-              <span>{paymentTo}</span>
+            <div className="flex justify-between text-xs">
+              <span className="text-foreground">Termin płatności</span>
+              <span className="text-foreground">{paymentTo}</span>
             </div>
             {settings?.auto_send_email && (
               <p className="text-xs text-muted-foreground">
