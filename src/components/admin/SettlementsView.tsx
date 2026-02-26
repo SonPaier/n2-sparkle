@@ -63,7 +63,7 @@ const formatCurrency = (value: number | null) => {
 
 const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
   pending: { label: 'Do potw.', badgeClass: 'border-amber-500 text-amber-600' },
-  confirmed: { label: 'Potwierdzony', badgeClass: 'border-amber-500 text-amber-600' },
+  confirmed: { label: 'Do wykonania', badgeClass: 'border-amber-500 text-amber-600' },
   in_progress: { label: 'W realizacji', badgeClass: 'bg-blue-600 hover:bg-blue-700 text-white' },
   completed: { label: 'Zakończony', badgeClass: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
   cancelled: { label: 'Anulowany', badgeClass: 'bg-red-600 hover:bg-red-700 text-white' },

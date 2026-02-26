@@ -1209,7 +1209,7 @@ const AdminCalendar = ({
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-green-400/80 border border-green-500/70" />
-          <span className="text-xs text-muted-foreground">Potwierdzone</span>
+          <span className="text-xs text-muted-foreground">Do wykonania</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded bg-slate-400/80 border border-slate-500/70" />

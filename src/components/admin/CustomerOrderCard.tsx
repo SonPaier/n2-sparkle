@@ -13,10 +13,11 @@ interface CustomerOrderCardProps {
   price?: number;
   protocolPublicToken?: string;
   onClick?: () => void;
+  hidePrices?: boolean;
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  confirmed: { label: 'Potwierdzone', className: 'bg-green-100 text-green-800 border-green-200' },
+  confirmed: { label: 'Do wykonania', className: 'bg-green-100 text-green-800 border-green-200' },
   completed: { label: 'Zakończone', className: 'bg-blue-100 text-blue-800 border-blue-200' },
   cancelled: { label: 'Anulowane', className: 'bg-red-100 text-red-800 border-red-200' },
 };
@@ -31,6 +32,7 @@ const CustomerOrderCard = ({
   price,
   protocolPublicToken,
   onClick,
+  hidePrices,
 }: CustomerOrderCardProps) => {
   const statusInfo = statusConfig[status] || { label: status, className: 'bg-muted text-muted-foreground' };
 
@@ -73,7 +75,7 @@ const CustomerOrderCard = ({
           {services.map((s, i) => (
             <div key={i} className="flex justify-between text-muted-foreground">
               <span>{s.name}</span>
-              {s.price != null && <span>{s.price.toFixed(2)} zł</span>}
+              {!hidePrices && s.price != null && <span>{s.price.toFixed(2)} zł</span>}
             </div>
           ))}
         </div>
@@ -81,9 +83,12 @@ const CustomerOrderCard = ({
 
       {/* Bottom: total + protocol link */}
       <div className="flex items-center justify-between pt-1 border-t">
-        <span className="text-sm font-semibold">
-          {price != null ? `${price.toFixed(2)} zł` : '—'}
-        </span>
+        {!hidePrices && (
+          <span className="text-sm font-semibold">
+            {price != null ? `${price.toFixed(2)} zł` : '—'}
+          </span>
+        )}
+        {hidePrices && <span />}
         {protocolPublicToken && (
           <a
             href={`/protocol/${protocolPublicToken}`}

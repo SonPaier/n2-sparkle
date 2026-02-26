@@ -11,6 +11,7 @@ import type { CalendarItem, CalendarColumn } from './AdminCalendar';
 interface CustomerOrdersTabProps {
   customerId: string;
   instanceId: string;
+  hidePrices?: boolean;
 }
 
 interface OrderData {
@@ -25,7 +26,7 @@ interface OrderData {
   protocolPublicToken?: string;
 }
 
-const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) => {
+const CustomerOrdersTab = ({ customerId, instanceId, hidePrices }: CustomerOrdersTabProps) => {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showPast, setShowPast] = useState(false);
@@ -198,6 +199,7 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
           services={order.services}
           protocolPublicToken={order.protocolPublicToken}
           onClick={() => handleCardClick(order.id)}
+          hidePrices={hidePrices}
         />
       ))}
 
@@ -225,6 +227,7 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
               services={order.services}
               protocolPublicToken={order.protocolPublicToken}
               onClick={() => handleCardClick(order.id)}
+              hidePrices={hidePrices}
             />
           ))}
         </>
@@ -236,6 +239,7 @@ const CustomerOrdersTab = ({ customerId, instanceId }: CustomerOrdersTabProps) =
         onClose={handleDetailClose}
         columns={columns}
         instanceId={instanceId}
+        hidePrices={hidePrices}
       />
     </div>
   );

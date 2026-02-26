@@ -310,7 +310,7 @@ const OrderCard = ({ item, fullAddress, showDate, formatDateLabel, isFirst, onCl
   >
     <div className="space-y-1">
       <span className="font-medium text-sm leading-tight">{item.title}</span>
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-xs text-foreground">
         <Clock className="w-3 h-3" />
         {showDate && formatDateLabel ? (
           <span>{formatDateLabel(item.item_date)}, {item.start_time}–{item.end_time}</span>
@@ -319,19 +319,19 @@ const OrderCard = ({ item, fullAddress, showDate, formatDateLabel, isFirst, onCl
         )}
       </div>
       {item.customer_name && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
           <User className="w-3 h-3" />
           <span>{item.customer_name}</span>
         </div>
       )}
       {fullAddress && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
           <MapPin className="w-3 h-3" />
           <span>{fullAddress}</span>
         </div>
       )}
       {item.employee_names && item.employee_names.length > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
           <HardHat className="w-3 h-3" />
           <span>{item.employee_names.join(', ')}</span>
         </div>
@@ -355,18 +355,18 @@ const ReminderCard = ({ reminder, showDate, formatDateLabel, isFirst, onDone, on
       />
       <div className="space-y-1 min-w-0">
         <span className="font-medium text-sm leading-tight">{reminder.name}</span>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
           <Clock className="w-3 h-3" />
           <span>{showDate && formatDateLabel ? formatDateLabel(reminder.deadline) : formatReminderDeadline(reminder.deadline)}</span>
         </div>
         {reminder.customer_name && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs text-foreground">
             <User className="w-3 h-3" />
             <span>{reminder.customer_name}</span>
           </div>
         )}
         {reminder.reminder_type_name && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs text-foreground">
             <Tag className="w-3 h-3" />
             <span>{reminder.reminder_type_name}</span>
           </div>
@@ -399,7 +399,7 @@ const PaymentCard = ({ item, showDate, formatDateLabel, isFirst, onClick }: {
       <div className="flex items-start justify-between gap-2">
         <span className="font-medium text-sm leading-tight">{item.title}</span>
         {item.overdue_days && item.overdue_days > 0 ? (
-          <span className="text-xs text-destructive font-medium whitespace-nowrap">
+          <span className="text-xs bg-red-600 text-white rounded-full px-2 py-0.5 font-medium whitespace-nowrap">
             Po terminie ({item.overdue_days} dni)
           </span>
         ) : (
@@ -413,19 +413,19 @@ const PaymentCard = ({ item, showDate, formatDateLabel, isFirst, onClick }: {
         </div>
       )}
       {!showDate && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
           <Clock className="w-3 h-3" />
           <span>{format(new Date(item.item_date + 'T00:00:00'), 'd MMM', { locale: pl })}</span>
         </div>
       )}
       {item.customer_name && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
           <User className="w-3 h-3" />
           <span>{item.customer_name}</span>
         </div>
       )}
       {(item.price ?? 0) > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-xs text-foreground">
           <DollarSign className="w-3 h-3" />
           <span>{item.price?.toFixed(2)} PLN</span>
         </div>
