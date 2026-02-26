@@ -340,41 +340,61 @@ const OrderCard = ({ item, fullAddress, showDate, formatDateLabel, isFirst, onCl
   </div>
 );
 
+function getReminderUrgency(deadline: string): { badge: string; label: string | null } {
+  const d = new Date(deadline + 'T00:00:00');
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const days = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (days <= 3) return { badge: 'bg-red-500 text-white', label: 'PILNE' };
+  if (days <= 7) return { badge: 'bg-yellow-100 text-yellow-700 border border-yellow-200', label: 'WKRÓTCE' };
+  return { badge: 'bg-green-100 text-green-700 border border-green-200', label: null };
+}
+
 const ReminderCard = ({ reminder, showDate, formatDateLabel, isFirst, onDone, onClick }: {
   reminder: ReminderRow; showDate?: boolean; formatDateLabel?: (d: string) => string; isFirst?: boolean;
   onDone: (e: React.MouseEvent) => void; onClick?: () => void;
-}) => (
-  <div
-    className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
-    onClick={onClick}
-  >
-    <div className="flex items-start gap-2">
-      <Checkbox
-        className="mt-0.5 shrink-0"
-        onClick={onDone}
-      />
-      <div className="space-y-1 min-w-0">
-        <span className="font-medium text-sm leading-tight">{reminder.name}</span>
-        <div className="flex items-center gap-1.5 text-xs text-foreground">
-          <Clock className="w-3 h-3" />
-          <span>{showDate && formatDateLabel ? formatDateLabel(reminder.deadline) : formatReminderDeadline(reminder.deadline)}</span>
+}) => {
+  const urgency = getReminderUrgency(reminder.deadline);
+  return (
+    <div
+      className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
+      onClick={onClick}
+    >
+      <div className="flex items-start gap-2">
+        <Checkbox
+          className="mt-0.5 shrink-0"
+          onClick={onDone}
+        />
+        <div className="space-y-1 min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-sm leading-tight">{reminder.name}</span>
+            {urgency.label && (
+              <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold shrink-0 ${urgency.badge}`}>
+                {urgency.label}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-foreground">
+            <Clock className="w-3 h-3" />
+            <span>{showDate && formatDateLabel ? formatDateLabel(reminder.deadline) : formatReminderDeadline(reminder.deadline)}</span>
+          </div>
+          {reminder.customer_name && (
+            <div className="flex items-center gap-1.5 text-xs text-foreground">
+              <User className="w-3 h-3" />
+              <span>{reminder.customer_name}</span>
+            </div>
+          )}
+          {reminder.reminder_type_name && (
+            <div className="flex items-center gap-1.5 text-xs text-foreground">
+              <Tag className="w-3 h-3" />
+              <span>{reminder.reminder_type_name}</span>
+            </div>
+          )}
         </div>
-        {reminder.customer_name && (
-          <div className="flex items-center gap-1.5 text-xs text-foreground">
-            <User className="w-3 h-3" />
-            <span>{reminder.customer_name}</span>
-          </div>
-        )}
-        {reminder.reminder_type_name && (
-          <div className="flex items-center gap-1.5 text-xs text-foreground">
-            <Tag className="w-3 h-3" />
-            <span>{reminder.reminder_type_name}</span>
-          </div>
-        )}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 /** Show "Dziś" or relative date for reminder deadline */
 function formatReminderDeadline(deadline: string): string {
