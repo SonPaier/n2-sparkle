@@ -75,13 +75,13 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
         .neq('status', 'cancelled')
         .order('item_date')
         .order('start_time'),
-      // All unsettled past items for payments section
+      // Unsettled completed items for payments section (not_invoiced + completed/done status)
       supabase
         .from('calendar_items')
         .select(selectFields)
         .eq('instance_id', instanceId)
-        .neq('status', 'cancelled')
-        .neq('payment_status', 'paid')
+        .eq('status', 'completed')
+        .eq('payment_status', 'not_invoiced')
         .lte('item_date', today)
         .order('item_date')
         .limit(100),
@@ -112,8 +112,22 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
       if (inv.calendar_item_id) overdueMap.set(inv.calendar_item_id, inv.payment_to);
     });
 
-    // Mark overdue days on payment items
-    payItems.forEach(item => {
+    // Fetch overdue calendar items (items with overdue invoices not already in payItems)
+    const overdueItemIds = [...overdueMap.keys()].filter(id => !payItems.find(p => p.id === id));
+    let overdueCalItems: CalendarItemRow[] = [];
+    if (overdueItemIds.length > 0) {
+      const { data } = await supabase
+        .from('calendar_items')
+        .select(selectFields)
+        .in('id', overdueItemIds);
+      overdueCalItems = (data as CalendarItemRow[]) || [];
+    }
+
+    // Combine: overdue items + unsettled completed items
+    const allPayItems = [...overdueCalItems, ...payItems];
+
+    // Mark overdue days
+    allPayItems.forEach(item => {
       const paymentTo = overdueMap.get(item.id);
       if (paymentTo) {
         const days = differenceInDays(new Date(), new Date(paymentTo + 'T00:00:00'));
@@ -121,15 +135,14 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
       }
     });
 
-    // Sort payment items: overdue first (most overdue on top), then by item_date asc (oldest first)
-    // Filter: only items with price > 0
-    const filteredPayItems = payItems.filter(i => (i.price ?? 0) > 0);
-    filteredPayItems.sort((a, b) => {
+    // Sort: overdue first (most overdue on top), then by item_date asc (oldest first)
+    allPayItems.sort((a, b) => {
       if (a.overdue_days && !b.overdue_days) return -1;
       if (!a.overdue_days && b.overdue_days) return 1;
       if (a.overdue_days && b.overdue_days) return b.overdue_days - a.overdue_days;
       return a.item_date.localeCompare(b.item_date);
     });
+    const filteredPayItems = allPayItems;
 
     // Combine all items for address/employee resolution
     const allItemsForResolve = [...calItems];
