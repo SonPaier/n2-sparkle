@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, UserPlus, MoreVertical, Shield, User, Lock, Unlock, Trash2, KeyRound } from 'lucide-react';
+import { Loader2, UserPlus, MoreVertical, Shield, User, Lock, Unlock, Trash2, KeyRound, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import AddInstanceUserDialog from './AddInstanceUserDialog';
 import EditInstanceUserDialog from './EditInstanceUserDialog';
 import ResetPasswordDialog from './ResetPasswordDialog';
 import DeleteUserDialog from './DeleteUserDialog';
+import { useEmployees } from '@/hooks/useEmployees';
 
 interface InstanceUser {
   id: string;
@@ -26,6 +27,7 @@ interface InstanceUser {
   is_blocked: boolean;
   created_at: string;
   role: 'admin' | 'employee';
+  linked_employee_name?: string;
 }
 
 interface InstanceUsersTabProps {
@@ -41,6 +43,7 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<InstanceUser | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const { data: employees = [] } = useEmployees(instanceId);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -59,7 +62,20 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
       if (response.data?.error) throw new Error(response.data.error);
 
       const fetchedUsers = (response.data?.users || []) as InstanceUser[];
-      setUsers(fetchedUsers.map(u => ({ ...u, username: u.username || 'Brak nazwy' })));
+
+      // Fetch linked employees
+      const { data: emps } = await supabase
+        .from('employees')
+        .select('id, name, linked_user_id')
+        .eq('instance_id', instanceId)
+        .not('linked_user_id', 'is', null);
+      const empMap = new Map((emps || []).map((e: any) => [e.linked_user_id, e.name]));
+
+      setUsers(fetchedUsers.map(u => ({
+        ...u,
+        username: u.username || 'Brak nazwy',
+        linked_employee_name: empMap.get(u.id) || undefined,
+      })));
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast.error(error.message || 'Błąd ładowania użytkowników');
@@ -148,6 +164,11 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
                     <div className="flex flex-wrap items-center gap-2">
                       {getRoleBadge(user.role)}
                       {getStatusBadge(user.is_blocked)}
+                      {user.linked_employee_name && (
+                        <Badge variant="outline" className="gap-1 border-primary/30 text-primary">
+                          <Users className="w-3 h-3" />{user.linked_employee_name}
+                        </Badge>
+                      )}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {format(new Date(user.created_at), 'd MMM yyyy', { locale: pl })}
@@ -184,7 +205,7 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
       )}
 
       <AddInstanceUserDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} instanceId={instanceId} onSuccess={fetchUsers} />
-      <EditInstanceUserDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} instanceId={instanceId} user={selectedUser} onSuccess={fetchUsers} />
+      <EditInstanceUserDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} instanceId={instanceId} user={selectedUser} onSuccess={fetchUsers} employees={employees} />
       <ResetPasswordDialog open={resetPasswordDialogOpen} onOpenChange={setResetPasswordDialogOpen} instanceId={instanceId} user={selectedUser} />
       <DeleteUserDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen} instanceId={instanceId} user={selectedUser} onSuccess={fetchUsers} />
     </div>

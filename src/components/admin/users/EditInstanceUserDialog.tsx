@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, AlertTriangle, Shield } from 'lucide-react';
+import { Loader2, AlertTriangle, Shield, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { Employee } from '@/hooks/useEmployees';
+import EmployeeSelectionDrawer from '@/components/admin/EmployeeSelectionDrawer';
 
 interface InstanceUser {
   id: string;
@@ -43,18 +45,27 @@ interface EditInstanceUserDialogProps {
   instanceId: string;
   user: InstanceUser | null;
   onSuccess: () => void | Promise<void>;
+  employees?: Employee[];
 }
 
-const EditInstanceUserDialog = ({ open, onOpenChange, instanceId, user, onSuccess }: EditInstanceUserDialogProps) => {
+const EditInstanceUserDialog = ({ open, onOpenChange, instanceId, user, onSuccess, employees = [] }: EditInstanceUserDialogProps) => {
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<'employee' | 'admin'>('employee');
   const [loading, setLoading] = useState(false);
   const [showAdminConfirm, setShowAdminConfirm] = useState(false);
   const [pendingRole, setPendingRole] = useState<'admin' | null>(null);
+  const [linkedEmployeeId, setLinkedEmployeeId] = useState<string | null>(null);
+  const [employeeDrawerOpen, setEmployeeDrawerOpen] = useState(false);
 
   useEffect(() => {
-    if (user) { setUsername(user.username); setRole(user.role); }
-  }, [user]);
+    if (user && open) {
+      setUsername(user.username);
+      setRole(user.role);
+      // Find linked employee
+      const linked = employees.find(e => (e as any).linked_user_id === user.id);
+      setLinkedEmployeeId(linked?.id || null);
+    }
+  }, [user, open, employees]);
 
   const handleRoleChange = (newRole: 'employee' | 'admin') => {
     if (newRole === 'admin' && role !== 'admin') { setPendingRole('admin'); setShowAdminConfirm(true); }
@@ -82,6 +93,22 @@ const EditInstanceUserDialog = ({ open, onOpenChange, instanceId, user, onSucces
       if (response.error) throw new Error(response.error.message);
       if (response.data?.error) throw new Error(response.data.error);
 
+      // Update employee linking
+      // First, unlink any employee previously linked to this user
+      await supabase
+        .from('employees')
+        .update({ linked_user_id: null } as any)
+        .eq('instance_id', instanceId)
+        .eq('linked_user_id', user.id);
+
+      // Then link the selected employee
+      if (linkedEmployeeId) {
+        await supabase
+          .from('employees')
+          .update({ linked_user_id: user.id } as any)
+          .eq('id', linkedEmployeeId);
+      }
+
       toast.success('Użytkownik zaktualizowany');
       await onSuccess();
       onOpenChange(false);
@@ -94,6 +121,8 @@ const EditInstanceUserDialog = ({ open, onOpenChange, instanceId, user, onSucces
   };
 
   if (!user) return null;
+
+  const linkedEmployee = employees.find(e => e.id === linkedEmployeeId);
 
   return (
     <>
@@ -121,6 +150,22 @@ const EditInstanceUserDialog = ({ open, onOpenChange, instanceId, user, onSucces
                 {role === 'admin' ? 'Admin ma pełny dostęp do ustawień i zarządzania użytkownikami' : 'Pracownik ma ograniczony dostęp do wybranych modułów'}
               </p>
             </div>
+            <div className="space-y-2">
+              <Label>Powiązany pracownik</Label>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                onClick={() => setEmployeeDrawerOpen(true)}
+              >
+                <UserIcon className="w-4 h-4 mr-2 shrink-0" />
+                {linkedEmployee
+                  ? linkedEmployee.name
+                  : <span className="text-muted-foreground">Wybierz pracownika...</span>
+                }
+              </Button>
+              <p className="text-xs text-muted-foreground">Powiąż konto z rekordem pracownika</p>
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Anuluj</Button>
               <Button type="submit" disabled={loading}>
@@ -131,6 +176,15 @@ const EditInstanceUserDialog = ({ open, onOpenChange, instanceId, user, onSucces
           </form>
         </DialogContent>
       </Dialog>
+
+      <EmployeeSelectionDrawer
+        open={employeeDrawerOpen}
+        onClose={() => setEmployeeDrawerOpen(false)}
+        employees={employees}
+        selectedIds={linkedEmployeeId ? [linkedEmployeeId] : []}
+        singleSelect
+        onConfirm={(ids) => setLinkedEmployeeId(ids[0] || null)}
+      />
 
       <AlertDialog open={showAdminConfirm} onOpenChange={setShowAdminConfirm}>
         <AlertDialogContent>
