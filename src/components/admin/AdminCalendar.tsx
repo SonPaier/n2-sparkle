@@ -583,7 +583,7 @@ const AdminCalendar = ({
         }}
         onClick={(e) => { e.stopPropagation(); onItemClick?.(item); }}
       >
-        <div className="px-0.5 text-black space-y-[1px]">
+        <div className="px-0.5 text-black space-y-[3px]">
           {/* Line 1: Time + notes indicator */}
           <div className="flex items-center justify-between gap-0.5">
             <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
