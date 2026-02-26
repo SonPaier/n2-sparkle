@@ -51,6 +51,7 @@ interface CalendarItemDetailsDrawerProps {
   onAddProtocol?: (item: CalendarItem) => void;
   instanceId?: string;
   hidePrices?: boolean;
+  forceSideRight?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
@@ -82,8 +83,10 @@ const CalendarItemDetailsDrawer = ({
   onAddProtocol,
   instanceId,
   hidePrices,
+  forceSideRight,
 }: CalendarItemDetailsDrawerProps) => {
   const isMobile = useIsMobile();
+  const sheetSide = forceSideRight ? 'right' : (isMobile ? 'bottom' : 'right');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [addressLabel, setAddressLabel] = useState<string | null>(null);
@@ -519,7 +522,7 @@ const CalendarItemDetailsDrawer = ({
   if (!item) {
     return (
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side={isMobile ? 'bottom' : 'right'} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-full' : 'sm:max-w-lg'}`}>
+        <SheetContent side={sheetSide} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : 'sm:max-w-lg'}`}>
           <SheetTitle className="sr-only">Szczegóły</SheetTitle>
           <SheetDescription className="sr-only">Brak danych</SheetDescription>
         </SheetContent>
@@ -531,10 +534,10 @@ const CalendarItemDetailsDrawer = ({
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
         <SheetContent
-          side={isMobile ? 'bottom' : 'right'}
+          side={sheetSide}
           hideCloseButton
           hideOverlay
-          className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-full' : 'sm:max-w-lg'}`}
+          className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : 'sm:max-w-lg'}`}
         >
           {/* Accessible title */}
           <SheetTitle className="sr-only">{item.title}</SheetTitle>
