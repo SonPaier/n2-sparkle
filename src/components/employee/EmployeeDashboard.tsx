@@ -282,6 +282,12 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, lin
                   const days = differenceInDays(deadlineDate, today);
                   const deadlineLabel = days === 0 ? 'Dziś' : days === 1 ? 'Jutro' : days < 0 ? `${Math.abs(days)} dni temu` : `za ${days} dni`;
 
+                  const urgencyBadge = days <= 3
+                    ? { cls: 'bg-red-500 text-white', label: 'PILNE' }
+                    : days <= 7
+                    ? { cls: 'bg-yellow-100 text-yellow-700 border border-yellow-200', label: 'WKRÓTCE' }
+                    : { cls: '', label: null };
+
                   return (
                     <div
                       key={r.id}
@@ -292,8 +298,15 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, lin
                           className="mt-0.5 shrink-0"
                           onClick={(e) => handleReminderDone(r.id, e)}
                         />
-                        <div className="space-y-1 min-w-0">
-                          <span className="font-semibold text-base leading-tight">{r.name}</span>
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-semibold text-base leading-tight">{r.name}</span>
+                            {urgencyBadge.label && (
+                              <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold shrink-0 ${urgencyBadge.cls}`}>
+                                {urgencyBadge.label}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-1.5 text-sm text-foreground">
                             <Clock className="w-3.5 h-3.5" />
                             <span>{deadlineLabel}</span>
