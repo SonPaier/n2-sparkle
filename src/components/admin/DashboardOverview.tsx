@@ -402,10 +402,10 @@ function formatReminderDeadline(deadline: string): string {
   today.setHours(0, 0, 0, 0);
   const deadlineDate = new Date(deadline + 'T00:00:00');
   const days = differenceInDays(deadlineDate, today);
-  if (days === 0) return 'Dziś';
-  if (days === 1) return 'Jutro';
-  if (days < 0) return `${Math.abs(days)} dni temu`;
-  return `za ${days} dni`;
+  if (days === 0) return 'Deadline: Dziś';
+  if (days === 1) return 'Deadline: Jutro';
+  if (days < 0) return `Deadline: ${Math.abs(days)} dni temu`;
+  return `Deadline: za ${days} dni`;
 }
 
 const PaymentCard = ({ item, showDate, formatDateLabel, isFirst, onClick }: {
