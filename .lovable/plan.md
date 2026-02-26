@@ -1,69 +1,57 @@
 
 
-## Plan: Dopracowanie Dashboard — drawery, checkboxy, styl list-item
+## Plan
 
-### Zmiany w `DashboardOverview.tsx`
+### 1. Rename status "Potwierdzone" → "Do wykonania" everywhere
 
-**1. Kliknięcie otwiera drawery**
-- Dodać props: `onItemClick: (itemId: string) => void`, `onReminderClick: (reminderId: string) => void`, `onPaymentClick: (itemId: string) => void`
-- OrderCard/ReminderCard/PaymentCard — `onClick` → wywołuje odpowiedni callback
-- Kursor `cursor-pointer` na kartach
+Files to update:
+- **`CalendarItemDetailsDrawer.tsx`**: `statusLabels.confirmed` → `'Do wykonania'`, `statusColors.confirmed` stays same. All dropdown menu items showing "Potwierdzone" → "Do wykonania". Footer button labels referencing "Potwierdzone" → "Do wykonania".
+- **`AdminCalendar.tsx`**: Legend label "Potwierdzone" → "Do wykonania" (line 1212).
+- **`CustomerOrderCard.tsx`**: `statusConfig.confirmed.label` → `'Do wykonania'`.
+- **`SettlementsView.tsx`**: `STATUS_CONFIG.confirmed.label` → `'Do wykonania'` (line 66).
 
-**2. Usunięcie statusów z kart zleceń**
-- Wyrzucić Badge statusu z OrderCard, usunąć `statusLabels`
+### 2. Dashboard: all fonts black
 
-**3. Przypomnienia — realne dane, bez mocków**
-- Usunąć `mockReminders` i `useMemo` z mockami
-- Używać tylko danych z bazy (`todayReminders`, `upcomingReminders`)
+In **`DashboardOverview.tsx`**, change all `text-muted-foreground` on card content text (time, customer, address, employee, reminder deadline, type, price) to `text-foreground` or remove the muted class. Keep column headers/empty text muted.
 
-**4. Checkbox "wykonane" na przypomnieniach**
-- Dodać prop `onReminderDone: (reminderId: string) => void` do DashboardOverview
-- ReminderCard — Checkbox po lewej, klik → `supabase.update('reminders', { status: 'done' })` + odświeżenie
-- Przekazać `fetchData` jako refresh po zmianie statusu
+### 3. Dashboard: "Po terminie" as red pill with white font
 
-**5. Pełny adres na kartach zleceń**
-- Rozszerzyć fetch adresów o `street, city` (nie tylko `name`)
-- Dodać `address_street`, `address_city` do interfejsu
-- Wyświetlać pełny adres: `name, street, city`
+In **`DashboardOverview.tsx`** `PaymentCard`, replace the current `<span className="text-xs text-destructive ...">` with a proper pill: `<span className="text-xs bg-red-600 text-white rounded-full px-2 py-0.5 font-medium whitespace-nowrap">`.
 
-**6. Styl list-item (border góra-dół zamiast Card)**
-- Zamienić wewnętrzne `<Card>` na `<div>` z `border-b` (border tylko góra-dół)
-- Pierwszy element dostaje `border-t`
-- Usunąć shadow-sm z elementów listy
+### 4. Drawer: unify "Dodaj protokół" and "Dodaj zdjęcie" buttons + hide "Zdjęcia" header when no photos
 
-### Zmiany w `Dashboard.tsx`
+In **`CalendarItemDetailsDrawer.tsx`**:
+- Remove the `<div className="text-sm font-medium">Zdjęcia</div>` header. Only show "Zdjęcia" label if `itemPhotos.length > 0`.
+- Change both "Dodaj protokół" button and the photo uploader's add button to plain `variant="outline"` buttons with white bg, stacked vertically (they already are mostly, just ensure consistent styling).
+- Both buttons: `variant="outline" className="w-full bg-white"`, placed one below the other.
 
-**7. Obsługa callbacków z DashboardOverview**
-- `onItemClick` → fetch pełnego CalendarItem z bazy → otwórz `CalendarItemDetailsDrawer`
-- `onReminderClick` → otwórz drawer przypomnienia (AddEditReminderDrawer)
-- `onPaymentClick` → fetch invoice dla calendar_item_id → otwórz `CreateInvoiceDrawer` lub `CalendarItemDetailsDrawer`
-- Dodać state: `selectedItem`, `detailsOpen` (reużycie istniejącego CalendarItemDetailsDrawer)
-- Dodać import i renderowanie CalendarItemDetailsDrawer w dashboard view
-- Fetch columns na potrzeby drawera
+### 5. Employee view: hide prices when `visible_fields.price === false`
 
-### Szczegóły techniczne
+The `employee_calendar_configs` table has a `visible_fields` JSON column with a `price` boolean. When `price: false`:
 
-**Fetch pełnego itemu po kliknięciu (Dashboard.tsx):**
-```typescript
-const handleDashboardItemClick = async (itemId: string) => {
-  const { data } = await supabase.from('calendar_items').select('*').eq('id', itemId).single();
-  // + fetch address, employees jak w fetchItems
-  setSelectedItem(data as CalendarItem);
-  setDetailsOpen(true);
-};
-```
+**`EmployeeCalendarPage.tsx`**:
+- Read `config.visible_fields.price` (default true).
+- Pass `hidePrices` prop to `CalendarItemDetailsDrawer`.
 
-**Checkbox przypomnienia (DashboardOverview.tsx):**
-```typescript
-const handleReminderDone = async (id: string) => {
-  await supabase.from('reminders').update({ status: 'done' }).eq('id', id);
-  fetchData(); // odśwież
-};
-```
+**`CalendarItemDetailsDrawer.tsx`**:
+- Add optional `hidePrices?: boolean` prop.
+- When `hidePrices === true`, hide:
+  - Price section (line ~702-706)
+  - Invoice "Wystaw FV" button and invoice list (lines ~755-779)
+  - SMS rozliczenie button that includes price (lines ~782-801)
+  - Price in SMS message text
 
-**Adres — rozszerzony fetch:**
-```typescript
-// zmienić select z 'id, name' na:
-.select('id, name, street, city')
-```
+**`CustomerOrderCard.tsx`**:
+- Add optional `hidePrices?: boolean` prop.
+- When true, hide service prices, total price row.
+
+**`CustomerOrdersTab.tsx`**:
+- Accept and pass `hidePrices` prop through to `CustomerOrderCard` and `CalendarItemDetailsDrawer`.
+
+Places where prices appear that need conditional hiding:
+1. `CalendarItemDetailsDrawer`: price field, invoice section, SMS rozliczenie
+2. `CustomerOrderCard`: service prices, total price
+3. `CustomerOrdersTab`: passes price to `CustomerOrderCard`
+
+The admin Dashboard page is NOT affected (admin always sees prices). Only employee calendar flow uses `visible_fields`.
 
