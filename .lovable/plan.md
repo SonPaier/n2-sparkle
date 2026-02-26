@@ -1,51 +1,33 @@
 
 
-## Plan
+## Refaktor drawera szczegółów zlecenia
 
-### 1. Filter dashboard items by linked employee (backend-side)
+### Zmiany w `CalendarItemDetailsDrawer.tsx`:
 
-**Problem**: EmployeeDashboard shows all calendar_items for configured columns. Roman (linked to user Robert) should only see items where his employee ID is in `assigned_employee_ids`.
+**1. Szerokość drawera**
+- Zmiana z `sm:max-w-lg` na `sm:max-w-md` (taka sama jak drawer klienta)
 
-**Solution**:
-- In `EmployeeDashboard.tsx`, accept a new prop `linkedEmployeeId?: string`
-- After fetching calendar_items, filter client-side by `assigned_employee_ids` containing the linked employee ID
-- Better approach: look up `linked_user_id` in `employees` table from the current `auth.uid()`, then filter items
-- In `EmployeeCalendarPage.tsx`, fetch the linked employee ID from `employees` table where `linked_user_id = auth.uid()` and pass it to `EmployeeDashboard`
-- Filter the query: after fetching items, filter to only those where `assigned_employee_ids` contains the linked employee ID (Supabase JS doesn't support `@>` array contains easily, so filter client-side after fetch, or use `.contains('assigned_employee_ids', [employeeId])`)
+**2. Nagłówek (fixed)**
+- Linia 1: Nazwa usługi (item.title) jako główny nagłówek + przycisk X
+- Linia 2: Data + godziny (np. "śr, 2 kwi 2026 · 08:00 - 16:00") + badge statusu + badge płatności
+- Usunięcie 3. labelki (nazwa kolumny, np. "Serwis")
 
-**Implementation**: Use `.contains('assigned_employee_ids', [linkedEmployeeId])` on the Supabase query in `EmployeeDashboard.fetchData` to filter server-side.
+**3. Klient — ikony telefon/SMS przy imieniu**
+- Przeniesienie ikon Phone i MessageSquare zaraz po imieniu klienta (nie `ml-auto` po prawej)
 
-### 2. Mobile bottom bar + sidebar redesign for EmployeeCalendarPage
+**4. Scrollowalny content z 3 tabami**
+- Dodanie komponentu `Tabs` z zakładkami: **Ogólne / Media / Historia**
+- **Ogólne**: Klient, Lokalizacja, Pracownicy, Notatki, Cena netto, FV/SMS sekcje
+- **Media**: Zdjęcia (przeniesione z obecnego contentu)
+- **Historia**: Lista zleceń z tej samej lokalizacji (customer_address_id) — wykorzystanie `CustomerOrderCard`
 
-**Current**: Mobile has a top header with hamburger menu that opens a slide-out sidebar.
+**5. Label "Cena" → "Cena netto"**
 
-**New design** (matching N2Wash pattern):
-- Remove the mobile top header bar entirely
-- Add a fixed bottom navigation bar (visible only on mobile) with 4 items:
-  - Dashboard (LayoutDashboard icon)
-  - Protokoły (ClipboardCheck icon)  
-  - Kalendarz (Calendar icon)
-  - Więcej (MoreHorizontal icon) — opens the sidebar overlay
-- The sidebar (opened by "Więcej") contains all nav items + logout button
-- Desktop sidebar remains unchanged
+**6. Footer — przycisk "Dodaj protokół"**
+- Przeniesienie z contentu do footera, obok przycisku "Edytuj", przed nim
 
-**Files to modify**:
-- `src/pages/EmployeeCalendarPage.tsx` — add bottom bar, remove mobile header, restructure layout
-- `src/components/employee/EmployeeDashboard.tsx` — add `linkedEmployeeId` prop and filter query
-- `src/pages/EmployeeCalendarPage.tsx` — fetch linked employee ID on mount
-
-### 3. Fetch linked employee ID
-
-In `EmployeeCalendarPage.tsx`, after getting `instanceId`, query:
-```sql
-SELECT id FROM employees WHERE linked_user_id = auth.uid() AND instance_id = ?
-```
-Store as state, pass to `EmployeeDashboard` as prop.
-
-### Summary of changes
-
-| File | Change |
-|------|--------|
-| `EmployeeCalendarPage.tsx` | Fetch linked employee ID; remove mobile header; add bottom bar with 4 tabs; "Więcej" opens sidebar; pass linkedEmployeeId to dashboard |
-| `EmployeeDashboard.tsx` | Add `linkedEmployeeId` prop; add `.contains()` filter to calendar_items query |
+**7. Historia tab — implementacja**
+- Nowy query do `calendar_items` filtrujący po `customer_address_id` (z wykluczeniem bieżącego zlecenia)
+- Pobranie powiązanych usług i protokołów
+- Renderowanie jako lista `CustomerOrderCard`
 
