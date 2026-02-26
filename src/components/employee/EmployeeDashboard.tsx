@@ -280,7 +280,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, lin
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
                   const days = differenceInDays(deadlineDate, today);
-                  const deadlineLabel = days === 0 ? 'Dziś' : days === 1 ? 'Jutro' : days < 0 ? `${Math.abs(days)} dni temu` : `za ${days} dni`;
+                  const deadlineLabel = days === 0 ? 'Deadline: Dziś' : days === 1 ? 'Deadline: Jutro' : days < 0 ? `Deadline: ${Math.abs(days)} dni temu` : `Deadline: za ${days} dni`;
 
                   const urgencyBadge = days <= 3
                     ? { cls: 'bg-red-500 text-white', label: 'PILNE' }
