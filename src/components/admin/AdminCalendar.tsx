@@ -582,7 +582,7 @@ const AdminCalendar = ({
         }}
         onClick={(e) => { e.stopPropagation(); onItemClick?.(item); }}
       >
-        <div className="px-0.5 text-black">
+        <div className="px-0.5 text-black space-y-[1px]">
           {/* Line 1: Time + notes indicator */}
           <div className="flex items-center justify-between gap-0.5">
             <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
@@ -625,7 +625,13 @@ const AdminCalendar = ({
               <span className="truncate">{item.address_name}</span>
             </div>
           )}
-          {/* Line 5: Payment status + Assigned employees chips */}
+          {/* Line 5: Admin notes */}
+          {item.admin_notes && (
+            <div className="text-[10px] md:text-[11px] truncate opacity-75 italic">
+              {item.admin_notes}
+            </div>
+          )}
+          {/* Line 6: Payment status + Assigned employees chips */}
           <div className="flex items-center gap-0.5 mt-0.5 flex-wrap">
             {item.payment_status && item.payment_status !== 'not_invoiced' && (
               <InvoiceStatusBadge status={item.payment_status} size="sm" />
@@ -633,12 +639,8 @@ const AdminCalendar = ({
             {item.assigned_employees && item.assigned_employees.length > 0 && (
               <>
                 {item.assigned_employees.slice(0, 3).map(emp => (
-                  <div key={emp.id} className="flex items-center gap-0.5 bg-black/10 rounded-full pl-0.5 pr-1.5 py-0">
-                    <Avatar className="w-3.5 h-3.5">
-                      {emp.photo_url && <AvatarImage src={emp.photo_url} />}
-                      <AvatarFallback className="text-[6px] bg-black/20">{emp.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span className="text-[9px] md:text-[10px] truncate max-w-[50px]">{emp.name.split(' ')[0]}</span>
+                  <div key={emp.id} className="flex items-center bg-primary rounded-full px-1.5 py-0">
+                    <span className="text-[9px] md:text-[10px] truncate max-w-[60px] text-primary-foreground font-medium">{emp.name.split(' ')[0]}</span>
                   </div>
                 ))}
                 {item.assigned_employees.length > 3 && (
