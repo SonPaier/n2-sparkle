@@ -1,37 +1,59 @@
 
 
-## Ujednolicenie stylu tabów
+## Plan: MediaUploader — reużywalny komponent
 
-Przypomnienia używają własnych custom buttonów z `border-b-2` (lekkie taby z podkreśleniem). Drawer zlecenia i drawer klienta używają komponentów Radix Tabs z różnym stylem.
+### Zakres zmian po uwagach użytkownika:
+- Akceptowane pliki: zdjęcia, video, nagrania głosowe, PDF/DOC/DOCX (nic więcej)
+- Każde usunięcie wymaga confirmation popup (ConfirmDialog)
+- Bez wyświetlania rozmiaru plików na UI
+- Wykorzystanie istniejących komponentów: PhotoFullscreenDialog, PhotoAnnotationDialog, ConfirmDialog
 
-### Zmiany:
+### Nowe pliki:
 
-**1. `CalendarItemDetailsDrawer.tsx` — zamiana na lekkie taby (styl jak przypomnienia)**
-- Zamiana `TabsList`/`TabsTrigger` na `AdminTabsList`/`AdminTabsTrigger` (lub lepiej: custom border-bottom tabs jak w przypomnieniach)
-- Zmiana "Media" → "Pliki"
-
-**2. `CustomerEditDrawer.tsx` — zamiana AdminTabsList na lekkie taby**
-- Zamiana `AdminTabsList`/`AdminTabsTrigger` na taki sam styl border-bottom jak w przypomnieniach
-- Zachowanie `Tabs`/`TabsContent` z Radix, tylko zmiana wizualnego triggera
-
-**3. Podejście implementacyjne**
-- Stworzyć reużywalny komponent `LightTabs` / `LightTabsTrigger` z border-bottom style (flex, border-b, active = border-primary + text-primary)
-- Użyć go w: CalendarItemDetailsDrawer, CustomerEditDrawer, RemindersView
-- RemindersView: zamienić custom buttony na ten sam komponent (opcjonalnie z badge/count)
-
-### Komponent `LightTabs`:
-```
-<div className="flex border-b border-border/50">
-  <button className="flex-1 px-4 py-2.5 text-sm font-medium border-b-2 
-    active: border-primary text-primary
-    inactive: border-transparent text-muted-foreground hover:text-foreground">
-    Tab name
-  </button>
-</div>
+**1. `src/components/media/mediaTypes.ts`** — typy
+```typescript
+interface MediaItem {
+  type: 'image' | 'video' | 'audio' | 'file';
+  url: string;
+  name?: string;
+  mimeType?: string;
+}
 ```
 
-### Pliki do edycji:
-- `src/components/admin/CalendarItemDetailsDrawer.tsx` — użycie lekkich tabów, "Media" → "Pliki"
-- `src/components/admin/CustomerEditDrawer.tsx` — zamiana AdminTabsList na lekkie taby
-- Opcjonalnie: nowy komponent `LightTabTrigger` lub inline style
+**2. `src/components/media/mediaUtils.ts`** — kompresja obrazów (z ProtocolPhotosUploader), kompresja video (canvas re-encoding z obniżonym bitrate)
+
+**3. `src/components/media/MediaUploadProgress.tsx`** — overlay z progress bar (%), spinner, przycisk retry na błąd. Używa XMLHttpRequest.upload.onprogress
+
+**4. `src/components/media/AudioRecorder.tsx`** — MediaRecorder API, pulsujący dot + czas, po zakończeniu opcjonalny input na nazwę, przycisk "Zapisz"
+
+**5. `src/components/media/MediaUploader.tsx`** — główny komponent:
+- Przycisk "Dodaj plik" → DropdownMenu z 4 opcjami: Zdjęcie, Video, Nagranie głosowe, Dokument (PDF/DOC/DOCX)
+- Sekcja zdjęcia+video: grid 4 kolumny, kafelki aspect-square, zdjęcia klikalne → PhotoFullscreenDialog z rysikiem, video z ikoną play
+- Sekcja nagrania głosowe: lista z play/pause, nazwa, przycisk usuń
+- Sekcja dokumenty: lista z ikoną, nazwa, przycisk usuń
+- Każdy delete → ConfirmDialog (istniejący komponent)
+- Upload z progress bar (MediaUploadProgress)
+- Retry na błąd uploadu
+
+### Edycje istniejących plików:
+
+**6. `src/components/admin/CalendarItemDetailsDrawer.tsx`**
+- Tab "Pliki": zamiana ProtocolPhotosUploader na MediaUploader
+- Dane: kolumna `media_items` (JSONB) w calendar_items + fallback z `photo_urls`
+
+### Backend:
+
+**7. Migracja SQL:**
+- `ALTER TABLE calendar_items ADD COLUMN media_items jsonb DEFAULT '[]'`
+- Nowy storage bucket `media-files` (public)
+- RLS policies na bucket
+
+### Pliki do edycji/utworzenia:
+1. `src/components/media/mediaTypes.ts` (nowy)
+2. `src/components/media/mediaUtils.ts` (nowy)
+3. `src/components/media/MediaUploadProgress.tsx` (nowy)
+4. `src/components/media/AudioRecorder.tsx` (nowy)
+5. `src/components/media/MediaUploader.tsx` (nowy)
+6. `src/components/admin/CalendarItemDetailsDrawer.tsx` (edycja)
+7. Migracja SQL (nowa kolumna + bucket)
 
