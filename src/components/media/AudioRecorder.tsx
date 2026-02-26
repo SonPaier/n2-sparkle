@@ -90,9 +90,9 @@ export const AudioRecorder = ({ onRecorded, onCancel }: AudioRecorderProps) => {
     <div className="flex items-center gap-3 p-3 rounded-lg bg-background border">
       <div className={cn("h-3 w-3 rounded-full bg-destructive", state === 'recording' && "animate-pulse")} />
       <span className="text-sm font-mono font-medium flex-1">{formatTime(seconds)}</span>
-      <Button size="sm" onClick={stopAndSave} className="gap-1.5">
+      <Button size="sm" variant="destructive" onClick={stopAndSave} className="gap-1.5">
         <Square className="h-3.5 w-3.5" />
-        Zapisz
+        Stop
       </Button>
       <Button size="icon" variant="ghost" onClick={handleCancel} className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10">
         <Trash2 className="h-4 w-4" />
