@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { format, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, Clock, User, MapPin, Tag, CreditCard, DollarSign, HardHat } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +34,7 @@ interface CalendarItemRow {
   payment_status: string | null;
   price: number | null;
   employee_names?: string[];
+  overdue_days?: number;
 }
 
 interface ReminderRow {
@@ -43,70 +44,121 @@ interface ReminderRow {
   customer_id: string | null;
   reminder_type_id: string | null;
   status: string;
+  days_before: number;
   customer_name?: string;
   reminder_type_name?: string;
 }
 
 const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPaymentClick }: DashboardOverviewProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
+  const [allPaymentItems, setAllPaymentItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     const now = new Date();
+    const today = format(now, 'yyyy-MM-dd');
     const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
     const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
-    const [itemsRes, remindersRes] = await Promise.all([
+    const selectFields = 'id, title, customer_name, customer_phone, item_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price';
+
+    const [itemsRes, paymentItemsRes, remindersRes, overdueInvoicesRes] = await Promise.all([
+      // Weekly items for orders section
       supabase
         .from('calendar_items')
-        .select('id, title, customer_name, customer_phone, item_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price')
+        .select(selectFields)
         .eq('instance_id', instanceId)
         .gte('item_date', weekStart)
         .lte('item_date', weekEnd)
         .neq('status', 'cancelled')
         .order('item_date')
         .order('start_time'),
+      // All unsettled past items for payments section
+      supabase
+        .from('calendar_items')
+        .select(selectFields)
+        .eq('instance_id', instanceId)
+        .neq('status', 'cancelled')
+        .neq('payment_status', 'paid')
+        .lte('item_date', today)
+        .order('item_date')
+        .limit(100),
+      // All todo reminders (no date range filter)
       supabase
         .from('reminders')
-        .select('id, name, deadline, customer_id, reminder_type_id, status')
+        .select('id, name, deadline, customer_id, reminder_type_id, status, days_before')
         .eq('instance_id', instanceId)
         .eq('status', 'todo')
-        .gte('deadline', weekStart)
-        .lte('deadline', weekEnd)
         .order('deadline'),
+      // Overdue invoices
+      supabase
+        .from('invoices')
+        .select('calendar_item_id, payment_to')
+        .eq('instance_id', instanceId)
+        .not('status', 'in', '("paid","cancelled")')
+        .not('payment_to', 'is', null)
+        .lt('payment_to', today),
     ]);
 
     const calItems = (itemsRes.data as CalendarItemRow[]) || [];
+    const payItems = (paymentItemsRes.data as CalendarItemRow[]) || [];
     const remItems = (remindersRes.data as ReminderRow[]) || [];
 
-    // Fetch addresses with full details
-    const addressIds = [...new Set(calItems.filter(i => i.customer_address_id).map(i => i.customer_address_id!))];
+    // Build overdue map: calendar_item_id -> payment_to
+    const overdueMap = new Map<string, string>();
+    ((overdueInvoicesRes.data as any[]) || []).forEach((inv) => {
+      if (inv.calendar_item_id) overdueMap.set(inv.calendar_item_id, inv.payment_to);
+    });
+
+    // Mark overdue days on payment items
+    payItems.forEach(item => {
+      const paymentTo = overdueMap.get(item.id);
+      if (paymentTo) {
+        const days = differenceInDays(new Date(), new Date(paymentTo + 'T00:00:00'));
+        if (days > 0) item.overdue_days = days;
+      }
+    });
+
+    // Sort payment items: overdue first (most overdue on top), then by item_date asc (oldest first)
+    // Filter: only items with price > 0
+    const filteredPayItems = payItems.filter(i => (i.price ?? 0) > 0);
+    filteredPayItems.sort((a, b) => {
+      if (a.overdue_days && !b.overdue_days) return -1;
+      if (!a.overdue_days && b.overdue_days) return 1;
+      if (a.overdue_days && b.overdue_days) return b.overdue_days - a.overdue_days;
+      return a.item_date.localeCompare(b.item_date);
+    });
+
+    // Combine all items for address/employee resolution
+    const allItemsForResolve = [...calItems];
+    filteredPayItems.forEach(pi => {
+      if (!allItemsForResolve.find(ci => ci.id === pi.id)) allItemsForResolve.push(pi);
+    });
+
+    // Fetch addresses
+    const addressIds = [...new Set(allItemsForResolve.filter(i => i.customer_address_id).map(i => i.customer_address_id!))];
     if (addressIds.length > 0) {
       const { data: addresses } = await supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds);
       if (addresses) {
         const addrMap = new Map(addresses.map(a => [a.id, a]));
-        calItems.forEach(i => {
+        allItemsForResolve.forEach(i => {
           if (i.customer_address_id) {
             const addr = addrMap.get(i.customer_address_id);
-            if (addr) {
-              i.address_name = addr.name;
-              i.address_street = addr.street;
-              i.address_city = addr.city;
-            }
+            if (addr) { i.address_name = addr.name; i.address_street = addr.street; i.address_city = addr.city; }
           }
         });
       }
     }
 
     // Fetch employee names
-    const allEmpIds = [...new Set(calItems.flatMap(i => i.assigned_employee_ids || []))];
+    const allEmpIds = [...new Set(allItemsForResolve.flatMap(i => i.assigned_employee_ids || []))];
     if (allEmpIds.length > 0) {
       const { data: employees } = await supabase.from('employees').select('id, name').in('id', allEmpIds);
       if (employees) {
         const empMap = new Map(employees.map(e => [e.id, e.name]));
-        calItems.forEach(i => {
+        allItemsForResolve.forEach(i => {
           if (i.assigned_employee_ids?.length) {
             i.employee_names = i.assigned_employee_ids.map(id => empMap.get(id)).filter(Boolean) as string[];
           }
@@ -131,6 +183,7 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
     }
 
     setItems(calItems);
+    setAllPaymentItems(filteredPayItems);
     setReminders(remItems);
     setLoading(false);
   }, [instanceId]);
@@ -149,17 +202,30 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
   };
 
   const today = format(new Date(), 'yyyy-MM-dd');
+  const todayDate = new Date(today + 'T00:00:00');
 
+  // Orders: weekly split
   const todayItems = items.filter(i => i.item_date === today);
   const upcomingItems = items.filter(i => i.item_date > today);
 
-  const todayReminders = reminders.filter(r => r.deadline === today);
-  const upcomingReminders = reminders.filter(r => r.deadline > today);
+  // Reminders: notification window check (deadline - days_before <= today)
+  const todayReminders = reminders.filter(r => {
+    const deadlineDate = new Date(r.deadline + 'T00:00:00');
+    const notifyDate = new Date(deadlineDate);
+    notifyDate.setDate(notifyDate.getDate() - r.days_before);
+    return notifyDate <= todayDate;
+  });
+  const upcomingReminders = reminders.filter(r => {
+    const deadlineDate = new Date(r.deadline + 'T00:00:00');
+    const notifyDate = new Date(deadlineDate);
+    notifyDate.setDate(notifyDate.getDate() - r.days_before);
+    return notifyDate > todayDate;
+  });
 
-  // Payments: items with price > 0 and payment_status != 'paid'
-  const paymentItems = items.filter(i => (i.price ?? 0) > 0 && i.payment_status !== 'paid');
-  const todayPayments = paymentItems.filter(i => i.item_date === today);
-  const upcomingPayments = paymentItems.filter(i => i.item_date > today);
+  // Payments "Dziś": all unsettled past items (overdue first, then oldest)
+  const todayPayments = allPaymentItems;
+  // Payments "Nadchodzące": weekly future items not paid
+  const upcomingPayments = items.filter(i => i.item_date > today && (i.price ?? 0) > 0 && i.payment_status !== 'paid');
 
   const formatDateLabel = (date: string) => {
     try {
@@ -206,7 +272,7 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
             <ReminderCard key={r.id} reminder={r} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />
           ))}
         </DashboardColumn>
-        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={todayPayments.length} emptyText="Brak płatności na dziś">
+        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={todayPayments.length} emptyText="Brak płatności do rozliczenia">
           {todayPayments.map((item, idx) => (
             <PaymentCard key={item.id} item={item} isFirst={idx === 0} onClick={() => onPaymentClick?.(item.id)} />
           ))}
@@ -312,7 +378,7 @@ const ReminderCard = ({ reminder, showDate, formatDateLabel, isFirst, onDone, on
         <span className="font-medium text-sm leading-tight">{reminder.name}</span>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
-          <span>{showDate && formatDateLabel ? formatDateLabel(reminder.deadline) : 'Dziś'}</span>
+          <span>{showDate && formatDateLabel ? formatDateLabel(reminder.deadline) : formatReminderDeadline(reminder.deadline)}</span>
         </div>
         {reminder.customer_name && (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -331,6 +397,18 @@ const ReminderCard = ({ reminder, showDate, formatDateLabel, isFirst, onDone, on
   </div>
 );
 
+/** Show "Dziś" or relative date for reminder deadline */
+function formatReminderDeadline(deadline: string): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const deadlineDate = new Date(deadline + 'T00:00:00');
+  const days = differenceInDays(deadlineDate, today);
+  if (days === 0) return 'Dziś';
+  if (days === 1) return 'Jutro';
+  if (days < 0) return `${Math.abs(days)} dni temu`;
+  return `za ${days} dni`;
+}
+
 const PaymentCard = ({ item, showDate, formatDateLabel, isFirst, onClick }: {
   item: CalendarItemRow; showDate?: boolean; formatDateLabel?: (d: string) => string; isFirst?: boolean; onClick?: () => void;
 }) => (
@@ -341,12 +419,24 @@ const PaymentCard = ({ item, showDate, formatDateLabel, isFirst, onClick }: {
     <div className="space-y-1">
       <div className="flex items-start justify-between gap-2">
         <span className="font-medium text-sm leading-tight">{item.title}</span>
-        <InvoiceStatusBadge status={item.payment_status} size="sm" />
+        {item.overdue_days && item.overdue_days > 0 ? (
+          <span className="text-xs text-destructive font-medium whitespace-nowrap">
+            Po terminie ({item.overdue_days} dni)
+          </span>
+        ) : (
+          <InvoiceStatusBadge status={item.payment_status} size="sm" />
+        )}
       </div>
       {showDate && formatDateLabel && (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Clock className="w-3 h-3" />
           <span>{formatDateLabel(item.item_date)}</span>
+        </div>
+      )}
+      {!showDate && (
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Clock className="w-3 h-3" />
+          <span>{format(new Date(item.item_date + 'T00:00:00'), 'd MMM', { locale: pl })}</span>
         </div>
       )}
       {item.customer_name && (
