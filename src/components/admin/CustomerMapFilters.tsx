@@ -63,6 +63,7 @@ const CustomerMapFilters = ({
         selectedServiceIds={selectedServiceIds}
         onConfirm={onServicesConfirm}
         hideSelectedSection={true}
+        hidePricesAndDuration={true}
       />
     </div>
   );
