@@ -150,6 +150,12 @@ const CustomerAddressesSection = ({
                   </Button>
                 </div>
                 <Input
+                  value={addr.name}
+                  onChange={e => update(idx, 'name', e.target.value)}
+                  placeholder="Nazwa własna (opcjonalnie)"
+                  className="text-sm bg-background"
+                />
+                <Input
                   value={addr.street}
                   onChange={e => update(idx, 'street', e.target.value)}
                   placeholder="Ulica *"
