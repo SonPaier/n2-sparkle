@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import CustomerMapFilters from './CustomerMapFilters';
 import type { SelectedCustomer } from './CustomerSearchInput';
 import type { ServiceWithCategory } from './ServiceSelectionDrawer';
+import type { OrderStatusFilter } from './CustomersMapDrawer';
 
 interface CustomerMapFiltersDrawerProps {
   open: boolean;
@@ -14,7 +15,8 @@ interface CustomerMapFiltersDrawerProps {
   selectedServiceIds: string[];
   selectedServiceNames: string[];
   selectedCategoryIds: string[];
-  onApply: (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[], categoryIds: string[]) => void;
+  selectedOrderStatus: OrderStatusFilter;
+  onApply: (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[], categoryIds: string[], orderStatus: OrderStatusFilter) => void;
 }
 
 const CustomerMapFiltersDrawer = ({
@@ -25,22 +27,24 @@ const CustomerMapFiltersDrawer = ({
   selectedServiceIds,
   selectedServiceNames,
   selectedCategoryIds,
+  selectedOrderStatus,
   onApply,
 }: CustomerMapFiltersDrawerProps) => {
   const [tempCustomer, setTempCustomer] = useState<SelectedCustomer | null>(selectedCustomer);
   const [tempServiceIds, setTempServiceIds] = useState<string[]>(selectedServiceIds);
   const [tempServiceNames, setTempServiceNames] = useState<string[]>(selectedServiceNames);
   const [tempCategoryIds, setTempCategoryIds] = useState<string[]>(selectedCategoryIds);
+  const [tempOrderStatus, setTempOrderStatus] = useState<OrderStatusFilter>(selectedOrderStatus);
 
-  // Reset temp state when drawer opens
   useEffect(() => {
     if (open) {
       setTempCustomer(selectedCustomer);
       setTempServiceIds(selectedServiceIds);
       setTempServiceNames(selectedServiceNames);
       setTempCategoryIds(selectedCategoryIds);
+      setTempOrderStatus(selectedOrderStatus);
     }
-  }, [open, selectedCustomer, selectedServiceIds, selectedServiceNames, selectedCategoryIds]);
+  }, [open, selectedCustomer, selectedServiceIds, selectedServiceNames, selectedCategoryIds, selectedOrderStatus]);
 
   const handleServicesConfirm = (ids: string[], _duration: number, services: ServiceWithCategory[]) => {
     setTempServiceIds(ids);
@@ -56,14 +60,13 @@ const CustomerMapFiltersDrawer = ({
   };
 
   const handleSave = () => {
-    onApply(tempCustomer, tempServiceIds, tempServiceNames, tempCategoryIds);
+    onApply(tempCustomer, tempServiceIds, tempServiceNames, tempCategoryIds, tempOrderStatus);
     onClose();
   };
 
   return (
     <Drawer open={open} onOpenChange={v => { if (!v) onClose(); }} direction="right">
       <DrawerContent className="ml-auto h-full w-full sm:max-w-sm max-w-none rounded-none bg-white">
-        {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-border">
           <h2 className="text-lg font-semibold">Filtry</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
@@ -71,7 +74,6 @@ const CustomerMapFiltersDrawer = ({
           </Button>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto">
           <CustomerMapFilters
             instanceId={instanceId}
@@ -84,10 +86,11 @@ const CustomerMapFiltersDrawer = ({
             onRemoveService={handleRemoveService}
             selectedCategoryIds={tempCategoryIds}
             onCategoryIdsChange={setTempCategoryIds}
+            orderStatus={tempOrderStatus}
+            onOrderStatusChange={setTempOrderStatus}
           />
         </div>
 
-        {/* Footer */}
         <div className="border-t p-4 bg-background">
           <Button onClick={handleSave} className="w-full" size="lg">
             Zapisz

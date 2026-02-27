@@ -3,7 +3,9 @@ import { X, ListFilter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import CustomerSearchInput, { type SelectedCustomer } from './CustomerSearchInput';
+import type { OrderStatusFilter } from './CustomersMapDrawer';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
 import { useCustomerCategories, type CustomerCategory } from '@/hooks/useCustomerCategories';
 
@@ -18,6 +20,8 @@ interface CustomerMapFiltersProps {
   onRemoveService: (serviceId: string) => void;
   selectedCategoryIds: string[];
   onCategoryIdsChange: (ids: string[]) => void;
+  orderStatus: OrderStatusFilter;
+  onOrderStatusChange: (status: OrderStatusFilter) => void;
 }
 
 const CustomerMapFilters = ({
@@ -31,6 +35,8 @@ const CustomerMapFilters = ({
   onRemoveService,
   selectedCategoryIds,
   onCategoryIdsChange,
+  orderStatus,
+  onOrderStatusChange,
 }: CustomerMapFiltersProps) => {
   const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
   const { categories } = useCustomerCategories(instanceId);
@@ -91,6 +97,25 @@ const CustomerMapFilters = ({
             : 'Wybierz usługi...'}
         </Button>
 
+      </div>
+
+      {/* Order status filter */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">Status zleceń</label>
+        <RadioGroup value={orderStatus} onValueChange={(v) => onOrderStatusChange(v as OrderStatusFilter)}>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="all" id="map-order-all" />
+            <Label htmlFor="map-order-all" className="text-sm cursor-pointer">Wszyscy</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="with_orders" id="map-order-with" />
+            <Label htmlFor="map-order-with" className="text-sm cursor-pointer">Ze zleceniami</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="without_orders" id="map-order-without" />
+            <Label htmlFor="map-order-without" className="text-sm cursor-pointer">Bez zleceń</Label>
+          </div>
+        </RadioGroup>
       </div>
 
       <ServiceSelectionDrawer
