@@ -296,18 +296,18 @@ const CustomerAddressSelect = ({
                 <button
                   key={addr.id}
                   type="button"
-                  className={`w-full p-3 text-left transition-colors flex flex-col border-b border-border last:border-0 ${
+                  className={`w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0 ${
                     i === selectedIndex ? 'bg-accent' : 'hover:bg-muted/30'
                   }`}
                   onClick={() => handleSelectGlobalAddress(addr)}
                   onMouseEnter={() => setSelectedIndex(i)}
                 >
-                  <span className="font-semibold text-sm text-foreground">{formatAddress(addr.street, addr.city)}</span>
-                  <span className="text-xs text-muted-foreground">{addr.customer_name}</span>
+                  <span className="font-semibold text-base text-foreground">{formatAddress(addr.street, addr.city)}</span>
+                  <span className="text-foreground text-sm">{addr.customer_name}</span>
                 </button>
               ))
             ) : (
-              <div className="p-3 text-center">
+              <div className="p-4 text-center">
                 <p className="text-sm text-muted-foreground">Brak wyników</p>
               </div>
             )}

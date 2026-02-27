@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, X, Loader2 } from 'lucide-react';
+import { Search, X, Loader2, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,10 @@ export interface SelectedCustomer {
   nip?: string | null;
 }
 
+interface CustomerWithAddresses extends SelectedCustomer {
+  addresses: { street: string | null; city: string | null }[];
+}
+
 interface CustomerSearchInputProps {
   instanceId: string;
   selectedCustomer: SelectedCustomer | null;
@@ -25,7 +29,7 @@ interface CustomerSearchInputProps {
 
 const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, onCustomerClick, onAddNew }: CustomerSearchInputProps) => {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SelectedCustomer[]>([]);
+  const [results, setResults] = useState<CustomerWithAddresses[]>([]);
   const [searching, setSearching] = useState(false);
   const [open, setOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -75,7 +79,31 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
 
     // Merge, dedupe, limit
     const merged = [...(directMatches || []), ...addrCustomers].slice(0, 10);
-    setResults(merged);
+
+    // Fetch addresses for all found customers
+    const customerIds = merged.map(c => c.id);
+    let addressesMap: Record<string, { street: string | null; city: string | null }[]> = {};
+    if (customerIds.length > 0) {
+      const { data: allAddresses } = await supabase
+        .from('customer_addresses')
+        .select('customer_id, street, city')
+        .in('customer_id', customerIds)
+        .order('sort_order');
+      
+      if (allAddresses) {
+        for (const addr of allAddresses) {
+          if (!addressesMap[addr.customer_id]) addressesMap[addr.customer_id] = [];
+          addressesMap[addr.customer_id].push({ street: addr.street, city: addr.city });
+        }
+      }
+    }
+
+    const resultsWithAddresses: CustomerWithAddresses[] = merged.map(c => ({
+      ...c,
+      addresses: addressesMap[c.id] || [],
+    }));
+
+    setResults(resultsWithAddresses);
     setSearching(false);
   }, [instanceId]);
 
@@ -125,12 +153,16 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
     }
   };
 
-  const handleSelect = (customer: SelectedCustomer) => {
+  const handleSelect = (customer: CustomerWithAddresses) => {
     onSelect(customer);
     setOpen(false);
     setQuery('');
     setResults([]);
     setSelectedIndex(-1);
+  };
+
+  const formatAddress = (street: string | null, city: string | null) => {
+    return [street, city].filter(Boolean).join(', ');
   };
 
   if (selectedCustomer) {
@@ -190,8 +222,18 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
                 onMouseEnter={() => setSelectedIndex(i)}
               >
                 <span className="font-semibold text-base text-foreground">{c.name}</span>
-                {c.phone && (
-                  <span className="text-primary font-medium text-sm">{formatPhoneDisplay(c.phone)}</span>
+                {c.addresses.length > 0 ? (
+                  c.addresses.map((addr, idx) => {
+                    const formatted = formatAddress(addr.street, addr.city);
+                    return formatted ? (
+                      <span key={idx} className="text-muted-foreground text-sm flex items-center gap-1">
+                        <MapPin className="w-3 h-3 shrink-0" />
+                        {formatted}
+                      </span>
+                    ) : null;
+                  })
+                ) : (
+                  <span className="text-muted-foreground text-sm">Brak adresów</span>
                 )}
               </button>
             ))
