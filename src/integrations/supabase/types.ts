@@ -110,6 +110,7 @@ export type Database = {
           custom_price: number | null
           id: string
           instance_id: string
+          quantity: number
           service_id: string
         }
         Insert: {
@@ -118,6 +119,7 @@ export type Database = {
           custom_price?: number | null
           id?: string
           instance_id: string
+          quantity?: number
           service_id: string
         }
         Update: {
@@ -126,6 +128,7 @@ export type Database = {
           custom_price?: number | null
           id?: string
           instance_id?: string
+          quantity?: number
           service_id?: string
         }
         Relationships: [

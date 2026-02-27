@@ -37,6 +37,7 @@ export interface ServiceWithCategory {
   duration_minutes: number | null;
   price: number | null;
   category_prices_are_net?: boolean;
+  unit?: string;
 }
 
 interface ServiceSelectionDrawerProps {
@@ -97,7 +98,7 @@ const ServiceSelectionDrawer = ({
       const [servicesRes, categoriesRes] = await Promise.all([
         supabase
           .from('unified_services')
-          .select('id, name, short_name, category_id, duration_minutes, price, sort_order')
+          .select('id, name, short_name, category_id, duration_minutes, price, sort_order, unit')
           .eq('instance_id', instanceId)
           .eq('active', true)
           .order('sort_order'),
@@ -297,6 +298,7 @@ const ServiceSelectionDrawer = ({
         duration_minutes: s.duration_minutes,
         price: s.price,
         category_prices_are_net: s.category_prices_are_net,
+        unit: (s as any).unit || 'szt.',
       }));
 
     onConfirm(selectedIds, totalDuration, selectedWithCategory);
@@ -325,7 +327,7 @@ const ServiceSelectionDrawer = ({
         >
           <SheetTitle className="flex items-center gap-3 text-lg font-semibold">
             <ArrowLeft className="w-5 h-5" />
-            Wybierz usługi
+            Wybierz usługi i produkty
           </SheetTitle>
         </SheetHeader>
 
