@@ -158,7 +158,6 @@ const ServiceFormContent = ({
   const hasAdvancedValues = !!(
     service?.duration_minutes || 
     service?.is_popular ||
-    (service?.unit && service.unit !== 'szt') ||
     service?.notification_template_id
   );
   const [advancedOpen, setAdvancedOpen] = useState(hasAdvancedValues);
@@ -403,7 +402,7 @@ const ServiceFormContent = ({
             <Label className="text-sm leading-5">{priceLabel}</Label>
             <FieldInfo tooltip="Cena bazowa usługi" />
           </div>
-          <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-3")}>
+          <div className="flex items-center gap-2">
             <Input
               type="number"
               value={formData.price ?? ''}
@@ -413,7 +412,21 @@ const ServiceFormContent = ({
               }}
               step="0.01"
               min="0"
+              className="w-40"
             />
+            <Select
+              value={formData.unit}
+              onValueChange={(v) => setFormData(prev => ({ ...prev, unit: v }))}
+            >
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="szt">szt.</SelectItem>
+                <SelectItem value="m2">m²</SelectItem>
+                <SelectItem value="mb">mb.</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -468,18 +481,6 @@ const ServiceFormContent = ({
               </div>
             </div>
 
-            {/* Unit */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-sm">Jednostka</Label>
-                <FieldInfo tooltip="Jednostka rozliczeniowa usługi" />
-              </div>
-              <Input
-                value={formData.unit}
-                onChange={(e) => setFormData(prev => ({ ...prev, unit: e.target.value }))}
-                className="w-32"
-              />
-            </div>
 
             {/* Is Popular */}
             <div className="flex items-center gap-3">
