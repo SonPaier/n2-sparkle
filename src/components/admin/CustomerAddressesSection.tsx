@@ -74,7 +74,15 @@ const CustomerAddressesSection = ({
   };
 
   const update = (index: number, field: keyof CustomerAddress, value: string | boolean) => {
-    onAddressesChange(addresses.map((a, i) => i === index ? { ...a, [field]: value } : a));
+    onAddressesChange(addresses.map((a, i) => {
+      if (i !== index) return a;
+      const updated = { ...a, [field]: value };
+      // Auto-generate name from street + city
+      if (field === 'street' || field === 'city') {
+        updated.name = [field === 'street' ? value : a.street, field === 'city' ? value : a.city].filter(Boolean).join(', ') || 'Adres';
+      }
+      return updated;
+    }));
   };
 
   if (!isEditing) {
@@ -88,8 +96,7 @@ const CustomerAddressesSection = ({
         <div className="space-y-2">
           {activeAddresses.map((addr, idx) => (
             <div key={addr.id || idx} className="bg-white p-3 border border-border rounded-lg text-sm space-y-1 shadow-sm">
-              <div className="font-medium text-foreground">{addr.name}</div>
-              {addr.street && <div className="text-foreground">{addr.street}</div>}
+              {addr.street && <div className="font-medium text-foreground">{addr.street}</div>}
               {(addr.postal_code || addr.city) && (
                 <div className="text-foreground">
                   {addr.postal_code} {addr.city}
@@ -143,15 +150,9 @@ const CustomerAddressesSection = ({
                   </Button>
                 </div>
                 <Input
-                  value={addr.name}
-                  onChange={e => update(idx, 'name', e.target.value)}
-                  placeholder="Nazwa lokalizacji *"
-                  className="text-sm bg-background"
-                />
-                <Input
                   value={addr.street}
                   onChange={e => update(idx, 'street', e.target.value)}
-                  placeholder="Ulica"
+                  placeholder="Ulica *"
                   className="text-sm bg-background"
                 />
                 <div className="grid grid-cols-2 gap-2">
