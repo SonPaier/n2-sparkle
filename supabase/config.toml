@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.sync-invoice-statuses]
 verify_jwt = false
+
+[functions.import-customers]
+verify_jwt = false
