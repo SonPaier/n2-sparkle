@@ -137,16 +137,19 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
       mapRef.current?.remove();
       mapRef.current = null;
       markersRef.current = [];
+      prevAddressKeyRef.current = '';
       return;
     }
     const timer = setTimeout(() => {
       initMap();
-      updateMarkers();
+      updateMarkers(true);
     }, 350);
     return () => clearTimeout(timer);
   }, [open]);
 
-  const updateMarkers = useCallback(() => {
+  const prevAddressKeyRef = useRef<string>('');
+
+  const updateMarkers = useCallback((shouldFitBounds = false) => {
     const map = mapRef.current;
     if (!map) return;
 
@@ -179,7 +182,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
       markersRef.current.push(marker);
     });
 
-    if (addresses.length > 0) {
+    if (shouldFitBounds && addresses.length > 0) {
       const bounds = L.latLngBounds(addresses.map(a => [a.lat, a.lng] as [number, number]));
       const padding = isMobile ? 8 : 50;
       map.fitBounds(bounds, { padding: [padding, padding], maxZoom: 15 });
@@ -188,7 +191,11 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
 
   useEffect(() => {
     if (open && mapRef.current) {
-      updateMarkers();
+      // Only fitBounds when the actual set of addresses changes (filters applied)
+      const newKey = addresses.map(a => a.addressId).sort().join(',');
+      const shouldFit = newKey !== prevAddressKeyRef.current;
+      prevAddressKeyRef.current = newKey;
+      updateMarkers(shouldFit);
     }
   }, [addresses, open, updateMarkers]);
 
