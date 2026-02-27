@@ -25,6 +25,7 @@ export interface MapFilters {
   customer: SelectedCustomer | null;
   serviceIds: string[];
   serviceNames: string[];
+  categoryIds: string[];
 }
 
 interface CustomersMapDrawerProps {
@@ -35,6 +36,7 @@ interface CustomersMapDrawerProps {
   instanceId: string;
   filters: MapFilters;
   onFiltersChange: (filters: MapFilters) => void;
+  categoryNames?: Record<string, string>;
 }
 
 const MARKER_COLOR = '#6366f1';
@@ -55,8 +57,8 @@ const createMarkerIcon = () => {
 };
 
 // Active filter chips bar
-const ActiveFiltersBar = ({ filters, onFiltersChange }: { filters: MapFilters; onFiltersChange: (f: MapFilters) => void }) => {
-  const hasFilters = filters.customer || filters.serviceIds.length > 0;
+const ActiveFiltersBar = ({ filters, onFiltersChange, categoryNames }: { filters: MapFilters; onFiltersChange: (f: MapFilters) => void; categoryNames?: Record<string, string> }) => {
+  const hasFilters = filters.customer || filters.serviceIds.length > 0 || filters.categoryIds.length > 0;
   if (!hasFilters) return null;
 
   return (
@@ -92,11 +94,26 @@ const ActiveFiltersBar = ({ filters, onFiltersChange }: { filters: MapFilters; o
           </button>
         </span>
       ))}
+      {filters.categoryIds.map(catId => (
+        <span
+          key={catId}
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+        >
+          {categoryNames?.[catId] || catId}
+          <button
+            type="button"
+            onClick={() => onFiltersChange({ ...filters, categoryIds: filters.categoryIds.filter(id => id !== catId) })}
+            className="hover:text-primary/70"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </span>
+      ))}
     </div>
   );
 };
 
-const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanceId, filters, onFiltersChange }: CustomersMapDrawerProps) => {
+const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanceId, filters, onFiltersChange, categoryNames }: CustomersMapDrawerProps) => {
   const isMobile = useIsMobile();
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -192,8 +209,8 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
     });
   };
 
-  const handleMobileFiltersApply = (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[]) => {
-    onFiltersChange({ customer, serviceIds, serviceNames });
+  const handleMobileFiltersApply = (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[], categoryIds: string[]) => {
+    onFiltersChange({ customer, serviceIds, serviceNames, categoryIds });
   };
 
   return (
@@ -221,9 +238,9 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
                 <Button variant="outline" size="sm" onClick={() => setMobileFiltersOpen(true)}>
                   <Filter className="w-4 h-4 mr-1" />
                   Filtry
-                  {(filters.customer || filters.serviceIds.length > 0) && (
+                  {(filters.customer || filters.serviceIds.length > 0 || filters.categoryIds.length > 0) && (
                     <span className="ml-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                      {(filters.customer ? 1 : 0) + filters.serviceIds.length}
+                      {(filters.customer ? 1 : 0) + filters.serviceIds.length + filters.categoryIds.length}
                     </span>
                   )}
                 </Button>
@@ -232,7 +249,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
                 </Button>
               </div>
             </div>
-            <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} />
+            <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} categoryNames={categoryNames} />
             <div ref={containerRef} className="flex-1 w-full" style={{ minHeight: '300px' }} />
 
             <CustomerMapFiltersDrawer
@@ -242,6 +259,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
               selectedCustomer={filters.customer}
               selectedServiceIds={filters.serviceIds}
               selectedServiceNames={filters.serviceNames}
+              selectedCategoryIds={filters.categoryIds}
               onApply={handleMobileFiltersApply}
             />
           </div>
@@ -255,7 +273,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
                 <X className="w-4 h-4" />
               </Button>
             </div>
-            <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} />
+            <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} categoryNames={categoryNames} />
             {/* Sidebar + map */}
             <div className="flex flex-row flex-1 min-h-0">
               <div className="min-w-[250px] w-[20%] border-r border-border flex flex-col bg-white">
@@ -269,6 +287,8 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
                     onServicesConfirm={handleServicesConfirm}
                     selectedServiceNames={filters.serviceNames}
                     onRemoveService={handleRemoveService}
+                    selectedCategoryIds={filters.categoryIds}
+                    onCategoryIdsChange={(ids) => onFiltersChange({ ...filters, categoryIds: ids })}
                   />
                 </div>
               </div>

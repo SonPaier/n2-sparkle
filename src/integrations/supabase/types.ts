@@ -340,6 +340,90 @@ export type Database = {
           },
         ]
       }
+      customer_categories: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          instance_id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          instance_id: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          instance_id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_categories_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_category_assignments: {
+        Row: {
+          category_id: string
+          created_at: string
+          customer_id: string
+          id: string
+          instance_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          instance_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          instance_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_category_assignments_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "customer_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_category_assignments_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_category_assignments_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_sms_notifications: {
         Row: {
           calendar_item_id: string | null

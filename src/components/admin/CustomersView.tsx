@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Search, Phone, MessageSquare, Plus, Trash2, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Phone, MessageSquare, Plus, Trash2, MapPin, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -12,6 +13,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CustomerEditDrawer from './CustomerEditDrawer';
 import CustomersMapDrawer, { type CustomerMapAddress, type MapFilters } from './CustomersMapDrawer';
+import { CustomerCategoryManagementDialog } from './CustomerCategoryManagementDialog';
+import { useCustomerCategories } from '@/hooks/useCustomerCategories';
 import { toast } from 'sonner';
 
 interface Customer {
@@ -77,9 +80,14 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [clickedAddressId, setClickedAddressId] = useState<string | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+
+  // Customer categories
+  const { categories: customerCategories, customerCounts, customerCategoryMap, refetch: refetchCategories } = useCustomerCategories(instanceId);
 
   // Map filter state
-  const [mapFilters, setMapFilters] = useState<MapFilters>({ customer: null, serviceIds: [], serviceNames: [] });
+  const [mapFilters, setMapFilters] = useState<MapFilters>({ customer: null, serviceIds: [], serviceNames: [], categoryIds: [] });
   const [serviceCustomerIds, setServiceCustomerIds] = useState<Set<string> | null>(null);
 
   const fetchCustomers = async () => {
@@ -173,9 +181,18 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       });
     }
 
+    // Filter by selected categories
+    if (selectedCategoryIds.length > 0) {
+      const selectedSet = new Set(selectedCategoryIds);
+      result = result.filter(c => {
+        const cats = customerCategoryMap.get(c.id);
+        return cats && cats.some(catId => selectedSet.has(catId));
+      });
+    }
+
     result.sort((a, b) => a.name.localeCompare(b.name, 'pl'));
     return result;
-  }, [customers, searchQuery, addressMap]);
+  }, [customers, searchQuery, addressMap, selectedCategoryIds, customerCategoryMap]);
 
   const totalPages = Math.ceil(filteredCustomers.length / ITEMS_PER_PAGE);
   const paginatedCustomers = useMemo(() => {
@@ -219,8 +236,16 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
     if (serviceCustomerIds !== null) {
       result = result.filter(a => serviceCustomerIds.has(a.customerId));
     }
+    // Filter by map category filter
+    if (mapFilters.categoryIds && mapFilters.categoryIds.length > 0) {
+      const catSet = new Set(mapFilters.categoryIds);
+      result = result.filter(a => {
+        const cats = customerCategoryMap.get(a.customerId);
+        return cats && cats.some(catId => catSet.has(catId));
+      });
+    }
     return result;
-  }, [allMapAddresses, mapFilters.customer, serviceCustomerIds]);
+  }, [allMapAddresses, mapFilters.customer, serviceCustomerIds, mapFilters.categoryIds, customerCategoryMap]);
 
   const handleCall = (phone: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -315,6 +340,9 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">Klienci</h1>
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => setCategoryDialogOpen(true)} title="Zarządzaj kategoriami">
+            <Settings className="w-4 h-4" />
+          </Button>
           <Button variant="outline" onClick={() => setMapOpen(true)}>
             <MapPin className="w-4 h-4 mr-1" />
             Mapa
@@ -325,6 +353,35 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
           </Button>
         </div>
       </div>
+
+      {/* Category filter chips */}
+      {customerCategories.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {customerCategories.map(cat => {
+            const isActive = selectedCategoryIds.includes(cat.id);
+            return (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategoryIds(prev =>
+                    isActive ? prev.filter(id => id !== cat.id) : [...prev, cat.id]
+                  );
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  isActive
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-muted text-muted-foreground border-border hover:border-primary/30'
+                }`}
+              >
+                {cat.name}
+                {(customerCounts[cat.id] || 0) > 0 && (
+                  <span className="ml-1 opacity-70">({customerCounts[cat.id]})</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
       
       {/* Search */}
       <div className="sm:static sticky top-0 z-20 bg-background pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -502,7 +559,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         instanceId={instanceId}
         open={!!selectedCustomer || isAddMode}
         onClose={handleCloseDrawer}
-        onCustomerUpdated={fetchCustomers}
+        onCustomerUpdated={() => { fetchCustomers(); refetchCategories(); }}
         isAddMode={isAddMode}
         prefilledAddressId={clickedAddressId || undefined}
         prefilledServiceIds={mapFilters.serviceIds.length > 0 ? mapFilters.serviceIds : undefined}
@@ -511,6 +568,17 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
           handleCloseDrawer();
           fetchCustomers();
         }}
+        customerCategories={customerCategories}
+        customerCategoryMap={customerCategoryMap}
+      />
+
+      {/* Customer Category Management Dialog */}
+      <CustomerCategoryManagementDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        instanceId={instanceId || ''}
+        customerCounts={customerCounts}
+        onCategoriesChanged={refetchCategories}
       />
 
       {/* Customers Map Drawer */}
@@ -521,6 +589,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         instanceId={instanceId || ''}
         filters={mapFilters}
         onFiltersChange={setMapFilters}
+        categoryNames={Object.fromEntries(customerCategories.map(c => [c.id, c.name]))}
         onCustomerClick={(customerId, addressId) => {
           const customer = customers.find(c => c.id === customerId);
           if (customer) {

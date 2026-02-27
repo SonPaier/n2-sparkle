@@ -14,6 +14,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import CustomerAddressesSection, { type CustomerAddress } from './CustomerAddressesSection';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +23,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { normalizePhone } from '@/lib/phoneUtils';
 import type { Customer } from './CustomersView';
+import type { CustomerCategory } from '@/hooks/useCustomerCategories';
+import { syncCustomerCategoryAssignments } from '@/hooks/useCustomerCategories';
 import AddCalendarItemDialog from './AddCalendarItemDialog';
 
 interface CalendarColumn {
@@ -40,6 +44,8 @@ interface CustomerEditDrawerProps {
   prefilledServiceNames?: string[];
   onNewOrderCreated?: () => void;
   onCustomerCreated?: (customer: SelectedCustomer, firstAddressId?: string) => void;
+  customerCategories?: CustomerCategory[];
+  customerCategoryMap?: Map<string, string[]>;
 }
 
 const CustomerEditDrawer = ({
@@ -54,6 +60,8 @@ const CustomerEditDrawer = ({
   prefilledServiceNames,
   onNewOrderCreated,
   onCustomerCreated,
+  customerCategories = [],
+  customerCategoryMap,
 }: CustomerEditDrawerProps) => {
   const isMobile = useIsMobile();
   const [newOrderOpen, setNewOrderOpen] = useState(false);
@@ -77,6 +85,7 @@ const CustomerEditDrawer = ({
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [saving, setSaving] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
   // Fetch calendar columns for new order dialog
   useEffect(() => {
@@ -110,6 +119,7 @@ const CustomerEditDrawer = ({
         setEditBillingCity('');
         setEditBillingPostalCode('');
         setAddresses([]);
+        setSelectedCategoryIds([]);
       } else if (customer) {
         setIsEditing(false);
         setEditName(customer.name);
@@ -125,6 +135,7 @@ const CustomerEditDrawer = ({
         setEditBillingCity(customer.billing_city || '');
         setEditBillingPostalCode(customer.billing_postal_code || '');
         fetchAddresses(customer.id);
+        setSelectedCategoryIds(customerCategoryMap?.get(customer.id) || []);
       }
     }
   }, [customer, open, isAddMode]);
@@ -231,10 +242,13 @@ const CustomerEditDrawer = ({
         customerId = customer.id;
       }
 
-      // Save addresses
+      // Save addresses + categories
       let firstAddressId: string | undefined;
       if (customerId) {
         firstAddressId = await syncAddresses(customerId);
+        if (instanceId) {
+          await syncCustomerCategoryAssignments(customerId, instanceId, selectedCategoryIds);
+        }
       }
 
       // Call onCustomerCreated callback for add mode
@@ -320,6 +334,7 @@ const CustomerEditDrawer = ({
         setEditBillingCity(customer.billing_city || '');
         setEditBillingPostalCode(customer.billing_postal_code || '');
         fetchAddresses(customer.id);
+        setSelectedCategoryIds(customerCategoryMap?.get(customer.id) || []);
       }
     }
   };
@@ -425,6 +440,30 @@ const CustomerEditDrawer = ({
                   </CollapsibleContent>
                 </Collapsible>
 
+                {customerCategories.length > 0 && (
+                  <div>
+                    <Label className="mb-1.5 block">Kategorie</Label>
+                    <div className="space-y-1.5">
+                      {customerCategories.map(cat => (
+                        <div key={cat.id} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`add-cat-${cat.id}`}
+                            checked={selectedCategoryIds.includes(cat.id)}
+                            onCheckedChange={(checked) => {
+                              setSelectedCategoryIds(prev =>
+                                checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id)
+                              );
+                            }}
+                          />
+                          <Label htmlFor={`add-cat-${cat.id}`} className="text-sm cursor-pointer font-normal">
+                            {cat.name}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <CustomerAddressesSection
                   addresses={addresses}
                   onAddressesChange={setAddresses}
@@ -497,6 +536,30 @@ const CustomerEditDrawer = ({
                       </CollapsibleContent>
                     </Collapsible>
 
+                    {customerCategories.length > 0 && (
+                      <div>
+                        <Label className="mb-1.5 block">Kategorie</Label>
+                        <div className="space-y-1.5">
+                          {customerCategories.map(cat => (
+                            <div key={cat.id} className="flex items-center gap-2">
+                              <Checkbox
+                                id={`edit-cat-${cat.id}`}
+                                checked={selectedCategoryIds.includes(cat.id)}
+                                onCheckedChange={(checked) => {
+                                  setSelectedCategoryIds(prev =>
+                                    checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id)
+                                  );
+                                }}
+                              />
+                              <Label htmlFor={`edit-cat-${cat.id}`} className="text-sm cursor-pointer font-normal">
+                                {cat.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <CustomerAddressesSection
                       addresses={addresses}
                       onAddressesChange={setAddresses}
@@ -533,6 +596,23 @@ const CustomerEditDrawer = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Category badges in view mode */}
+                    {selectedCategoryIds.length > 0 && customerCategories.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium mb-1.5">Kategorie</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {selectedCategoryIds.map(catId => {
+                            const cat = customerCategories.find(c => c.id === catId);
+                            return cat ? (
+                              <Badge key={catId} variant="secondary" className="text-xs">
+                                {cat.name}
+                              </Badge>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     <CustomerAddressesSection
                       addresses={addresses}
