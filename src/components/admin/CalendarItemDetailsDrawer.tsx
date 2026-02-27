@@ -75,6 +75,66 @@ const statusColors: Record<string, string> = {
   change_requested: 'bg-red-100 text-red-800 border-red-300',
 };
 
+// Receipt-style services summary
+const ServicesSummary = ({ itemId, instanceId }: { itemId: string; instanceId: string }) => {
+  const { data: servicesData } = useQuery({
+    queryKey: ['calendar-item-services-summary', itemId],
+    queryFn: async () => {
+      const { data: itemServices } = await supabase
+        .from('calendar_item_services')
+        .select('service_id, custom_price, quantity')
+        .eq('calendar_item_id', itemId);
+      if (!itemServices?.length) return [];
+
+      const serviceIds = itemServices.map(s => s.service_id);
+      const { data: services } = await supabase
+        .from('unified_services')
+        .select('id, name, short_name, price, unit')
+        .in('id', serviceIds);
+
+      return itemServices.map(is => {
+        const svc = (services || []).find(s => s.id === is.service_id);
+        const price = is.custom_price ?? svc?.price ?? 0;
+        const qty = (is as any).quantity ?? 1;
+        return {
+          name: svc?.short_name ? `${svc.short_name} ${svc.name}` : svc?.name || '',
+          unit: svc?.unit || 'szt.',
+          quantity: qty,
+          price,
+          total: price * qty,
+        };
+      });
+    },
+    enabled: !!itemId,
+    staleTime: 30_000,
+  });
+
+  if (!servicesData?.length) return null;
+
+  const grandTotal = servicesData.reduce((sum, s) => sum + s.total, 0);
+
+  return (
+    <div className="space-y-1">
+      <span className="text-sm font-medium">Usługi i produkty</span>
+      <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
+        {servicesData.map((s, i) => (
+          <div key={i} className="flex items-center justify-between text-sm">
+            <span className="truncate flex-1 mr-2">{s.name}</span>
+            <span className="text-muted-foreground whitespace-nowrap">
+              {s.quantity} {s.unit} × {s.price} zł
+            </span>
+            <span className="font-semibold ml-2 whitespace-nowrap">{s.total.toFixed(0)} zł</span>
+          </div>
+        ))}
+        <div className="border-t border-border pt-1.5 flex items-center justify-between">
+          <span className="text-sm font-bold">Razem</span>
+          <span className="text-base font-bold">{grandTotal.toFixed(0)} zł</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CalendarItemDetailsDrawer = ({
   item,
   open,
@@ -773,6 +833,11 @@ const CalendarItemDetailsDrawer = ({
                   </p>
                 )}
               </div>
+
+              {/* Services & Products Receipt */}
+              {!hidePrices && instanceId && (
+                <ServicesSummary itemId={item.id} instanceId={instanceId} />
+              )}
 
               {/* Price */}
               {!hidePrices && item.price != null && (

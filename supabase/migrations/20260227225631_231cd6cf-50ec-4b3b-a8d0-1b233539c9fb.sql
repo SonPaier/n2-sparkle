@@ -1,0 +1,1 @@
+ALTER TABLE public.calendar_item_services ADD COLUMN quantity numeric NOT NULL DEFAULT 1;

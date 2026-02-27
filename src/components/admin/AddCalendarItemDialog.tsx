@@ -201,14 +201,14 @@ const AddCalendarItemDialog = ({
       const loadServices = async () => {
         const { data: savedServices } = await supabase
           .from('calendar_item_services' as any)
-          .select('service_id, custom_price')
+          .select('service_id, custom_price, quantity')
           .eq('calendar_item_id', editingItem.id);
 
         if (savedServices && savedServices.length > 0) {
           const svcIds = savedServices.map((s: any) => s.service_id);
           const { data: svcData } = await supabase
             .from('unified_services')
-            .select('id, name, short_name, price, duration_minutes, category_id, notification_template_id')
+            .select('id, name, short_name, price, duration_minutes, category_id, notification_template_id, unit')
             .in('id', svcIds);
 
           if (svcData) {
@@ -219,9 +219,11 @@ const AddCalendarItemDialog = ({
               return {
                 service_id: ss.service_id,
                 custom_price: ss.custom_price,
+                quantity: ss.quantity ?? 1,
                 name: svc?.name,
                 short_name: svc?.short_name,
                 price: svc?.price,
+                unit: svc?.unit || 'szt.',
               };
             }));
           }
@@ -255,7 +257,7 @@ const AddCalendarItemDialog = ({
         const loadInitialServices = async () => {
           const { data: svcData } = await supabase
             .from('unified_services')
-            .select('id, name, short_name, price, duration_minutes, category_id, notification_template_id')
+            .select('id, name, short_name, price, duration_minutes, category_id, notification_template_id, unit')
             .in('id', initialServiceIds);
           if (svcData && svcData.length > 0) {
             setAllServices(svcData as ServiceWithCategory[]);
@@ -265,9 +267,11 @@ const AddCalendarItemDialog = ({
               return {
                 service_id: id,
                 custom_price: null,
+                quantity: 1,
                 name: svc?.name,
                 short_name: svc?.short_name,
                 price: svc?.price,
+                unit: (svc as any)?.unit || 'szt.',
               };
             }));
             // Auto-generate title
@@ -341,9 +345,11 @@ const AddCalendarItemDialog = ({
         return {
           service_id: id,
           custom_price: null,
+          quantity: 1,
           name: svc?.name,
           short_name: svc?.short_name,
           price: svc?.price,
+          unit: svc?.unit || 'szt.',
         };
       });
     });
@@ -418,6 +424,12 @@ const AddCalendarItemDialog = ({
   const handlePriceChange = (serviceId: string, newPrice: number | null) => {
     setServiceItems(prev => prev.map(si =>
       si.service_id === serviceId ? { ...si, custom_price: newPrice } : si
+    ));
+  };
+
+  const handleQuantityChange = (serviceId: string, qty: number) => {
+    setServiceItems(prev => prev.map(si =>
+      si.service_id === serviceId ? { ...si, quantity: qty } : si
     ));
   };
 
@@ -567,6 +579,7 @@ const AddCalendarItemDialog = ({
             calendar_item_id: calendarItemId,
             service_id: svcId,
             custom_price: si?.custom_price ?? null,
+            quantity: si?.quantity ?? 1,
             instance_id: instanceId,
           };
         });
@@ -645,13 +658,14 @@ const AddCalendarItemDialog = ({
 
             {/* Services Selection */}
             <div className="space-y-2">
-              <Label>Usługi</Label>
+              <Label>Usługi i produkty</Label>
               <SelectedServicesList
                 services={allServices}
                 selectedServiceIds={selectedServiceIds}
                 serviceItems={serviceItems}
                 onRemoveService={handleRemoveService}
                 onPriceChange={handlePriceChange}
+                onQuantityChange={handleQuantityChange}
                 onAddMore={() => setServiceDrawerOpen(true)}
                 onTotalPriceChange={handleTotalPriceChange}
               />
