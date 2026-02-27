@@ -1,70 +1,38 @@
 
 
-## Plan: Customer categories (separate from service categories)
+## Plan: Import 232 klientów z CSV do instancji Water Grass
 
-### Context
-User correctly points out that customer categories and service categories are different concepts. We need a **separate table** for customer categories, not reusing `unified_categories`.
+### Podejście
+Stworzę edge function `import-customers` która przyjmie surowy tekst CSV i zaimportuje klientów do bazy.
 
-### 1. Database migration
+### Kroki implementacji
 
-**New table: `customer_categories`** — the categories themselves
-```sql
-CREATE TABLE customer_categories (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  instance_id uuid NOT NULL,
-  name text NOT NULL,
-  sort_order integer NOT NULL DEFAULT 0,
-  active boolean NOT NULL DEFAULT true,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE customer_categories ENABLE ROW LEVEL SECURITY;
--- SELECT: admin/employee/super_admin
--- ALL: admin/super_admin
-```
+1. **Utworzenie edge function `supabase/functions/import-customers/index.ts`**
+   - Przyjmuje POST z body zawierającym CSV jako tekst
+   - Parsuje CSV — kolumny B-F (indeksy 1-5 po split na `,`)
+   - Dla każdego wiersza (od wiersza 2):
+     - **Kolumna B** (adres): dzieli na pierwsze słowo = `billing_city`, reszta = `billing_street`
+     - **Kolumna C** (imię i nazwisko): jeśli pusta → użyj wartości z kolumny B jako `name`
+     - **Kolumna D** (telefon): wstawia do `phone`
+     - **Kolumna E** (email): wstawia do `email`
+     - **Kolumna F** (firma/nip): wstawia do `nip`
+   - Pomija wiersze nagłówkowe (np. "GDAŃSK", "SOPOT" — wiersze bez telefonu)
+   - `instance_id` = `c6300bdc-5070-4599-8143-06926578a424`
+   - Insertuje batchem do tabeli `customers`
+   - Zwraca liczbę zaimportowanych klientów
 
-**New table: `customer_category_assignments`** — many-to-many join
-```sql
-CREATE TABLE customer_category_assignments (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  customer_id uuid NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-  category_id uuid NOT NULL REFERENCES customer_categories(id) ON DELETE CASCADE,
-  instance_id uuid NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(customer_id, category_id)
-);
-ALTER TABLE customer_category_assignments ENABLE ROW LEVEL SECURITY;
--- Same RLS pattern
-```
+2. **Deploy i wywołanie**
+   - Zdeployuję edge function
+   - Wywołam ją curl'em z zawartością CSV
+   - Zweryfikuję liczbę wstawionych rekordów (cel: 232)
 
-### 2. `CategoryManagementDialog` — make reusable
+### Ważne szczegóły
+- Wiersze z samą nazwą miasta (np. "GDAŃSK" w kolumnie A bez danych w C-D) to nagłówki sekcji — pomijamy je
+- CSV ma dodatkowe kolumny po F (ceny, usługi) — ignorujemy je
+- Telefon jest wymagany w schemacie `customers` — jeśli brak telefonu, pomijamy wiersz
+- Istniejący klienci nie będą zduplikowani — sprawdzę po telefonie
 
-Currently hardcoded to `unified_categories`. Add a `tableName` prop (or create a new `CustomerCategoryManagementDialog`) that works with `customer_categories` table instead. The UI is identical — drag-and-drop, rename, delete, add — just different table.
-
-### 3. `CustomersView.tsx` — category filter chips + management button
-
-- Fetch `customer_categories` and `customer_category_assignments`
-- Add "Kategorie" button (gear icon) next to "Mapa" button → opens category management dialog for `customer_categories`
-- Show horizontal scrollable category chips above search bar (click to toggle filter, OR logic)
-- Filter customer list by selected categories
-
-### 4. `CustomerMapFilters.tsx` — category filter above services
-
-- Add "Kategorie" section above "Usługi" with category chips/checkboxes
-- Selected categories filter map markers by customer category
-- Pass category filter state through `CustomersMapDrawer` props (extend `MapFilters` type)
-
-### 5. `CustomerEditDrawer.tsx` — assign categories
-
-- Add "Kategorie" section with checkboxes in edit/add form
-- On save, sync `customer_category_assignments` (delete removed, insert new)
-- Show assigned categories as badges in view mode
-
-### 6. Files to modify
-- **Migration**: `customer_categories` + `customer_category_assignments` tables + RLS
-- **New file**: `CustomerCategoryManagementDialog.tsx` (copy of `CategoryManagementDialog` targeting `customer_categories`)
-- **`CustomersView.tsx`**: fetch categories + assignments, filter chips, management button
-- **`CustomerMapFilters.tsx`**: category filter section above services
-- **`CustomersMapDrawer.tsx`**: extend `MapFilters` with `categoryIds`, filter addresses
-- **`CustomerEditDrawer.tsx`**: category checkboxes + sync on save
+### Potencjalny problem
+- CSV zawiera polskie znaki i cudzysłowy w wartościach — parser musi to obsłużyć
+- Niektóre wartości NIP mają spacje/myślniki — zapiszę jak jest
 
