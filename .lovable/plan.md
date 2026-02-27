@@ -1,37 +1,33 @@
 
 
-## Plan: Poprawki MediaUploader
+## Plan: Fix Customers Map Drawer layout
 
-### Problem z utratą danych (audio/video nie widoczne po ponownym otwarciu)
-Główny select w `Dashboard.tsx` (linia 120) i `EmployeeCalendarPage.tsx` (linia 118) nie zawiera kolumny `media_items`. Dane zapisują się do bazy prawidłowo, ale przy ponownym otwarciu drawera `item.media_items` jest `undefined` i fallback ładuje tylko zdjęcia z `photo_urls`.
+### Problem
+1. Map drawer (`z-50`) sits behind the sidebar (`z-[70]`) — needs higher z-index
+2. Desktop layout has "Mapa klientów" title next to map, but should be above filters panel as a full-width header
+3. X button should be a round button in the top-right corner above the map (like CalendarMapPanel style)
+4. CustomerSearchInput placeholder "Szukaj klienta w bazie..." should be removed
 
-### Zmiany
+### Changes
 
-**1. Dodać `media_items` do selectów w:**
-- `src/pages/Dashboard.tsx` — linia 120 i linia 339
-- `src/pages/EmployeeCalendarPage.tsx` — linia 118
+**1. `CustomersMapDrawer.tsx` — z-index + layout restructure**
+- Add `z-[80]` to `DrawerContent` so it covers the sidebar (`z-[70]`)
+- Restructure desktop layout: full-width header row with "Mapa klientów" title + round X button, then below that: filters sidebar + map side by side
+- Remove the separate "Filtry" header from the sidebar — the main header covers everything
+- X button: `h-9 w-9 rounded-full` matching CalendarMapPanel style
 
-**2. AudioRecorder — przywrócić czerwony "Stop"**
-- Zamienić przycisk "Zapisz" na czerwony "Stop" z ikoną Square
-- Zachować auto-start nagrywania
+**2. `CustomerSearchInput.tsx` — remove placeholder**
+- Change placeholder from `"Szukaj klienta w bazie..."` to empty string `""`
 
-**3. MediaUploadProgress — flat, białe tło**
-- Usunąć Loader2 spinner
-- Białe tło (`bg-background border`)
-- Prosty pasek postępu z % na końcu, bez labela nad paskiem
-
-**4. Przywrócić nagłówki sekcji**
-- "Nagrania głosowe" nad listą audio
-- "Dokumenty" nad listą plików
-- "Video" nad listą video
-
-**5. Ujednolicić fonty**
-- Wszystkie pozycje (video, audio, pliki): ten sam `text-sm` styl
-
-### Pliki do edycji:
-- `src/pages/Dashboard.tsx` (2 selecty)
-- `src/pages/EmployeeCalendarPage.tsx` (1 select)
-- `src/components/media/AudioRecorder.tsx`
-- `src/components/media/MediaUploadProgress.tsx`
-- `src/components/media/MediaUploader.tsx`
+### Layout (desktop, after change):
+```text
+┌──────────────────────────────────────────────┐
+│ Mapa klientów                            (X) │  ← full-width header, z-[80]
+├──────────┬───────────────────────────────────┤
+│ Klient   │                                   │
+│ [search] │         MAP (100% height)          │
+│ Usługi   │                                   │
+│ [button] │                                   │
+└──────────┴───────────────────────────────────┘
+```
 
