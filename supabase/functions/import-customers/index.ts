@@ -6,31 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (char === "," && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
 function normalizePhone(phone: string): string {
   if (!phone) return "";
   let cleaned = phone.replace(/[^\d+]/g, "");
@@ -50,8 +25,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const csvText = await req.text();
-    const lines = csvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    const tsvText = await req.text();
+    const lines = tsvText.split(/\r?\n/).filter((l) => l.trim().length > 0);
 
     const INSTANCE_ID = "c6300bdc-5070-4599-8143-06926578a424";
 
@@ -72,17 +47,16 @@ Deno.serve(async (req) => {
     const customers: any[] = [];
     const skipped: string[] = [];
 
-    // Skip header row (row 0)
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseCSVLine(lines[i]);
-      // Columns: A(0), B(1)=address, C(2)=name, D(3)=phone, E(4)=email, F(5)=nip
-      const address = (cols[1] || "").trim();
-      const nameRaw = (cols[2] || "").trim();
-      const phoneRaw = (cols[3] || "").trim();
-      const email = (cols[4] || "").trim();
-      const nip = (cols[5] || "").trim();
+    for (let i = 0; i < lines.length; i++) {
+      const cols = lines[i].split("\t");
+      // Columns: 0=address, 1=name, 2=phone, 3=email, 4=nip
+      const address = (cols[0] || "").trim();
+      const nameRaw = (cols[1] || "").trim();
+      const phoneRaw = (cols[2] || "").trim();
+      const email = (cols[3] || "").trim();
+      const nip = (cols[4] || "").trim();
 
-      // Skip rows without phone (header rows like "GDAŃSK", "SOPOT")
+      // Skip rows without phone (empty rows, section headers)
       if (!phoneRaw) {
         skipped.push(`Row ${i + 1}: no phone — "${address}" "${nameRaw}"`);
         continue;
@@ -95,7 +69,7 @@ Deno.serve(async (req) => {
       }
 
       // Name: use address if name is empty
-      const name = nameRaw || address || `Klient ${i}`;
+      const name = nameRaw || address || `Klient ${i + 1}`;
 
       // Split address: first word = city, rest = street
       let billingCity = "";
@@ -138,11 +112,13 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        total_rows: lines.length - 1,
+        total_rows: lines.length,
         imported: inserted,
         skipped_count: skipped.length,
-        skipped_samples: skipped.slice(0, 20),
+        skipped_samples: skipped.slice(0, 30),
         errors,
+        first_customer: customers[0],
+        last_customer: customers[customers.length - 1],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
