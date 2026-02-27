@@ -140,7 +140,7 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
           }}
           onFocus={() => { if (query.length >= 2) setOpen(true); }}
           onKeyDown={handleKeyDown}
-          placeholder="Szukaj klienta w bazie..."
+          placeholder=""
           className="pl-9 pr-9"
         />
         {searching && (

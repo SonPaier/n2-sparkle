@@ -206,11 +206,11 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
     >
       <DrawerContent
         hideHandle
-        className={
+        className={`z-[80] ${
           isMobile
             ? 'h-[100dvh] rounded-none bg-white'
             : 'ml-auto h-full w-full max-w-none rounded-none bg-white'
-        }
+        }`}
       >
         {isMobile ? (
           // Mobile layout
@@ -246,37 +246,33 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
             />
           </div>
         ) : (
-          // Desktop layout: sidebar + map
-          <div className="flex flex-row h-full">
-            {/* Left sidebar: filters */}
-             <div className="min-w-[250px] w-[20%] border-r border-border flex flex-col bg-white">
-              <div className="flex items-center justify-between p-3 border-b border-border bg-white">
-                <h2 className="text-lg font-semibold text-foreground">Filtry</h2>
-              </div>
-              <div className="flex-1 overflow-y-auto">
-                <CustomerMapFilters
-                  instanceId={instanceId}
-                  selectedCustomer={filters.customer}
-                  onCustomerSelect={(c) => onFiltersChange({ ...filters, customer: c })}
-                  onCustomerClear={() => onFiltersChange({ ...filters, customer: null })}
-                  selectedServiceIds={filters.serviceIds}
-                  onServicesConfirm={handleServicesConfirm}
-                  selectedServiceNames={filters.serviceNames}
-                  onRemoveService={handleRemoveService}
-                />
-              </div>
+          // Desktop layout: full-width header, then sidebar + map
+          <div className="flex flex-col h-full">
+            {/* Full-width header */}
+            <div className="flex items-center justify-between p-3 border-b border-border bg-white">
+              <h2 className="text-lg font-semibold text-foreground">Mapa klientów</h2>
+              <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 rounded-full">
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-
-            {/* Right side: header + active filters + map */}
-            <div className="flex-1 flex flex-col">
-               <div className="flex items-center justify-between p-3 border-b border-border bg-white">
-                 <h2 className="text-lg font-semibold text-foreground">Mapa klientów</h2>
-                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-                  <X className="w-4 h-4" />
-                </Button>
+            <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} />
+            {/* Sidebar + map */}
+            <div className="flex flex-row flex-1 min-h-0">
+              <div className="min-w-[250px] w-[20%] border-r border-border flex flex-col bg-white">
+                <div className="flex-1 overflow-y-auto">
+                  <CustomerMapFilters
+                    instanceId={instanceId}
+                    selectedCustomer={filters.customer}
+                    onCustomerSelect={(c) => onFiltersChange({ ...filters, customer: c })}
+                    onCustomerClear={() => onFiltersChange({ ...filters, customer: null })}
+                    selectedServiceIds={filters.serviceIds}
+                    onServicesConfirm={handleServicesConfirm}
+                    selectedServiceNames={filters.serviceNames}
+                    onRemoveService={handleRemoveService}
+                  />
+                </div>
               </div>
-              <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} />
-              <div ref={containerRef} className="flex-1 w-full" style={{ minHeight: '300px' }} />
+              <div ref={containerRef} className="flex-1 w-full" />
             </div>
           </div>
         )}
