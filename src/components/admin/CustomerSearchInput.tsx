@@ -40,14 +40,42 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
     }
 
     setSearching(true);
-    const { data } = await supabase
+
+    // Search customers by name, phone, company
+    const { data: directMatches } = await supabase
       .from('customers')
       .select('id, name, phone, email, company, nip')
       .eq('instance_id', instanceId)
       .or(`name.ilike.%${q}%,phone.ilike.%${q}%,company.ilike.%${q}%`)
       .limit(10);
 
-    setResults(data || []);
+    // Search by address street/city
+    const { data: addrMatches } = await supabase
+      .from('customer_addresses')
+      .select('customer_id')
+      .eq('instance_id', instanceId)
+      .or(`street.ilike.%${q}%,city.ilike.%${q}%`)
+      .limit(20);
+
+    const addrCustomerIds = new Set(addrMatches?.map(a => a.customer_id) || []);
+    const directIds = new Set((directMatches || []).map(c => c.id));
+
+    // Fetch additional customers found via address but not in direct results
+    const missingIds = [...addrCustomerIds].filter(id => !directIds.has(id));
+    let addrCustomers: SelectedCustomer[] = [];
+    if (missingIds.length > 0) {
+      const { data } = await supabase
+        .from('customers')
+        .select('id, name, phone, email, company, nip')
+        .eq('instance_id', instanceId)
+        .in('id', missingIds)
+        .limit(10);
+      addrCustomers = data || [];
+    }
+
+    // Merge, dedupe, limit
+    const merged = [...(directMatches || []), ...addrCustomers].slice(0, 10);
+    setResults(merged);
     setSearching(false);
   }, [instanceId]);
 
