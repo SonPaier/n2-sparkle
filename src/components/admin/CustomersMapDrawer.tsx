@@ -21,11 +21,14 @@ export interface CustomerMapAddress {
   futureOrdersCount?: number;
 }
 
+export type OrderStatusFilter = 'all' | 'with_orders' | 'without_orders';
+
 export interface MapFilters {
   customer: SelectedCustomer | null;
   serviceIds: string[];
   serviceNames: string[];
   categoryIds: string[];
+  orderStatus: OrderStatusFilter;
 }
 
 interface CustomersMapDrawerProps {
@@ -58,7 +61,7 @@ const createMarkerIcon = () => {
 
 // Active filter chips bar
 const ActiveFiltersBar = ({ filters, onFiltersChange, categoryNames }: { filters: MapFilters; onFiltersChange: (f: MapFilters) => void; categoryNames?: Record<string, string> }) => {
-  const hasFilters = filters.customer || filters.serviceIds.length > 0 || filters.categoryIds.length > 0;
+  const hasFilters = filters.customer || filters.serviceIds.length > 0 || filters.categoryIds.length > 0 || filters.orderStatus !== 'all';
   if (!hasFilters) return null;
 
   return (
@@ -109,6 +112,18 @@ const ActiveFiltersBar = ({ filters, onFiltersChange, categoryNames }: { filters
           </button>
         </span>
       ))}
+      {filters.orderStatus !== 'all' && (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+          {filters.orderStatus === 'with_orders' ? 'Ze zleceniami' : 'Bez zleceń'}
+          <button
+            type="button"
+            onClick={() => onFiltersChange({ ...filters, orderStatus: 'all' })}
+            className="hover:text-primary/70"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </span>
+      )}
     </div>
   );
 };
@@ -216,8 +231,8 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
     });
   };
 
-  const handleMobileFiltersApply = (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[], categoryIds: string[]) => {
-    onFiltersChange({ customer, serviceIds, serviceNames, categoryIds });
+  const handleMobileFiltersApply = (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[], categoryIds: string[], orderStatus: OrderStatusFilter) => {
+    onFiltersChange({ customer, serviceIds, serviceNames, categoryIds, orderStatus });
   };
 
   return (
@@ -245,9 +260,9 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
                 <Button variant="outline" size="sm" onClick={() => setMobileFiltersOpen(true)}>
                   <Filter className="w-4 h-4 mr-1" />
                   Filtry
-                  {(filters.customer || filters.serviceIds.length > 0 || filters.categoryIds.length > 0) && (
+                  {(filters.customer || filters.serviceIds.length > 0 || filters.categoryIds.length > 0 || filters.orderStatus !== 'all') && (
                     <span className="ml-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                      {(filters.customer ? 1 : 0) + filters.serviceIds.length + filters.categoryIds.length}
+                      {(filters.customer ? 1 : 0) + filters.serviceIds.length + filters.categoryIds.length + (filters.orderStatus !== 'all' ? 1 : 0)}
                     </span>
                   )}
                 </Button>
@@ -267,6 +282,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
               selectedServiceIds={filters.serviceIds}
               selectedServiceNames={filters.serviceNames}
               selectedCategoryIds={filters.categoryIds}
+              selectedOrderStatus={filters.orderStatus}
               onApply={handleMobileFiltersApply}
             />
           </div>
@@ -296,6 +312,8 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
                     onRemoveService={handleRemoveService}
                     selectedCategoryIds={filters.categoryIds}
                     onCategoryIdsChange={(ids) => onFiltersChange({ ...filters, categoryIds: ids })}
+                    orderStatus={filters.orderStatus}
+                    onOrderStatusChange={(status) => onFiltersChange({ ...filters, orderStatus: status })}
                   />
                 </div>
               </div>

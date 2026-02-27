@@ -87,8 +87,9 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   const { categories: customerCategories, customerCounts, customerCategoryMap, refetch: refetchCategories } = useCustomerCategories(instanceId);
 
   // Map filter state
-  const [mapFilters, setMapFilters] = useState<MapFilters>({ customer: null, serviceIds: [], serviceNames: [], categoryIds: [] });
+  const [mapFilters, setMapFilters] = useState<MapFilters>({ customer: null, serviceIds: [], serviceNames: [], categoryIds: [], orderStatus: 'all' });
   const [serviceCustomerIds, setServiceCustomerIds] = useState<Set<string> | null>(null);
+  const [orderCustomerIds, setOrderCustomerIds] = useState<Set<string> | null>(null);
 
   const fetchCustomers = async () => {
     if (!instanceId) return;
@@ -154,6 +155,28 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
 
     fetchServiceCustomers();
   }, [instanceId, mapFilters.serviceIds]);
+
+  // Fetch customer IDs that have calendar items (for order status filter)
+  useEffect(() => {
+    if (!instanceId || mapFilters.orderStatus === 'all') {
+      setOrderCustomerIds(null);
+      return;
+    }
+
+    const fetchOrderCustomers = async () => {
+      const { data } = await supabase
+        .from('calendar_items')
+        .select('customer_id')
+        .eq('instance_id', instanceId)
+        .not('customer_id', 'is', null);
+
+      const ids = new Set<string>();
+      data?.forEach(r => { if (r.customer_id) ids.add(r.customer_id); });
+      setOrderCustomerIds(ids);
+    };
+
+    fetchOrderCustomers();
+  }, [instanceId, mapFilters.orderStatus]);
 
   const filteredCustomers = useMemo(() => {
     let result = [...customers];
@@ -244,8 +267,16 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         return cats && cats.some(catId => catSet.has(catId));
       });
     }
+    // Filter by order status
+    if (mapFilters.orderStatus !== 'all' && orderCustomerIds !== null) {
+      if (mapFilters.orderStatus === 'with_orders') {
+        result = result.filter(a => orderCustomerIds.has(a.customerId));
+      } else {
+        result = result.filter(a => !orderCustomerIds.has(a.customerId));
+      }
+    }
     return result;
-  }, [allMapAddresses, mapFilters.customer, serviceCustomerIds, mapFilters.categoryIds, customerCategoryMap]);
+  }, [allMapAddresses, mapFilters.customer, serviceCustomerIds, mapFilters.categoryIds, customerCategoryMap, mapFilters.orderStatus, orderCustomerIds]);
 
   const handleCall = (phone: string, e: React.MouseEvent) => {
     e.stopPropagation();
