@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
@@ -20,6 +20,11 @@ interface EmployeeSelectionDrawerProps {
 const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConfirm, singleSelect }: EmployeeSelectionDrawerProps) => {
   const isMobile = useIsMobile();
   const [localSelected, setLocalSelected] = useState<string[]>(selectedIds);
+
+  // Sync localSelected with selectedIds when drawer opens
+  useEffect(() => {
+    if (open) setLocalSelected(selectedIds);
+  }, [open, selectedIds]);
 
   const toggle = (id: string) => {
     if (singleSelect) {
@@ -101,7 +106,7 @@ const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConf
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={v => { if (!v) onClose(); }}>
-        <DrawerContent className="h-[70vh] max-h-[70vh] flex flex-col p-0 gap-0" hideHandle>
+        <DrawerContent className="h-[70vh] max-h-[70vh] flex flex-col p-0 gap-0 z-[1100]" hideHandle>
           {content}
         </DrawerContent>
       </Drawer>
@@ -110,7 +115,7 @@ const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConf
 
   return (
     <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <SheetContent side="right" className="z-[1000] sm:max-w-sm p-0 flex flex-col" hideCloseButton>
+      <SheetContent side="right" className="z-[1100] sm:max-w-sm p-0 flex flex-col" hideCloseButton>
         {content}
       </SheetContent>
     </Sheet>

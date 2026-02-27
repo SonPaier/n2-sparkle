@@ -1,5 +1,4 @@
 import { X } from 'lucide-react';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import type { Employee } from '@/hooks/useEmployees';
 
 interface AssignedEmployeesChipsProps {
@@ -20,17 +19,13 @@ const AssignedEmployeesChips = ({ employees, selectedIds, onRemove }: AssignedEm
       {selected.map(emp => (
         <div
           key={emp.id}
-          className="flex items-center gap-1 bg-muted rounded-full pl-0.5 pr-1 py-0.5 border border-border"
+          className="flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-3 py-1"
         >
-          <Avatar className="w-5 h-5">
-            {emp.photo_url && <AvatarImage src={emp.photo_url} />}
-            <AvatarFallback className="text-[8px]">{emp.name.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <span className="text-xs">{emp.name}</span>
+          <span className="text-xs font-medium">{emp.name}</span>
           <button
             type="button"
             onClick={() => onRemove(emp.id)}
-            className="ml-0.5 p-0.5 rounded-full hover:bg-destructive/20 transition-colors"
+            className="ml-0.5 p-0.5 rounded-full text-primary-foreground/80 hover:text-primary-foreground transition-colors"
           >
             <X className="w-3 h-3" />
           </button>
