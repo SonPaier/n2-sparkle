@@ -1,61 +1,61 @@
 
 
-## Plan: Modyfikacja drawera zlecenia
+## Plan: Rozszerzenie modelu usług o ilość + nowy layout pozycji
 
-### 1. Adres serwisowy zawsze widoczny + dwustronna synchronizacja
+### 1. Migracja DB — dodać kolumnę `quantity` do `calendar_item_services`
 
-Modyfikuję istniejący `CustomerAddressSelect.tsx` — nie tworzę nowego komponentu.
-
-**Zmiany w `CustomerAddressSelect.tsx`**:
-- Usunąć `if (!customerId || addresses.length === 0) return null` — komponent renderuje się ZAWSZE
-- Gdy brak `customerId`: pokazać pole wyszukiwania adresów po ulicy/mieście we WSZYSTKICH adresach instancji (dropdown jak w `CustomerSearchInput`)
-- Gdy jest `customerId`: pokazać Select z adresami tego klienta (obecne zachowanie)
-- Dodać callback `onCustomerResolved?: (customerId: string, customerData: SelectedCustomer) => void` — wywoływany gdy użytkownik wybierze adres z wyszukiwarki globalnej, aby automatycznie ustawić klienta
-- Wyszukiwanie: query do `customer_addresses` JOIN `customers` — zwraca adres + dane klienta
-
-**Zmiany w `AddCalendarItemDialog.tsx`**:
-- `CustomerAddressSelect` dostaje nowy prop `onCustomerResolved` — ustawia `customerId`, `customerName`, `customerPhone`, `customerEmail`
-- Gdy `handleSelectCustomer` (wybór klienta) → adresy się ładują automatycznie (obecna logika auto-select default)
-- Gdy `handleClearCustomer` → czyści też adres (już działa)
-- **Ważne**: w trybie edycji (`isEditMode`) NIE otwierać dropdownów autocomplete automatycznie — pola wyświetlają wartość, dropdown otwiera się dopiero po interakcji użytkownika
-
-### 2. Rename "Typ zlecenia" → "Długość zlecenia"
-
-W `AddCalendarItemDialog.tsx` linia 655:
-- `Typ zlecenia` → `Długość zlecenia`
-- `Jednodniowa` → `Jednodniowe`
-- `Wielodniowa` → `Wielodniowe`
-
-### 3. Pills pracowników — fioletowe, białe, bez avatara
-
-W `AssignedEmployeesChips.tsx`:
-- Usunąć `Avatar` komponent z chipa
-- Chip: `bg-primary text-white rounded-full px-3 py-1`
-- X button: `text-white/80 hover:text-white`
-
-### 4. Bug: drawer pracowników pod drawerem zlecenia (mobile)
-
-W `EmployeeSelectionDrawer.tsx`:
-- Mobile `DrawerContent`: dodać `z-[1100]` (drawer zlecenia ma `z-[1000]`)
-- Desktop `SheetContent` już ma `z-[1000]` — zmienić na `z-[1100]`
-
-### 5. Bug: synchronizacja pills ↔ drawer pracowników
-
-W `EmployeeSelectionDrawer.tsx`:
-- Dodać `useEffect` synchronizujący `localSelected` z `selectedIds` gdy `open` zmieni się na `true`:
-```typescript
-useEffect(() => {
-  if (open) setLocalSelected(selectedIds);
-}, [open, selectedIds]);
+```sql
+ALTER TABLE public.calendar_item_services ADD COLUMN quantity numeric NOT NULL DEFAULT 1;
 ```
 
-### 6. Cena netto — 1/3 szerokości
+### 2. Renaming labelek
 
-W `AddCalendarItemDialog.tsx` linia 774: Input ceny dostaje `className="bg-white w-1/3"`
+**`AddCalendarItemDialog.tsx`**:
+- Linia 648: `Usługi` → `Usługi i produkty`
+
+**`SelectedServicesList.tsx`**:
+- Linia 108: `Dodaj usługi` → `Dodaj usługi lub produkty`
+
+**`ServiceSelectionDrawer.tsx`**:
+- Linia 328: `Wybierz usługi` → `Wybierz usługi i produkty`
+
+### 3. Rozszerzyć `ServiceItem` i `ServiceWithCategory` o `unit` i `quantity`
+
+**`SelectedServicesList.tsx`** — rozszerzyć interfejsy:
+- `ServiceWithCategory`: dodać `unit?: string`
+- `ServiceItem`: dodać `quantity: number` (domyślnie 1)
+
+**`SelectedServicesListProps`**: dodać callback `onQuantityChange: (serviceId: string, qty: number) => void`
+
+### 4. Nowy layout pozycji w `SelectedServicesList`
+
+Każda pozycja usługi/produktu — dwie linie:
+- **Linia 1**: Nazwa (short_name + name), czas (jeśli jest duration), przycisk delete
+- **Linia 2**: Ilość (inline edit input, np. w-16) + jednostka (szt./m²/mb.) + `×` + cena (inline edit, istniejący) + `=` + suma (ilość × cena, read-only, bold)
+
+Totalny rachunek na dole: suma wszystkich pozycji (ilość × cena).
+
+### 5. Obsługa `quantity` w `AddCalendarItemDialog.tsx`
+
+- Dodać `handleQuantityChange` analogicznie do `handlePriceChange`
+- Przy zapisie do `calendar_item_services` — dodać `quantity` do insert rows
+- Przy ładowaniu edycji — pobierać `quantity` z bazy i ustawiać w `serviceItems`
+- `handleServicesConfirmed` — inicjalizować nowe pozycje z `quantity: 1`
+
+### 6. Rozszerzyć `ServiceSelectionDrawer` — przekazywać `unit`
+
+W `ServiceWithCategory` (w `ServiceSelectionDrawer.tsx`) dodać `unit?: string`, pobierać z bazy i przekazywać w `onConfirm`.
+
+### 7. Podsumowanie usług w `CalendarItemDetailsDrawer` — styl rachunku
+
+W zakładce "Ogólne" dodać sekcję "Usługi i produkty" pobierającą `calendar_item_services` (z `quantity`) + nazwy z `unified_services` (z `unit`). Wyświetlić jak rachunek:
+- Każda linia: nazwa, ilość × cena = suma
+- Na dole: **Razem: X zł**
 
 ### Pliki do edycji:
-1. `src/components/admin/CustomerAddressSelect.tsx` — przerobić na zawsze widoczny z wyszukiwarką globalną
-2. `src/components/admin/AddCalendarItemDialog.tsx` — synchro, rename, cena 1/3
-3. `src/components/admin/AssignedEmployeesChips.tsx` — fioletowe pills
-4. `src/components/admin/EmployeeSelectionDrawer.tsx` — z-index + sync fix
+1. **Migracja SQL** — `calendar_item_services.quantity`
+2. `src/components/admin/SelectedServicesList.tsx` — nowy layout 2-liniowy z ilością
+3. `src/components/admin/AddCalendarItemDialog.tsx` — obsługa quantity, rename label
+4. `src/components/admin/ServiceSelectionDrawer.tsx` — unit w interfejsie, rename title
+5. `src/components/admin/CalendarItemDetailsDrawer.tsx` — sekcja rachunku usług
 
