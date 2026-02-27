@@ -10,12 +10,11 @@ interface CustomerMapFiltersDrawerProps {
   open: boolean;
   onClose: () => void;
   instanceId: string;
-  // Current applied filters
   selectedCustomer: SelectedCustomer | null;
   selectedServiceIds: string[];
   selectedServiceNames: string[];
-  // Callbacks to apply
-  onApply: (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[]) => void;
+  selectedCategoryIds: string[];
+  onApply: (customer: SelectedCustomer | null, serviceIds: string[], serviceNames: string[], categoryIds: string[]) => void;
 }
 
 const CustomerMapFiltersDrawer = ({
@@ -25,12 +24,13 @@ const CustomerMapFiltersDrawer = ({
   selectedCustomer,
   selectedServiceIds,
   selectedServiceNames,
+  selectedCategoryIds,
   onApply,
 }: CustomerMapFiltersDrawerProps) => {
-  // Temporary state — copy of current filters
   const [tempCustomer, setTempCustomer] = useState<SelectedCustomer | null>(selectedCustomer);
   const [tempServiceIds, setTempServiceIds] = useState<string[]>(selectedServiceIds);
   const [tempServiceNames, setTempServiceNames] = useState<string[]>(selectedServiceNames);
+  const [tempCategoryIds, setTempCategoryIds] = useState<string[]>(selectedCategoryIds);
 
   // Reset temp state when drawer opens
   useEffect(() => {
@@ -38,8 +38,9 @@ const CustomerMapFiltersDrawer = ({
       setTempCustomer(selectedCustomer);
       setTempServiceIds(selectedServiceIds);
       setTempServiceNames(selectedServiceNames);
+      setTempCategoryIds(selectedCategoryIds);
     }
-  }, [open, selectedCustomer, selectedServiceIds, selectedServiceNames]);
+  }, [open, selectedCustomer, selectedServiceIds, selectedServiceNames, selectedCategoryIds]);
 
   const handleServicesConfirm = (ids: string[], _duration: number, services: ServiceWithCategory[]) => {
     setTempServiceIds(ids);
@@ -55,7 +56,7 @@ const CustomerMapFiltersDrawer = ({
   };
 
   const handleSave = () => {
-    onApply(tempCustomer, tempServiceIds, tempServiceNames);
+    onApply(tempCustomer, tempServiceIds, tempServiceNames, tempCategoryIds);
     onClose();
   };
 
@@ -81,6 +82,8 @@ const CustomerMapFiltersDrawer = ({
             onServicesConfirm={handleServicesConfirm}
             selectedServiceNames={tempServiceNames}
             onRemoveService={handleRemoveService}
+            selectedCategoryIds={tempCategoryIds}
+            onCategoryIdsChange={setTempCategoryIds}
           />
         </div>
 
