@@ -33,7 +33,7 @@ import type { Reminder } from '@/hooks/useReminders';
 const validViews: ViewType[] = ['dashboard', 'kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'przypomnienia', 'powiadomienia-sms', 'ustawienia'];
 
 const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; description: string }> = {
-  dashboard: { label: 'Dashboard', icon: LayoutDashboard, description: 'Przegląd zadań na ten tydzień' },
+  dashboard: { label: 'Twój dzień', icon: LayoutDashboard, description: 'Przegląd zadań na ten tydzień' },
   kalendarz: { label: 'Kalendarz', icon: Calendar, description: 'Zarządzaj harmonogramem i rezerwacjami' },
   klienci: { label: 'Klienci', icon: Users, description: 'Przeglądaj i zarządzaj bazą klientów' },
   pracownicy: { label: 'Pracownicy', icon: HardHat, description: 'Zarządzaj pracownikami i czasem pracy' },
@@ -56,10 +56,12 @@ const Dashboard = () => {
   const adminRole = roles.find(r => (r.role === 'admin' || r.role === 'employee') && r.instance_id);
   const instanceId = adminRole?.instance_id ?? null;
 
-  const basePath = window.location.pathname.includes('/admin') ? '/admin' : '';
+  const hostname = window.location.hostname;
+  const isSubdomain = hostname.endsWith('.n2service.com');
+  const basePath = isSubdomain ? '' : '/admin';
 
   const handleViewChange = (newView: ViewType) => {
-    navigate(newView === 'dashboard' ? `${basePath || '/admin'}` : `${basePath || '/admin'}/${newView}`, { replace: true });
+    navigate(newView === 'dashboard' ? (basePath || '/') : `${basePath}/${newView}`, { replace: true });
   };
 
   // Calendar state
