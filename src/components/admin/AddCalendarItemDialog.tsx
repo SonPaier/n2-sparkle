@@ -634,6 +634,13 @@ const AddCalendarItemDialog = ({
               customerId={customerId}
               value={customerAddressId}
               onChange={setCustomerAddressId}
+              onCustomerResolved={(customer, addressId) => {
+                setCustomerId(customer.id);
+                setCustomerName(customer.name);
+                setCustomerPhone(customer.phone);
+                setCustomerEmail(customer.email || '');
+                setCustomerAddressId(addressId);
+              }}
             />
 
             {/* Services Selection */}
@@ -652,7 +659,7 @@ const AddCalendarItemDialog = ({
 
             {/* Date - RadioGroup + Calendar */}
             <div className="space-y-2">
-              <Label>Typ zlecenia</Label>
+              <Label>Długość zlecenia</Label>
               <RadioGroup
                 value={reservationType}
                 onValueChange={(v: 'single' | 'multi') => {
@@ -665,11 +672,11 @@ const AddCalendarItemDialog = ({
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="single" id="type-single" />
-                  <Label htmlFor="type-single" className="cursor-pointer font-normal">Jednodniowa</Label>
+                  <Label htmlFor="type-single" className="cursor-pointer font-normal">Jednodniowe</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="multi" id="type-multi" />
-                  <Label htmlFor="type-multi" className="cursor-pointer font-normal">Wielodniowa</Label>
+                  <Label htmlFor="type-multi" className="cursor-pointer font-normal">Wielodniowe</Label>
                 </div>
               </RadioGroup>
             </div>
@@ -771,7 +778,7 @@ const AddCalendarItemDialog = ({
             {/* Price */}
             <div className="space-y-2">
               <Label>Cena netto</Label>
-              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} min="0" step="0.01" className="bg-white" />
+              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} min="0" step="0.01" className="bg-white w-1/3" />
             </div>
 
             {/* Notes */}
