@@ -1,4 +1,4 @@
-import { MapPin, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -89,10 +89,7 @@ const CustomerAddressesSection = ({
     if (activeAddresses.length === 0) return null;
     return (
       <div>
-        <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-          <MapPin className="w-4 h-4" />
-          Adresy serwisowe
-        </h4>
+        <h4 className="text-sm font-medium mb-2">Adresy serwisowe</h4>
         <div className="space-y-2">
           {activeAddresses.map((addr, idx) => (
             <div key={addr.id || idx} className="bg-white p-3 border border-border rounded-lg text-sm space-y-1 shadow-sm">
@@ -116,10 +113,7 @@ const CustomerAddressesSection = ({
 
   return (
     <div className="pt-2">
-      <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
-        <MapPin className="w-4 h-4" />
-        Adresy serwisowe
-      </h3>
+      <h3 className="text-sm font-medium mb-3">Adresy serwisowe</h3>
 
       <div className="flex items-center gap-2 mb-3">
         <div className="flex-1">

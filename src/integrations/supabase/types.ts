@@ -495,6 +495,7 @@ export type Database = {
       }
       customers: {
         Row: {
+          additional_contacts: Json | null
           address: string | null
           billing_city: string | null
           billing_country_code: string | null
@@ -523,6 +524,7 @@ export type Database = {
           vat_eu_number: string | null
         }
         Insert: {
+          additional_contacts?: Json | null
           address?: string | null
           billing_city?: string | null
           billing_country_code?: string | null
@@ -551,6 +553,7 @@ export type Database = {
           vat_eu_number?: string | null
         }
         Update: {
+          additional_contacts?: Json | null
           address?: string | null
           billing_city?: string | null
           billing_country_code?: string | null

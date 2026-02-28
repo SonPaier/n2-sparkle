@@ -42,6 +42,7 @@ interface Customer {
   sales_notes: string | null;
   short_name: string | null;
   created_at: string | null;
+  additional_contacts: any[] | null;
 }
 
 export type { Customer };

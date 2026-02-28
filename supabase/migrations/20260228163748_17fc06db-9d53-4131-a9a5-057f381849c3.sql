@@ -1,0 +1,1 @@
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS additional_contacts jsonb DEFAULT '[]';

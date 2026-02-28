@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Phone, MessageSquare, Mail, X, ChevronDown, CalendarPlus } from 'lucide-react';
+import { Phone, MessageSquare, Mail, X, ChevronDown, CalendarPlus, Plus, Trash2 } from 'lucide-react';
 import type { SelectedCustomer } from './CustomerSearchInput';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { LightTabsList, LightTabsTrigger } from '@/components/ui/light-tabs';
@@ -16,8 +16,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import CustomerAddressesSection, { type CustomerAddress } from './CustomerAddressesSection';
+import NipLookupForm, { type NipLookupData } from './NipLookupForm';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
@@ -26,6 +28,12 @@ import type { Customer } from './CustomersView';
 import type { CustomerCategory } from '@/hooks/useCustomerCategories';
 import { syncCustomerCategoryAssignments } from '@/hooks/useCustomerCategories';
 import AddCalendarItemDialog from './AddCalendarItemDialog';
+
+interface ContactPerson {
+  name: string;
+  phone: string;
+  email: string;
+}
 
 interface CalendarColumn {
   id: string;
@@ -76,18 +84,20 @@ const CustomerEditDrawer = ({
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editNotes, setEditNotes] = useState('');
-  const [editCompany, setEditCompany] = useState('');
-  const [editNip, setEditNip] = useState('');
-  const [editContactPerson, setEditContactPerson] = useState('');
-  const [editContactPhone, setEditContactPhone] = useState('');
-  const [editContactEmail, setEditContactEmail] = useState('');
-  const [editBillingStreet, setEditBillingStreet] = useState('');
-  const [editBillingCity, setEditBillingCity] = useState('');
-  const [editBillingPostalCode, setEditBillingPostalCode] = useState('');
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
   const [saving, setSaving] = useState(false);
-  const [billingOpen, setBillingOpen] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+
+  // Contact persons
+  const [contactPersons, setContactPersons] = useState<ContactPerson[]>([{ name: '', phone: '', email: '' }]);
+
+  // Company data (NipLookupForm)
+  const [companyData, setCompanyData] = useState<NipLookupData>({
+    nip: '', company: '', billingStreet: '', billingPostalCode: '', billingCity: '',
+  });
+  const [companyOpen, setCompanyOpen] = useState(false);
+
+  const hasCompanyData = !!(companyData.nip || companyData.company || companyData.billingStreet || companyData.billingCity);
 
   // Fetch calendar columns for new order dialog
   useEffect(() => {
@@ -112,32 +122,48 @@ const CustomerEditDrawer = ({
         setEditPhone('');
         setEditEmail('');
         setEditNotes('');
-        setEditCompany('');
-        setEditNip('');
-        setEditContactPerson('');
-        setEditContactPhone('');
-        setEditContactEmail('');
-        setEditBillingStreet('');
-        setEditBillingCity('');
-        setEditBillingPostalCode('');
         setAddresses([]);
         setSelectedCategoryIds([]);
+        setContactPersons([{ name: '', phone: '', email: '' }]);
+        setCompanyData({ nip: '', company: '', billingStreet: '', billingPostalCode: '', billingCity: '' });
+        setCompanyOpen(false);
       } else if (customer) {
         setIsEditing(false);
         setEditName(customer.name);
         setEditPhone(customer.phone);
         setEditEmail(customer.email || '');
         setEditNotes(customer.notes || '');
-        setEditCompany(customer.company || '');
-        setEditNip(customer.nip || '');
-        setEditContactPerson(customer.contact_person || '');
-        setEditContactPhone(customer.contact_phone || '');
-        setEditContactEmail(customer.contact_email || '');
-        setEditBillingStreet(customer.billing_street || '');
-        setEditBillingCity(customer.billing_city || '');
-        setEditBillingPostalCode(customer.billing_postal_code || '');
         fetchAddresses(customer.id);
         setSelectedCategoryIds(customerCategoryMap?.get(customer.id) || []);
+
+        // Build contact persons from customer data
+        const persons: ContactPerson[] = [];
+        if (customer.contact_person || customer.contact_phone || customer.contact_email) {
+          persons.push({
+            name: customer.contact_person || '',
+            phone: customer.contact_phone || '',
+            email: customer.contact_email || '',
+          });
+        }
+        const additional = (customer as any).additional_contacts;
+        if (Array.isArray(additional)) {
+          for (const c of additional) {
+            persons.push({ name: c.name || '', phone: c.phone || '', email: c.email || '' });
+          }
+        }
+        if (persons.length === 0) persons.push({ name: '', phone: '', email: '' });
+        setContactPersons(persons);
+
+        // Company data
+        setCompanyData({
+          nip: customer.nip || '',
+          company: customer.company || '',
+          billingStreet: customer.billing_street || '',
+          billingPostalCode: customer.billing_postal_code || '',
+          billingCity: customer.billing_city || '',
+        });
+        const hasExisting = !!(customer.nip || customer.company || customer.billing_street || customer.billing_city);
+        setCompanyOpen(hasExisting);
       }
     }
   }, [customer, open, isAddMode]);
@@ -177,7 +203,7 @@ const CustomerEditDrawer = ({
   const handleSaveCustomer = async () => {
     if (!instanceId) return;
     if (!editName.trim() || !editPhone.trim()) {
-      toast.error('Nazwa i telefon są wymagane');
+      toast.error('Imię i nazwisko oraz telefon są wymagane');
       return;
     }
 
@@ -185,24 +211,28 @@ const CustomerEditDrawer = ({
     try {
       let customerId: string | undefined;
 
+      // Map first contact person to main fields, rest to additional_contacts
+      const firstContact = contactPersons[0] || { name: '', phone: '', email: '' };
+      const additionalContacts = contactPersons.slice(1).filter(c => c.name || c.phone || c.email);
+
       const customerData = {
         name: editName.trim(),
         email: editEmail.trim() || null,
         notes: editNotes.trim() || null,
-        company: editCompany.trim() || null,
-        nip: editNip.trim() || null,
-        contact_person: editContactPerson.trim() || null,
-        contact_phone: editContactPhone.trim() || null,
-        contact_email: editContactEmail.trim() || null,
-        billing_street: editBillingStreet.trim() || null,
-        billing_city: editBillingCity.trim() || null,
-        billing_postal_code: editBillingPostalCode.trim() || null,
+        company: companyData.company.trim() || null,
+        nip: companyData.nip.trim() || null,
+        contact_person: firstContact.name.trim() || null,
+        contact_phone: firstContact.phone.trim() || null,
+        contact_email: firstContact.email.trim() || null,
+        billing_street: companyData.billingStreet.trim() || null,
+        billing_city: companyData.billingCity.trim() || null,
+        billing_postal_code: companyData.billingPostalCode.trim() || null,
+        additional_contacts: additionalContacts.length > 0 ? JSON.stringify(additionalContacts) : '[]',
       };
 
       if (isAddMode) {
         const normalizedPhone = normalizePhone(editPhone.trim());
 
-        // Check duplicate
         const { data: existing } = await supabase
           .from('customers')
           .select('id')
@@ -244,7 +274,6 @@ const CustomerEditDrawer = ({
         customerId = customer.id;
       }
 
-      // Save addresses + categories
       let firstAddressId: string | undefined;
       if (customerId) {
         firstAddressId = await syncAddresses(customerId);
@@ -253,15 +282,14 @@ const CustomerEditDrawer = ({
         }
       }
 
-      // Call onCustomerCreated callback for add mode
       if (isAddMode && customerId && onCustomerCreated) {
         onCustomerCreated({
           id: customerId,
           name: editName.trim(),
           phone: normalizePhone(editPhone.trim()),
           email: editEmail.trim() || null,
-          company: editCompany.trim() || null,
-          nip: editNip.trim() || null,
+          company: companyData.company.trim() || null,
+          nip: companyData.nip.trim() || null,
         }, firstAddressId);
       }
 
@@ -279,13 +307,11 @@ const CustomerEditDrawer = ({
   const syncAddresses = async (customerId: string): Promise<string | undefined> => {
     if (!instanceId) return undefined;
 
-    // Delete removed addresses
     const deletedIds = addresses.filter(a => a._deleted && a.id).map(a => a.id!);
     if (deletedIds.length > 0) {
       await supabase.from('customer_addresses').delete().in('id', deletedIds);
     }
 
-    // Upsert remaining
     const activeAddresses = addresses.filter(a => !a._deleted);
     let firstAddressId: string | undefined;
     for (let i = 0; i < activeAddresses.length; i++) {
@@ -327,16 +353,25 @@ const CustomerEditDrawer = ({
         setEditPhone(customer.phone);
         setEditEmail(customer.email || '');
         setEditNotes(customer.notes || '');
-        setEditCompany(customer.company || '');
-        setEditNip(customer.nip || '');
-        setEditContactPerson(customer.contact_person || '');
-        setEditContactPhone(customer.contact_phone || '');
-        setEditContactEmail(customer.contact_email || '');
-        setEditBillingStreet(customer.billing_street || '');
-        setEditBillingCity(customer.billing_city || '');
-        setEditBillingPostalCode(customer.billing_postal_code || '');
         fetchAddresses(customer.id);
         setSelectedCategoryIds(customerCategoryMap?.get(customer.id) || []);
+
+        const persons: ContactPerson[] = [];
+        if (customer.contact_person || customer.contact_phone || customer.contact_email) {
+          persons.push({ name: customer.contact_person || '', phone: customer.contact_phone || '', email: customer.contact_email || '' });
+        }
+        const additional = (customer as any).additional_contacts;
+        if (Array.isArray(additional)) {
+          for (const c of additional) persons.push({ name: c.name || '', phone: c.phone || '', email: c.email || '' });
+        }
+        if (persons.length === 0) persons.push({ name: '', phone: '', email: '' });
+        setContactPersons(persons);
+
+        setCompanyData({
+          nip: customer.nip || '', company: customer.company || '',
+          billingStreet: customer.billing_street || '', billingPostalCode: customer.billing_postal_code || '',
+          billingCity: customer.billing_city || '',
+        });
       }
     }
   };
@@ -346,7 +381,197 @@ const CustomerEditDrawer = ({
     onClose();
   };
 
+  const updateContact = (index: number, field: keyof ContactPerson, val: string) => {
+    setContactPersons(prev => prev.map((c, i) => i === index ? { ...c, [field]: val } : c));
+  };
 
+  const addContact = () => {
+    setContactPersons(prev => [...prev, { name: '', phone: '', email: '' }]);
+  };
+
+  const removeContact = (index: number) => {
+    setContactPersons(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Shared form content for both add and edit modes
+  const renderFormContent = (prefix: string) => (
+    <div className="space-y-4">
+      {/* === SECTION: Informacje podstawowe === */}
+      <h3 className="text-sm font-semibold text-foreground">Informacje podstawowe</h3>
+      <div>
+        <Label className="mb-1.5 block">Imię i nazwisko *</Label>
+        <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Imię i nazwisko" />
+      </div>
+      <div>
+        <Label className="mb-1.5 block">Telefon *</Label>
+        <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+48..." />
+      </div>
+      <div>
+        <Label className="mb-1.5 block">Email</Label>
+        <Input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" />
+      </div>
+
+      <CustomerAddressesSection
+        addresses={addresses}
+        onAddressesChange={setAddresses}
+        isEditing={true}
+      />
+
+      {customerCategories.length > 0 && (
+        <div>
+          <Label className="mb-1.5 block">Kategorie</Label>
+          <div className="space-y-1.5">
+            {customerCategories.map(cat => (
+              <div key={cat.id} className="flex items-center gap-2">
+                <Checkbox
+                  id={`${prefix}-cat-${cat.id}`}
+                  checked={selectedCategoryIds.includes(cat.id)}
+                  onCheckedChange={(checked) => {
+                    setSelectedCategoryIds(prev =>
+                      checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id)
+                    );
+                  }}
+                />
+                <Label htmlFor={`${prefix}-cat-${cat.id}`} className="text-sm cursor-pointer font-normal">
+                  {cat.name}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <Label className="mb-1.5 block">Notatki</Label>
+        <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notatki..." rows={3} />
+      </div>
+
+      {/* === SECTION: Osoby kontaktowe === */}
+      <Separator />
+      <h3 className="text-sm font-semibold text-foreground">Osoby kontaktowe</h3>
+      {contactPersons.map((cp, idx) => (
+        <div key={idx} className="space-y-2 p-3 border border-border rounded-lg relative">
+          {contactPersons.length > 1 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-1 right-1 w-6 h-6 text-destructive"
+              onClick={() => removeContact(idx)}
+            >
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          )}
+          <Input
+            value={cp.name}
+            onChange={e => updateContact(idx, 'name', e.target.value)}
+            placeholder="Imię i nazwisko"
+            className="text-sm"
+          />
+          <Input
+            value={cp.phone}
+            onChange={e => updateContact(idx, 'phone', e.target.value)}
+            placeholder="Numer telefonu"
+            className="text-sm"
+          />
+          <Input
+            value={cp.email}
+            onChange={e => updateContact(idx, 'email', e.target.value)}
+            placeholder="Email"
+            className="text-sm"
+          />
+        </div>
+      ))}
+      <Button variant="outline" size="sm" onClick={addContact} className="w-full">
+        <Plus className="w-3 h-3 mr-1" />
+        Dodaj osobę kontaktową
+      </Button>
+
+      {/* === SECTION: Dane firmy === */}
+      <Separator />
+      <Collapsible open={companyOpen} onOpenChange={setCompanyOpen}>
+        <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold w-full py-1">
+          <ChevronDown className={`w-4 h-4 transition-transform ${companyOpen ? 'rotate-180' : ''}`} />
+          Dane firmy
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-3">
+          <NipLookupForm value={companyData} onChange={setCompanyData} />
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
+  );
+
+  // View mode content
+  const renderViewContent = () => (
+    <div className="space-y-4 mt-4">
+      {/* === Informacje podstawowe === */}
+      <h3 className="text-sm font-semibold text-foreground">Informacje podstawowe</h3>
+      <div className="flex items-center gap-3 text-lg">
+        <Phone className="w-5 h-5 text-muted-foreground" />
+        <span className="font-medium text-foreground">{customer?.phone}</span>
+      </div>
+      <div className="space-y-2 text-sm">
+        {customer?.email && (
+          <div className="flex items-center gap-2 text-foreground">
+            <Mail className="w-4 h-4 text-muted-foreground" />
+            <span>{customer.email}</span>
+          </div>
+        )}
+      </div>
+
+      <CustomerAddressesSection
+        addresses={addresses}
+        onAddressesChange={setAddresses}
+        isEditing={false}
+      />
+
+      {selectedCategoryIds.length > 0 && customerCategories.length > 0 && (
+        <div>
+          <h4 className="text-sm font-medium mb-1.5">Kategorie</h4>
+          <div className="flex flex-wrap gap-1">
+            {selectedCategoryIds.map(catId => {
+              const cat = customerCategories.find(c => c.id === catId);
+              return cat ? (
+                <Badge key={catId} variant="secondary" className="text-xs">{cat.name}</Badge>
+              ) : null;
+            })}
+          </div>
+        </div>
+      )}
+
+      {customer?.notes && (
+        <div>
+          <h4 className="text-sm font-medium mb-2">Notatki</h4>
+          <p className="text-sm text-foreground whitespace-pre-wrap">{customer.notes}</p>
+        </div>
+      )}
+
+      {/* === Osoby kontaktowe === */}
+      {contactPersons.some(c => c.name || c.phone || c.email) && (
+        <>
+          <Separator />
+          <h3 className="text-sm font-semibold text-foreground">Osoby kontaktowe</h3>
+          <div className="space-y-2">
+            {contactPersons.filter(c => c.name || c.phone || c.email).map((cp, idx) => (
+              <div key={idx} className="text-sm text-foreground space-y-0.5">
+                {cp.name && <div className="font-medium">{cp.name}</div>}
+                {cp.phone && <div>{cp.phone}</div>}
+                {cp.email && <div>{cp.email}</div>}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* === Dane firmy === */}
+      {hasCompanyData && (
+        <>
+          <Separator />
+          <h3 className="text-sm font-semibold text-foreground">Dane firmy</h3>
+          <NipLookupForm value={companyData} onChange={() => {}} readOnly />
+        </>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -384,98 +609,11 @@ const CustomerEditDrawer = ({
             </div>
           </SheetHeader>
 
-
           {isAddMode ? (
-            /* Add mode: no tabs */
             <div className="mt-6">
-              <div className="space-y-4">
-                <div>
-                  <Label className="mb-1.5 block">Nazwa *</Label>
-                  <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Imię i nazwisko / firma" />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Telefon *</Label>
-                  <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+48..." />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Email</Label>
-                  <Input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Firma</Label>
-                  <Input value={editCompany} onChange={e => setEditCompany(e.target.value)} placeholder="Nazwa firmy" />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">NIP</Label>
-                  <Input value={editNip} onChange={e => setEditNip(e.target.value)} placeholder="NIP" />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Osoba kontaktowa</Label>
-                  <Input value={editContactPerson} onChange={e => setEditContactPerson(e.target.value)} placeholder="Osoba kontaktowa" />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Telefon kontaktowy</Label>
-                  <Input value={editContactPhone} onChange={e => setEditContactPhone(e.target.value)} placeholder="Telefon kontaktowy" />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Notatki</Label>
-                  <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notatki..." rows={3} />
-                </div>
-
-                <Collapsible open={billingOpen} onOpenChange={setBillingOpen}>
-                  <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium w-full py-2">
-                    <ChevronDown className={`w-4 h-4 transition-transform ${billingOpen ? 'rotate-180' : ''}`} />
-                    Dane do faktury
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-3 pt-2">
-                    <div>
-                      <Label className="mb-1.5 block text-xs">Ulica</Label>
-                      <Input value={editBillingStreet} onChange={e => setEditBillingStreet(e.target.value)} placeholder="Ulica" />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block text-xs">Miasto</Label>
-                      <Input value={editBillingCity} onChange={e => setEditBillingCity(e.target.value)} placeholder="Miasto" />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block text-xs">Kod pocztowy</Label>
-                      <Input value={editBillingPostalCode} onChange={e => setEditBillingPostalCode(e.target.value)} placeholder="00-000" />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
-
-                {customerCategories.length > 0 && (
-                  <div>
-                    <Label className="mb-1.5 block">Kategorie</Label>
-                    <div className="space-y-1.5">
-                      {customerCategories.map(cat => (
-                        <div key={cat.id} className="flex items-center gap-2">
-                          <Checkbox
-                            id={`add-cat-${cat.id}`}
-                            checked={selectedCategoryIds.includes(cat.id)}
-                            onCheckedChange={(checked) => {
-                              setSelectedCategoryIds(prev =>
-                                checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id)
-                              );
-                            }}
-                          />
-                          <Label htmlFor={`add-cat-${cat.id}`} className="text-sm cursor-pointer font-normal">
-                            {cat.name}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <CustomerAddressesSection
-                  addresses={addresses}
-                  onAddressesChange={setAddresses}
-                  isEditing={true}
-                />
-              </div>
+              {renderFormContent('add')}
             </div>
           ) : (
-            /* View/Edit mode: with tabs */
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
               <LightTabsList>
                 <LightTabsTrigger value="dane">Dane</LightTabsTrigger>
@@ -484,152 +622,11 @@ const CustomerEditDrawer = ({
 
               <TabsContent value="dane">
                 {isEditing ? (
-                  <div className="space-y-4 mt-4">
-                    <div>
-                      <Label className="mb-1.5 block">Nazwa *</Label>
-                      <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Imię i nazwisko / firma" />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block">Telefon *</Label>
-                      <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="+48..." />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block">Email</Label>
-                      <Input type="email" value={editEmail} onChange={e => setEditEmail(e.target.value)} placeholder="Email" />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block">Firma</Label>
-                      <Input value={editCompany} onChange={e => setEditCompany(e.target.value)} placeholder="Nazwa firmy" />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block">NIP</Label>
-                      <Input value={editNip} onChange={e => setEditNip(e.target.value)} placeholder="NIP" />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block">Osoba kontaktowa</Label>
-                      <Input value={editContactPerson} onChange={e => setEditContactPerson(e.target.value)} placeholder="Osoba kontaktowa" />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block">Telefon kontaktowy</Label>
-                      <Input value={editContactPhone} onChange={e => setEditContactPhone(e.target.value)} placeholder="Telefon kontaktowy" />
-                    </div>
-                    <div>
-                      <Label className="mb-1.5 block">Notatki</Label>
-                      <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notatki..." rows={3} />
-                    </div>
-
-                    <Collapsible open={billingOpen} onOpenChange={setBillingOpen}>
-                      <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium w-full py-2">
-                        <ChevronDown className={`w-4 h-4 transition-transform ${billingOpen ? 'rotate-180' : ''}`} />
-                        Dane do faktury
-                      </CollapsibleTrigger>
-                      <CollapsibleContent className="space-y-3 pt-2">
-                        <div>
-                          <Label className="mb-1.5 block text-xs">Ulica</Label>
-                          <Input value={editBillingStreet} onChange={e => setEditBillingStreet(e.target.value)} placeholder="Ulica" />
-                        </div>
-                        <div>
-                          <Label className="mb-1.5 block text-xs">Miasto</Label>
-                          <Input value={editBillingCity} onChange={e => setEditBillingCity(e.target.value)} placeholder="Miasto" />
-                        </div>
-                        <div>
-                          <Label className="mb-1.5 block text-xs">Kod pocztowy</Label>
-                          <Input value={editBillingPostalCode} onChange={e => setEditBillingPostalCode(e.target.value)} placeholder="00-000" />
-                        </div>
-                      </CollapsibleContent>
-                    </Collapsible>
-
-                    {customerCategories.length > 0 && (
-                      <div>
-                        <Label className="mb-1.5 block">Kategorie</Label>
-                        <div className="space-y-1.5">
-                          {customerCategories.map(cat => (
-                            <div key={cat.id} className="flex items-center gap-2">
-                              <Checkbox
-                                id={`edit-cat-${cat.id}`}
-                                checked={selectedCategoryIds.includes(cat.id)}
-                                onCheckedChange={(checked) => {
-                                  setSelectedCategoryIds(prev =>
-                                    checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id)
-                                  );
-                                }}
-                              />
-                              <Label htmlFor={`edit-cat-${cat.id}`} className="text-sm cursor-pointer font-normal">
-                                {cat.name}
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <CustomerAddressesSection
-                      addresses={addresses}
-                      onAddressesChange={setAddresses}
-                      isEditing={true}
-                    />
+                  <div className="mt-4">
+                    {renderFormContent('edit')}
                   </div>
                 ) : (
-                  <div className="space-y-4 mt-4">
-                    <div className="flex items-center gap-3 text-lg">
-                      <Phone className="w-5 h-5 text-muted-foreground" />
-                      <span className="font-medium text-foreground">{customer?.phone}</span>
-                    </div>
-
-                    <div className="space-y-2 text-sm">
-                      {customer?.email && (
-                        <div className="flex items-center gap-2 text-foreground">
-                          <Mail className="w-4 h-4 text-muted-foreground" />
-                          <span>{customer.email}</span>
-                        </div>
-                      )}
-                      {customer?.company && (
-                        <div className="text-foreground">
-                          <span className="font-medium">Firma:</span> {customer.company}
-                        </div>
-                      )}
-                      {customer?.nip && (
-                        <div className="text-foreground">
-                          <span className="font-medium">NIP:</span> {customer.nip}
-                        </div>
-                      )}
-                      {customer?.contact_person && (
-                        <div className="text-foreground">
-                          <span className="font-medium">Osoba kontaktowa:</span> {customer.contact_person}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Category badges in view mode */}
-                    {selectedCategoryIds.length > 0 && customerCategories.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-1.5">Kategorie</h4>
-                        <div className="flex flex-wrap gap-1">
-                          {selectedCategoryIds.map(catId => {
-                            const cat = customerCategories.find(c => c.id === catId);
-                            return cat ? (
-                              <Badge key={catId} variant="secondary" className="text-xs">
-                                {cat.name}
-                              </Badge>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    <CustomerAddressesSection
-                      addresses={addresses}
-                      onAddressesChange={setAddresses}
-                      isEditing={false}
-                    />
-
-                    {customer?.notes && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-2">Notatki</h4>
-                        <p className="text-sm text-foreground whitespace-pre-wrap">{customer.notes}</p>
-                      </div>
-                    )}
-                  </div>
+                  renderViewContent()
                 )}
               </TabsContent>
 
@@ -642,7 +639,6 @@ const CustomerEditDrawer = ({
           )}
         </div>
 
-      {/* Sticky footer - only show for add mode or when on "dane" tab */}
       {(isAddMode || activeTab === 'dane') && (
         <div className="p-4 bg-card border-t shrink-0">
           {isAddMode || isEditing ? (
@@ -664,7 +660,6 @@ const CustomerEditDrawer = ({
     </SheetContent>
   </Sheet>
 
-  {/* New Order Dialog */}
   {customer && instanceId && (
     <AddCalendarItemDialog
       open={newOrderOpen}
