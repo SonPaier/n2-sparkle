@@ -1,4 +1,4 @@
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, X } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 
@@ -6,10 +6,11 @@ interface MediaUploadProgressProps {
   progress: number;
   error?: string | null;
   onRetry?: () => void;
+  onCancel?: () => void;
   label?: string;
 }
 
-export const MediaUploadProgress = ({ progress, error, onRetry }: MediaUploadProgressProps) => {
+export const MediaUploadProgress = ({ progress, error, onRetry, onCancel }: MediaUploadProgressProps) => {
   if (error) {
     return (
       <div className="flex flex-col items-center gap-2 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
@@ -30,6 +31,11 @@ export const MediaUploadProgress = ({ progress, error, onRetry }: MediaUploadPro
         <Progress value={progress} className="h-2" />
       </div>
       <span className="text-xs font-medium text-muted-foreground shrink-0">{progress}%</span>
+      {onCancel && (
+        <button onClick={onCancel} className="p-1 rounded-full hover:bg-muted transition-colors shrink-0" title="Anuluj">
+          <X className="w-4 h-4 text-muted-foreground" />
+        </button>
+      )}
     </div>
   );
 };

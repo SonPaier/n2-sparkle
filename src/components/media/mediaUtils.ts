@@ -131,12 +131,12 @@ export const uploadFileWithProgress = (
   file: Blob,
   contentType: string,
   onProgress?: UploadProgressCallback,
+  signal?: AbortSignal,
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-    // Get session token
     supabase.auth.getSession().then(({ data }) => {
       const token = data.session?.access_token || supabaseKey;
 
@@ -146,6 +146,13 @@ export const uploadFileWithProgress = (
       xhr.setRequestHeader('apikey', supabaseKey);
       xhr.setRequestHeader('Content-Type', contentType);
       xhr.setRequestHeader('x-upsert', 'true');
+
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          xhr.abort();
+          reject(new Error('Upload anulowany'));
+        });
+      }
 
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) {

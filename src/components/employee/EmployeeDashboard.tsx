@@ -15,6 +15,7 @@ interface EmployeeDashboardProps {
   instanceId: string;
   columnIds: string[];
   hidePrices?: boolean;
+  hideHours?: boolean;
   onItemClick?: (item: any) => void;
   linkedEmployeeId?: string | null;
   workingHours?: WorkingHours;
@@ -55,7 +56,7 @@ interface ReminderRow {
   reminder_type_name?: string;
 }
 
-const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, linkedEmployeeId, workingHours }: EmployeeDashboardProps) => {
+const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours }: EmployeeDashboardProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,7 +225,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, lin
                       <span className="font-semibold text-base leading-tight">{item.title}</span>
                       <div className="flex items-center gap-1.5 text-sm text-foreground">
                         <Clock className="w-3.5 h-3.5" />
-                        <span>{formatDateLabel(item.item_date)}, {item.start_time}–{item.end_time}</span>
+                        <span>{formatDateLabel(item.item_date)}{!hideHours && `, ${item.start_time}–${item.end_time}`}</span>
                       </div>
                       {item.customer_name && (
                         <div className="flex items-center gap-1.5 text-sm text-foreground">

@@ -76,6 +76,7 @@ interface AdminCalendarProps {
   selectedItemId?: string | null;
   onToggleMap?: () => void;
   mapOpen?: boolean;
+  hideHours?: boolean;
 }
 
 const DEFAULT_START_HOUR = 6;
@@ -132,6 +133,7 @@ const AdminCalendar = ({
   selectedItemId,
   onToggleMap,
   mapOpen,
+  hideHours,
 }: AdminCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(() => {
     const saved = localStorage.getItem('admin-calendar-date');
@@ -587,12 +589,12 @@ const AdminCalendar = ({
           {/* Line 1: Time + notes indicator */}
           <div className="flex items-center justify-between gap-0.5">
             <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
-              {`${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}`}
+              {!hideHours && `${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}`}
               {isMultiDay && item.end_date && (() => {
                 const dayNames = ['ND', 'PN', 'WT', 'ŚR', 'CZ', 'PT', 'SO'];
                 const startDay = dayNames[new Date(item.item_date + 'T00:00:00').getDay()];
                 const endDay = dayNames[new Date(item.end_date + 'T00:00:00').getDay()];
-                return `, ${startDay}-${endDay}`;
+                return hideHours ? `${startDay}-${endDay}` : `, ${startDay}-${endDay}`;
               })()}
               {item.status === 'change_requested' && <RefreshCw className="w-3 h-3 text-red-600" />}
             </span>
@@ -703,13 +705,15 @@ const AdminCalendar = ({
   const renderTimeColumnSlots = () => (
     HOURS.map((hour) => (
       <div key={hour} className="relative" style={{ height: HOUR_HEIGHT }}>
-        <span className="absolute -top-2.5 right-1 md:right-2 text-xs md:text-sm font-medium text-foreground bg-background px-1 z-10">
-          {`${hour.toString().padStart(2, '0')}:00`}
-        </span>
+        {!hideHours && (
+          <span className="absolute -top-2.5 right-1 md:right-2 text-xs md:text-sm font-medium text-foreground bg-background px-1 z-10">
+            {`${hour.toString().padStart(2, '0')}:00`}
+          </span>
+        )}
         <div className="absolute left-0 right-0 top-0 h-full">
           {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => (
             <div key={i} className={cn("border-b relative", i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/30")} style={{ height: SLOT_HEIGHT }}>
-              {i > 0 && (
+              {!hideHours && i > 0 && (
                 <span className="absolute -top-1.5 right-1 md:right-2 text-[9px] md:text-[10px] text-muted-foreground/70 bg-background px-0.5">
                   {(i * SLOT_MINUTES).toString()}
                 </span>

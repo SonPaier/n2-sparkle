@@ -56,6 +56,7 @@ interface CalendarItemDetailsDrawerProps {
   onAddProtocol?: (item: CalendarItem) => void;
   instanceId?: string;
   hidePrices?: boolean;
+  hideHours?: boolean;
   forceSideRight?: boolean;
 }
 
@@ -147,6 +148,7 @@ const CalendarItemDetailsDrawer = ({
   onAddProtocol,
   instanceId,
   hidePrices,
+  hideHours,
   forceSideRight,
 }: CalendarItemDetailsDrawerProps) => {
   const isMobile = useIsMobile();
@@ -679,8 +681,12 @@ const CalendarItemDetailsDrawer = ({
             {/* Line 2: date + time */}
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[14px] text-muted-foreground capitalize">{shortDate}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-[14px] font-medium">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
+              {!hideHours && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-[14px] font-medium">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
+                </>
+              )}
             </div>
             {/* Line 3: badges */}
             <div className="flex items-center gap-2 mt-1.5">

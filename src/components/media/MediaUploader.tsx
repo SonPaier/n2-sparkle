@@ -52,6 +52,7 @@ export const MediaUploader = ({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const images = items.filter((i) => i.type === 'image');
   const videos = items.filter((i) => i.type === 'video');
@@ -65,6 +66,15 @@ export const MediaUploader = ({
     },
     [onItemsChange, onAutoSave],
   );
+
+  const handleCancelUpload = () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setUploading(false);
+    setUploadProgress(0);
+    setUploadError(null);
+    setUploadLabel('');
+  };
 
   const doUpload = async (
     file: Blob,
@@ -80,16 +90,21 @@ export const MediaUploader = ({
     setUploadLabel(displayName || fileName);
     setRetryFn(null);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const url = await uploadFileWithProgress(bucket, fileName, file, contentType, setUploadProgress);
+      const url = await uploadFileWithProgress(bucket, fileName, file, contentType, setUploadProgress, controller.signal);
       const newItem: MediaItem = { type: mediaType, url, name: displayName || fileName, mimeType: contentType };
       const newItems = [...items, newItem];
       saveItems(newItems);
       toast.success('Plik przesłany');
     } catch (err: any) {
+      if (err?.message === 'Upload anulowany') return;
       setUploadError(err?.message || 'Błąd przesyłania');
       setRetryFn(() => () => doUpload(file, bucket, fileName, contentType, mediaType, displayName));
     } finally {
+      abortControllerRef.current = null;
       setUploading(false);
     }
   };
@@ -277,6 +292,7 @@ export const MediaUploader = ({
           progress={uploadProgress}
           error={uploadError}
           onRetry={retryFn || undefined}
+          onCancel={uploading ? handleCancelUpload : undefined}
           label={uploadLabel}
         />
       )}
