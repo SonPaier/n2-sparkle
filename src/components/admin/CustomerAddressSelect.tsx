@@ -38,6 +38,7 @@ interface CustomerAddressSelectProps {
   value: string | null;
   onChange: (addressId: string | null) => void;
   onCustomerResolved?: (customer: ResolvedCustomer, addressId: string) => void;
+  onAddNew?: (query: string) => void;
   label?: string;
   showLabel?: boolean;
 }
@@ -48,6 +49,7 @@ const CustomerAddressSelect = ({
   value,
   onChange,
   onCustomerResolved,
+  onAddNew,
   label = 'Adres serwisowy',
   showLabel = true,
 }: CustomerAddressSelectProps) => {
@@ -62,6 +64,7 @@ const CustomerAddressSelect = ({
   const [selectedAddress, setSelectedAddress] = useState<AddressSearchResult | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const noResultsForQueryRef = useRef<string | null>(null);
 
   // Load customer addresses when customerId is set
   useEffect(() => {
@@ -96,8 +99,18 @@ const CustomerAddressSelect = ({
   const searchAddresses = useCallback(async (q: string) => {
     if (q.length < 2) {
       setSearchResults([]);
+      noResultsForQueryRef.current = null;
       return;
     }
+
+    // Skip search if extending a query that already returned no results
+    if (noResultsForQueryRef.current && q.startsWith(noResultsForQueryRef.current)) {
+      setSearchResults([]);
+      setSearching(false);
+      return;
+    }
+
+    noResultsForQueryRef.current = null;
     setSearching(true);
 
     const { data } = await supabase
@@ -107,7 +120,7 @@ const CustomerAddressSelect = ({
       .or(`street.ilike.%${q}%,city.ilike.%${q}%,name.ilike.%${q}%`)
       .limit(10);
 
-    if (data) {
+    if (data && data.length > 0) {
       const results: AddressSearchResult[] = data.map((a: any) => ({
         id: a.id,
         name: a.name,
@@ -121,6 +134,7 @@ const CustomerAddressSelect = ({
       setSearchResults(results);
     } else {
       setSearchResults([]);
+      noResultsForQueryRef.current = q;
     }
     setSearching(false);
   }, [instanceId]);
@@ -307,8 +321,22 @@ const CustomerAddressSelect = ({
                 </button>
               ))
             ) : (
-              <div className="p-4 text-center">
-                <p className="text-sm text-muted-foreground">Brak wyników</p>
+              <div className="p-4 text-center space-y-3">
+                <p className="text-sm text-muted-foreground">Nie ma klienta z takim adresem serwisowym</p>
+                {onAddNew && (
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={() => {
+                      const currentQuery = query;
+                      setDropdownOpen(false);
+                      setQuery('');
+                      onAddNew(currentQuery);
+                    }}
+                  >
+                    Dodaj klienta
+                  </Button>
+                )}
               </div>
             )}
           </div>

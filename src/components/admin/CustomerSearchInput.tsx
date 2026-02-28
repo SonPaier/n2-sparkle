@@ -36,13 +36,25 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const noResultsForQueryRef = useRef<string | null>(null);
 
   const search = useCallback(async (q: string) => {
     if (q.length < 2) {
       setResults([]);
       setSearching(false);
+      noResultsForQueryRef.current = null;
       return;
     }
+
+    // Skip search if extending a query that already returned no results
+    if (noResultsForQueryRef.current && q.startsWith(noResultsForQueryRef.current)) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+
+    // Reset ref if user changed prefix (e.g. backspace)
+    noResultsForQueryRef.current = null;
 
     setSearching(true);
 
@@ -103,6 +115,10 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
       ...c,
       addresses: addressesMap[c.id] || [],
     }));
+
+    if (resultsWithAddresses.length === 0) {
+      noResultsForQueryRef.current = q;
+    }
 
     setResults(resultsWithAddresses);
     setSearching(false);
