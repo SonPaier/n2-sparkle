@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
-import { Calendar, Bell, Clock, User, MapPin, HardHat, Tag } from 'lucide-react';
+import { Calendar, Bell, ChevronRight, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { formatPhoneDisplay, normalizePhone } from '@/lib/phoneUtils';
 
 type WorkingHours = Record<string, { open: string; close: string } | null> | null;
 
@@ -55,6 +57,14 @@ interface ReminderRow {
   customer_name?: string;
   reminder_type_name?: string;
 }
+
+const getDayPill = (itemDate: string) => {
+  const date = new Date(itemDate + 'T00:00:00');
+  if (isToday(date)) return { label: 'Dziś', cls: 'bg-green-500 text-white border-transparent' };
+  if (isTomorrow(date)) return { label: 'Jutro', cls: 'bg-purple-500 text-white border-transparent' };
+  const dayName = format(date, 'EEEE', { locale: pl });
+  return { label: dayName.charAt(0).toUpperCase() + dayName.slice(1), cls: 'bg-purple-500 text-white border-transparent' };
+};
 
 const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours }: EmployeeDashboardProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
@@ -168,14 +178,15 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
     fetchData();
   };
 
-  const formatDateLabel = (date: string) => {
-    try { return format(new Date(date + 'T00:00:00'), 'EEEE, d MMM', { locale: pl }); }
-    catch { return date; }
-  };
-
   const buildFullAddress = (item: CalendarItemRow) => {
     const parts = [item.address_name, item.address_street, item.address_city].filter(Boolean);
     return parts.join(', ');
+  };
+
+  const buildGoogleMapsUrl = (item: CalendarItemRow) => {
+    const addr = buildFullAddress(item);
+    if (!addr) return null;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;
   };
 
   if (loading) {
@@ -197,10 +208,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Twój dzień</h1>
-      <p className="text-sm text-muted-foreground mb-6">
-        {formatDateLabel(dateStart)} — {formatDateLabel(dateEnd)}
-      </p>
+      <h1 className="text-2xl font-bold mb-6">Twój dzień</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Zlecenia */}
@@ -215,39 +223,84 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
               <p className="text-sm text-muted-foreground/60 italic py-3">Brak zleceń</p>
             ) : (
               <div>
-                {items.map((item, idx) => (
-                  <div
-                    key={item.id}
-                    className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
-                    onClick={() => onItemClick?.(item)}
-                  >
-                    <div className="space-y-1.5">
-                      <span className="font-semibold text-base leading-tight">{item.title}</span>
-                      <div className="flex items-center gap-1.5 text-sm text-foreground">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{formatDateLabel(item.item_date)}{!hideHours && `, ${item.start_time}–${item.end_time}`}</span>
+                {items.map((item, idx) => {
+                  const pill = getDayPill(item.item_date);
+                  const addr = buildFullAddress(item);
+                  const mapsUrl = buildGoogleMapsUrl(item);
+                  const phone = item.customer_phone;
+                  const normalizedPhone = phone ? normalizePhone(phone) : null;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
+                      onClick={() => onItemClick?.(item)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <div className="text-lg font-bold leading-tight">{item.title}</div>
+                          <div>
+                            <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+                          </div>
+                          {addr && (
+                            <div className="flex items-center gap-1.5">
+                              {mapsUrl ? (
+                                <a
+                                  href={mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-primary hover:underline truncate"
+                                  onClick={e => e.stopPropagation()}
+                                >
+                                  {addr}
+                                </a>
+                              ) : (
+                                <span className="text-sm text-foreground truncate">{addr}</span>
+                              )}
+                              {mapsUrl && (
+                                <a
+                                  href={mapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="shrink-0 text-muted-foreground hover:text-primary"
+                                  onClick={e => e.stopPropagation()}
+                                  title="Otwórz w Google Maps"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                                </a>
+                              )}
+                            </div>
+                          )}
+                          {item.customer_name && (
+                            <div className="text-sm text-foreground">{item.customer_name}</div>
+                          )}
+                          {normalizedPhone && (
+                            <div className="flex items-center gap-2">
+                              <a
+                                href={`tel:${normalizedPhone}`}
+                                className="text-sm text-primary hover:underline"
+                                onClick={e => e.stopPropagation()}
+                              >
+                                {formatPhoneDisplay(phone!)}
+                              </a>
+                              <a
+                                href={`sms:${normalizedPhone}`}
+                                className="text-muted-foreground hover:text-primary"
+                                onClick={e => e.stopPropagation()}
+                                title="Wyślij SMS"
+                              >
+                                <MessageSquare className="w-4 h-4" />
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                        <div className="w-10 shrink-0 flex items-center justify-center">
+                          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                        </div>
                       </div>
-                      {item.customer_name && (
-                        <div className="flex items-center gap-1.5 text-sm text-foreground">
-                          <User className="w-3.5 h-3.5" />
-                          <span>{item.customer_name}</span>
-                        </div>
-                      )}
-                      {buildFullAddress(item) && (
-                        <div className="flex items-center gap-1.5 text-sm text-foreground">
-                          <MapPin className="w-3.5 h-3.5" />
-                          <span>{buildFullAddress(item)}</span>
-                        </div>
-                      )}
-                      {item.employee_names && item.employee_names.length > 1 && (
-                        <div className="flex items-center gap-1.5 text-sm text-foreground">
-                          <HardHat className="w-3.5 h-3.5" />
-                          <span>{item.employee_names.join(', ')}</span>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -297,21 +350,12 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1.5 text-sm text-foreground">
-                            <Clock className="w-3.5 h-3.5" />
-                            <span>{deadlineLabel}</span>
-                          </div>
+                          <div className="text-sm text-foreground">{deadlineLabel}</div>
                           {r.customer_name && (
-                            <div className="flex items-center gap-1.5 text-sm text-foreground">
-                              <User className="w-3.5 h-3.5" />
-                              <span>{r.customer_name}</span>
-                            </div>
+                            <div className="text-sm text-foreground">{r.customer_name}</div>
                           )}
                           {r.reminder_type_name && (
-                            <div className="flex items-center gap-1.5 text-sm text-foreground">
-                              <Tag className="w-3.5 h-3.5" />
-                              <span>{r.reminder_type_name}</span>
-                            </div>
+                            <div className="text-sm text-muted-foreground">{r.reminder_type_name}</div>
                           )}
                         </div>
                       </div>
