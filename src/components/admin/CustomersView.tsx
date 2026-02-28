@@ -366,10 +366,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
   }
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto pb-28">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">Klienci</h1>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h2 className="text-xl font-semibold text-foreground">Klienci</h2>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setCategoryDialogOpen(true)} title="Zarządzaj kategoriami">
             <Settings className="w-4 h-4" />
@@ -415,14 +415,14 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
       )}
       
       {/* Search */}
-      <div className="sm:static sticky top-0 z-20 bg-background pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="relative">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Szukaj po nazwie, telefonie, email, firmie, NIP, adresie..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-9"
           />
         </div>
       </div>
@@ -496,10 +496,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         </div>
       ) : (
         /* Desktop: table */
-        <div className="rounded-lg border border-border bg-card shadow-sm">
+        <div className="rounded-lg border border-border bg-card overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="hover:bg-transparent">
                 <TableHead>Imię i nazwisko</TableHead>
                 <TableHead>Adres</TableHead>
                 <TableHead>Telefon</TableHead>

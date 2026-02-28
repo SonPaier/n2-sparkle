@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Plus, Search, MoreHorizontal, Trash2, Edit, Link2, Mail, Settings2, ClipboardCheck } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Trash2, Edit, Link2, Mail, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,12 +97,10 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Protokoły</h2>
-          <p className="text-sm text-muted-foreground">Protokoły serwisowe zakończenia prac</p>
-        </div>
+        <h2 className="text-xl font-semibold text-foreground">Protokoły</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="icon" onClick={() => setSettingsOpen(true)}>
             <Settings2 className="w-4 h-4" />
@@ -113,69 +112,88 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Szukaj po nazwie klienta lub telefonie..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
-        />
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Szukaj po nazwie klienta lub telefonie..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
-      {/* List */}
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Ładowanie...</div>
-      ) : protocols.length === 0 ? (
-        <div className="text-center py-12 space-y-3">
-          <ClipboardCheck className="w-12 h-12 mx-auto text-muted-foreground/50" />
-          <p className="text-muted-foreground">
-            {searchQuery ? 'Brak wyników wyszukiwania' : 'Brak protokołów. Utwórz pierwszy!'}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {protocols.map((p) => (
-            <div key={p.id} className="flex items-center justify-between gap-4 p-4 rounded-lg border border-border/50 bg-card hover:bg-muted/30 transition-colors">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-foreground">{p.customer_name}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {protocolTypeLabels[p.protocol_type] || p.protocol_type}
-                  </Badge>
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {format(new Date(p.protocol_date), 'd MMM yyyy', { locale: pl })}
-                  {p.customer_phone && ` • ${p.customer_phone}`}
-                  {p.prepared_by && ` • ${p.prepared_by}`}
-                </div>
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleEdit(p)}>
-                    <Edit className="w-4 h-4 mr-2" />Edytuj
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleCopyLink(p.public_token)}>
-                    <Link2 className="w-4 h-4 mr-2" />Kopiuj link
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setEmailDialogProtocol(p)}>
-                    <Mail className="w-4 h-4 mr-2" />Wyślij emailem
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDeleteClick(p.id)} className="text-destructive">
-                    <Trash2 className="w-4 h-4 mr-2" />Usuń
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Table */}
+      <div className="rounded-lg border border-border bg-card overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Klient</TableHead>
+              <TableHead>Typ</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead>Przygotował</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  Ładowanie...
+                </TableCell>
+              </TableRow>
+            ) : protocols.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  {searchQuery ? 'Brak wyników wyszukiwania' : 'Brak protokołów'}
+                </TableCell>
+              </TableRow>
+            ) : (
+              protocols.map((p) => (
+                <TableRow key={p.id} className="group cursor-pointer" onClick={() => handleEdit(p)}>
+                  <TableCell className="font-medium">{p.customer_name}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="text-xs">
+                      {protocolTypeLabels[p.protocol_type] || p.protocol_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {format(new Date(p.protocol_date), 'd MMM yyyy', { locale: pl })}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {p.prepared_by || '—'}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem onClick={() => handleEdit(p)}>
+                          <Edit className="w-4 h-4 mr-2" />Edytuj
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleCopyLink(p.public_token)}>
+                          <Link2 className="w-4 h-4 mr-2" />Kopiuj link
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEmailDialogProtocol(p)}>
+                          <Mail className="w-4 h-4 mr-2" />Wyślij emailem
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDeleteClick(p.id)} className="text-destructive">
+                          <Trash2 className="w-4 h-4 mr-2" />Usuń
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* Create/Edit Form */}
       <CreateProtocolForm
