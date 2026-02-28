@@ -1,61 +1,37 @@
 
 
-## Plan: Rozszerzenie modelu usług o ilość + nowy layout pozycji
+## Plan: Filtr "Klienci w okolicy" na mapie zleceń + usunięcie labelki
 
-### 1. Migracja DB — dodać kolumnę `quantity` do `calendar_item_services`
+Dotyczy mapy zleceń w kalendarzu (`CalendarMapPanel.tsx` + `CalendarMap.tsx`).
 
-```sql
-ALTER TABLE public.calendar_item_services ADD COLUMN quantity numeric NOT NULL DEFAULT 1;
-```
+### 1. Usunięcie labelki "X punktów"
 
-### 2. Renaming labelek
+W `CalendarMapPanel.tsx` (linia 127-129) — usunąć `<span>` z tekstem punktów.
 
-**`AddCalendarItemDialog.tsx`**:
-- Linia 648: `Usługi` → `Usługi i produkty`
+### 2. Przycisk toggle w filtrach mapy zleceń
 
-**`SelectedServicesList.tsx`**:
-- Linia 108: `Dodaj usługi` → `Dodaj usługi lub produkty`
+W `CalendarMapPanel.tsx` — dodać stan `showNearby` (domyślnie `false`) i przycisk z ikoną `Users` obok filtrów. Kliknięcie przełącza `showNearby`. Aktywny = `variant="secondary"`.
 
-**`ServiceSelectionDrawer.tsx`**:
-- Linia 328: `Wybierz usługi` → `Wybierz usługi i produkty`
+### 3. Przekazanie `showNearby` + `instanceId` do `CalendarMap`
 
-### 3. Rozszerzyć `ServiceItem` i `ServiceWithCategory` o `unit` i `quantity`
+Rozszerzyć props `CalendarMapProps` o `showNearby: boolean` i `instanceId: string`. `CalendarMapPanel` też musi otrzymać `instanceId` (z rodzica).
 
-**`SelectedServicesList.tsx`** — rozszerzyć interfejsy:
-- `ServiceWithCategory`: dodać `unit?: string`
-- `ServiceItem`: dodać `quantity: number` (domyślnie 1)
+### 4. Logika szarych pinezek w `CalendarMap.tsx`
 
-**`SelectedServicesListProps`**: dodać callback `onQuantityChange: (serviceId: string, qty: number) => void`
+Gdy `showNearby === true`:
+- Query do `customer_addresses` z `instance_id` — pobrać WSZYSTKIE adresy z `lat`/`lng` (nie null)
+- Dla każdej kolorowej pinezki (zlecenie) znaleźć adresy klientów w promieniu **1 km** (Haversine, już mamy `haversineKm`)
+- Odfiltrować adresy, które już są na mapie jako zlecenia (po `customer_address_id`)
+- Wyrenderować szare pinezki (`#9ca3af`) z tooltipem: nazwa klienta + ulica/miasto
+- Szare pinezki klikalne — tooltip informacyjny (nie otwierają drawera zlecenia)
+- Osobna `nearbyMarkersRef` — czyszczona przy wyłączeniu `showNearby`
 
-### 4. Nowy layout pozycji w `SelectedServicesList`
+### 5. Przekazanie `instanceId` z rodzica
 
-Każda pozycja usługi/produktu — dwie linie:
-- **Linia 1**: Nazwa (short_name + name), czas (jeśli jest duration), przycisk delete
-- **Linia 2**: Ilość (inline edit input, np. w-16) + jednostka (szt./m²/mb.) + `×` + cena (inline edit, istniejący) + `=` + suma (ilość × cena, read-only, bold)
-
-Totalny rachunek na dole: suma wszystkich pozycji (ilość × cena).
-
-### 5. Obsługa `quantity` w `AddCalendarItemDialog.tsx`
-
-- Dodać `handleQuantityChange` analogicznie do `handlePriceChange`
-- Przy zapisie do `calendar_item_services` — dodać `quantity` do insert rows
-- Przy ładowaniu edycji — pobierać `quantity` z bazy i ustawiać w `serviceItems`
-- `handleServicesConfirmed` — inicjalizować nowe pozycje z `quantity: 1`
-
-### 6. Rozszerzyć `ServiceSelectionDrawer` — przekazywać `unit`
-
-W `ServiceWithCategory` (w `ServiceSelectionDrawer.tsx`) dodać `unit?: string`, pobierać z bazy i przekazywać w `onConfirm`.
-
-### 7. Podsumowanie usług w `CalendarItemDetailsDrawer` — styl rachunku
-
-W zakładce "Ogólne" dodać sekcję "Usługi i produkty" pobierającą `calendar_item_services` (z `quantity`) + nazwy z `unified_services` (z `unit`). Wyświetlić jak rachunek:
-- Każda linia: nazwa, ilość × cena = suma
-- Na dole: **Razem: X zł**
+W `AdminCalendar.tsx` (lub tam gdzie renderowany jest `CalendarMapPanel`) — przekazać `instanceId` jako prop.
 
 ### Pliki do edycji:
-1. **Migracja SQL** — `calendar_item_services.quantity`
-2. `src/components/admin/SelectedServicesList.tsx` — nowy layout 2-liniowy z ilością
-3. `src/components/admin/AddCalendarItemDialog.tsx` — obsługa quantity, rename label
-4. `src/components/admin/ServiceSelectionDrawer.tsx` — unit w interfejsie, rename title
-5. `src/components/admin/CalendarItemDetailsDrawer.tsx` — sekcja rachunku usług
+1. `src/components/admin/CalendarMapPanel.tsx` — usunąć labelkę, dodać toggle `showNearby`, przekazać do `CalendarMap`
+2. `src/components/admin/CalendarMap.tsx` — nowy prop `showNearby` + `instanceId`, useEffect pobierający adresy i renderujący szare pinezki
+3. Rodzic renderujący `CalendarMapPanel` — przekazać `instanceId`
 
