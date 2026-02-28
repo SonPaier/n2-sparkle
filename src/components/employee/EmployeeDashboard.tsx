@@ -238,7 +238,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
                   return (
                     <div
                       key={item.id}
-                      className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
+                      className={`py-3 px-1 cursor-pointer hover:bg-primary/5 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
                       onClick={() => onItemClick?.(item)}
                     >
                       <div className="flex items-center gap-2">

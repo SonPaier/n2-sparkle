@@ -58,6 +58,7 @@ interface CalendarItemDetailsDrawerProps {
   hidePrices?: boolean;
   hideHours?: boolean;
   forceSideRight?: boolean;
+  isEmployee?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
@@ -150,6 +151,7 @@ const CalendarItemDetailsDrawer = ({
   hidePrices,
   hideHours,
   forceSideRight,
+  isEmployee,
 }: CalendarItemDetailsDrawerProps) => {
   const isMobile = useIsMobile();
   const sheetSide = forceSideRight ? 'right' : (isMobile ? 'bottom' : 'right');
@@ -538,117 +540,105 @@ const CalendarItemDetailsDrawer = ({
 
     return (
       <div className="flex-shrink-0 border-t border-border px-4 py-3 flex items-center gap-1.5">
-        {item.status !== 'completed' && moreMenu}
+        {!isEmployee && item.status !== 'completed' && moreMenu}
         {protocolBtn}
-        {editBtn}
+        {!isEmployee && editBtn}
 
-        {item.status === 'confirmed' && onStartWork && statusDropdown(
-          'Rozpocznij pracę',
-          () => onStartWork(item.id),
-          'bg-emerald-600 hover:bg-emerald-700 text-white',
-          [
-            { label: 'Zakończone', status: 'completed', icon: <Check className="w-4 h-4 mr-2" /> },
-            { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
-            { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
-          ]
-        )}
-
-        {item.status === 'in_progress' && onEndWork && statusDropdown(
-          'Zakończ pracę',
-          () => onEndWork(item.id),
-          'bg-sky-500 hover:bg-sky-600 text-white',
-          [
-            { label: 'Do wykonania', status: 'confirmed', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
-            { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
-            { label: 'Prośba o zmianę', status: 'change_requested', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
-          ]
-        )}
-
-        {item.status === 'completed' && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 bg-white">
-                Zakończone
-                <ChevronDown className="w-4 h-4 ml-1" />
+        {isEmployee ? (
+          <>
+            {item.status === 'confirmed' && onStartWork && (
+              <Button className="bg-emerald-600 hover:bg-emerald-700 text-white flex-1" onClick={() => onStartWork(item.id)}>
+                Rozpocznij pracę
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Do wykonania
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                W trakcie
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'cancelled')}>
-                <X className="w-4 h-4 mr-2" />
-                Anulowane
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'change_requested')}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Prośba o zmianę
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-
-        {item.status === 'cancelled' && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 bg-white">
-                Anulowane
-                <ChevronDown className="w-4 h-4 ml-1" />
+            )}
+            {item.status === 'in_progress' && onEndWork && (
+              <Button className="bg-sky-500 hover:bg-sky-600 text-white flex-1" onClick={() => onEndWork(item.id)}>
+                Zakończ pracę
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Do wykonania
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
-                <Clock className="w-4 h-4 mr-2" />
-                W trakcie
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'completed')}>
-                <Check className="w-4 h-4 mr-2" />
+            )}
+            {item.status === 'completed' && (
+              <Button variant="outline" className="flex-1 bg-white" disabled>
                 Zakończone
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'change_requested')}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Prośba o zmianę
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-
-        {item.status === 'change_requested' && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex-1 bg-white">
-                Prośba o zmianę
-                <ChevronDown className="w-4 h-4 ml-1" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
-                <Check className="w-4 h-4 mr-2" />
-                Do wykonania
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
-                <Clock className="w-4 h-4 mr-2" />
-                W trakcie
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'completed')}>
-                <Check className="w-4 h-4 mr-2" />
-                Zakończone
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'cancelled')}>
-                <X className="w-4 h-4 mr-2" />
+            )}
+            {item.status === 'cancelled' && (
+              <Button variant="outline" className="flex-1 bg-white" disabled>
                 Anulowane
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </Button>
+            )}
+          </>
+        ) : (
+          <>
+            {item.status === 'confirmed' && onStartWork && statusDropdown(
+              'Rozpocznij pracę',
+              () => onStartWork(item.id),
+              'bg-emerald-600 hover:bg-emerald-700 text-white',
+              [
+                { label: 'Zakończone', status: 'completed', icon: <Check className="w-4 h-4 mr-2" /> },
+                { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
+              ]
+            )}
+
+            {item.status === 'in_progress' && onEndWork && statusDropdown(
+              'Zakończ pracę',
+              () => onEndWork(item.id),
+              'bg-sky-500 hover:bg-sky-600 text-white',
+              [
+                { label: 'Do wykonania', status: 'confirmed', icon: <RotateCcw className="w-4 h-4 mr-2" /> },
+                { label: 'Anuluj', status: 'cancelled', icon: <X className="w-4 h-4 mr-2" /> },
+              ]
+            )}
+
+            {item.status === 'completed' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex-1 bg-white">
+                    Zakończone
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Do wykonania
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    W trakcie
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'cancelled')}>
+                    <X className="w-4 h-4 mr-2" />
+                    Anulowane
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {item.status === 'cancelled' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="flex-1 bg-white">
+                    Anulowane
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'confirmed')}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Do wykonania
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'in_progress')}>
+                    <Clock className="w-4 h-4 mr-2" />
+                    W trakcie
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onStatusChange?.(item.id, 'completed')}>
+                    <Check className="w-4 h-4 mr-2" />
+                    Zakończone
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </>
         )}
       </div>
     );
@@ -657,7 +647,7 @@ const CalendarItemDetailsDrawer = ({
   if (!item) {
     return (
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side={sheetSide} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : 'sm:max-w-md'}`}>
+        <SheetContent side={sheetSide} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : (isEmployee ? 'w-full sm:max-w-full' : 'sm:max-w-md')}`}>
           <SheetTitle className="sr-only">Szczegóły</SheetTitle>
           <SheetDescription className="sr-only">Brak danych</SheetDescription>
         </SheetContent>
@@ -672,7 +662,7 @@ const CalendarItemDetailsDrawer = ({
           side={sheetSide}
           hideCloseButton
           hideOverlay
-          className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : 'sm:max-w-md'}`}
+          className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : (isEmployee ? 'w-full sm:max-w-full' : 'sm:max-w-md')}`}
         >
           {/* Accessible title */}
           <SheetTitle className="sr-only">{item.title}</SheetTitle>
@@ -705,7 +695,9 @@ const CalendarItemDetailsDrawer = ({
               <Badge className={statusColors[item.status] || 'bg-muted'}>
                 {statusLabels[item.status] || item.status}
               </Badge>
-              <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
+              {!isEmployee && (
+                <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
+              )}
             </div>
           </div>
 
@@ -810,25 +802,39 @@ const CalendarItemDetailsDrawer = ({
                   Przypisani pracownicy
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {item.assigned_employees && item.assigned_employees.map(emp => (
-                    <span key={emp.id} className="inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-medium">
-                      {emp.name}
-                      <button
-                        onClick={() => handleRemoveEmployee(emp.id)}
-                        className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                  {instanceId && (
-                    <button
-                      onClick={() => setEmployeeDrawerOpen(true)}
-                      className="inline-flex items-center gap-1 border border-dashed border-border rounded-full px-3 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Dodaj
-                    </button>
+                  {isEmployee ? (
+                    // Readonly: show from allEmployees + assigned_employee_ids
+                    (item.assigned_employee_ids || []).map(empId => {
+                      const emp = allEmployees.find(e => e.id === empId);
+                      return emp ? (
+                        <span key={emp.id} className="inline-flex items-center bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-medium">
+                          {emp.name}
+                        </span>
+                      ) : null;
+                    })
+                  ) : (
+                    <>
+                      {item.assigned_employees && item.assigned_employees.map(emp => (
+                        <span key={emp.id} className="inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-medium">
+                          {emp.name}
+                          <button
+                            onClick={() => handleRemoveEmployee(emp.id)}
+                            className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                      {instanceId && (
+                        <button
+                          onClick={() => setEmployeeDrawerOpen(true)}
+                          className="inline-flex items-center gap-1 border border-dashed border-border rounded-full px-3 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Dodaj
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
