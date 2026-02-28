@@ -211,7 +211,12 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
 
       {showDropdown && (
         <div className="absolute top-full left-0 right-0 mt-1 border border-border rounded-lg overflow-hidden bg-card shadow-lg z-[9999]">
-          {searching ? null : results.length > 0 ? (
+          {searching ? (
+            <div className="p-4 flex items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm">Wyszukiwanie...</span>
+            </div>
+          ) : results.length > 0 ? (
             results.map((c, i) => (
               <button
                 key={c.id}
