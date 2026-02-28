@@ -198,6 +198,8 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   };
 
   const openInvoiceDrawer = (order: CalendarItemRow) => {
+    setDetailsDrawerOpen(false);
+    setDetailsItem(null);
     setInvoiceTarget(order);
     setInvoiceDrawerOpen(true);
   };
@@ -272,7 +274,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
               </TableHead>
               <TableHead className="w-[120px]">Status</TableHead>
               <TableHead className="w-[160px]">Status płatności</TableHead>
-              <TableHead className="text-right w-[120px]">Kwota</TableHead>
+              <TableHead className="text-right w-[120px]">Kwota netto</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>

@@ -352,6 +352,7 @@ const CustomerEditDrawer = ({
       <SheetContent
         className="w-full sm:max-w-md p-0 flex flex-col z-[1000]"
         hideCloseButton
+        hideOverlay
         onFocusOutside={(e) => e.preventDefault()}
       >
         <div className="p-6 flex-1 overflow-y-auto">
