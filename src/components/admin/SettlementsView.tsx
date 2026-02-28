@@ -297,7 +297,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                 const paymentConfig = PAYMENT_STATUS_CONFIG[paymentKey] || PAYMENT_STATUS_CONFIG.not_invoiced;
 
                 return (
-                  <TableRow key={order.id} className="group">
+                  <TableRow key={order.id} className="group cursor-pointer" onClick={() => openDetailsDrawer(order)}>
                     <TableCell className="text-sm">
                       {formatOrderNumber(order)}
                     </TableCell>
@@ -341,41 +341,45 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                       </DropdownMenu>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
-                              <InvoiceStatusBadge
-                                status={order.payment_status}
-                                paymentTo={invoice?.payment_to}
-                                className="cursor-pointer"
-                              />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) => (
-                              <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mr-2 ${config.color}`}>
+                      {order.status !== 'confirmed' ? (
+                        <div className="flex items-center gap-1.5">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                                <InvoiceStatusBadge
+                                  status={order.payment_status}
+                                  paymentTo={invoice?.payment_to}
+                                  className="cursor-pointer"
+                                />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) => (
+                                <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
+                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mr-2 ${config.color}`}>
+                                    {config.label}
+                                  </span>
                                   {config.label}
-                                </span>
-                                {config.label}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        {invoice?.pdf_url && (
-                          <a
-                            href={invoice.pdf_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            PDF
-                          </a>
-                        )}
-                      </div>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          {invoice?.pdf_url && (
+                            <a
+                              href={invoice.pdf_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                              PDF
+                            </a>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right text-sm tabular-nums">
                       {formatCurrency(order.price)}
