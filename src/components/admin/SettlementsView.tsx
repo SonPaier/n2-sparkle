@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText, RefreshCw } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -85,6 +86,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   const [detailsItem, setDetailsItem] = useState<CalendarItem | null>(null);
   const [syncing, setSyncing] = useState(false);
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['settlements', instanceId],
@@ -255,7 +257,121 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         </Button>
       </div>
 
-      {/* Table */}
+      {/* Mobile Cards */}
+      {isMobile ? (
+        <div className="space-y-2">
+          {isLoading ? (
+            <p className="text-center text-muted-foreground py-8">Ładowanie...</p>
+          ) : filteredOrders.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">Brak zleceń spełniających kryteria</p>
+          ) : (
+            paginatedOrders.map((order) => {
+              const statusConfig = getStatusConfig(order.status);
+              const invoice = invoicesByItemId[order.id];
+
+              return (
+                <div
+                  key={order.id}
+                  className="rounded-lg border border-border bg-card p-3 space-y-2 cursor-pointer active:bg-primary/5"
+                  onClick={() => openDetailsDrawer(order)}
+                >
+                  {/* Top row: title + amount */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{order.title || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{order.customer_name || '—'}</p>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums whitespace-nowrap">
+                      {formatCurrency(order.price)}
+                    </span>
+                  </div>
+
+                  {/* Bottom row: date, statuses, actions */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-muted-foreground">
+                        {format(parseISO(order.item_date), 'dd.MM.yyyy')}
+                      </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                            <Badge
+                              variant={['in_progress', 'completed', 'cancelled'].includes(order.status) ? 'default' : 'outline'}
+                              className={`${statusConfig.badgeClass} cursor-pointer text-[11px]`}
+                            >
+                              {statusConfig.label}
+                            </Badge>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                            <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
+                              <Badge
+                                variant={['in_progress', 'completed', 'cancelled'].includes(key) ? 'default' : 'outline'}
+                                className={`${config.badgeClass} mr-2`}
+                              >
+                                {config.label}
+                              </Badge>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      {order.status !== 'confirmed' && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
+                              <InvoiceStatusBadge
+                                status={order.payment_status}
+                                paymentTo={invoice?.payment_to}
+                                className="cursor-pointer text-[11px]"
+                              />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start">
+                            {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) => (
+                              <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mr-2 ${config.color}`}>
+                                  {config.label}
+                                </span>
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {invoice?.pdf_url && (
+                        <a
+                          href={invoice.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          PDF
+                        </a>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onSelect={() => openDetailsDrawer(order)}>Szczegóły</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => openInvoiceDrawer(order)}>Wystaw FV</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : (
+      /* Desktop Table */
       <div className="rounded-lg border border-border bg-card overflow-x-auto">
         <Table className="table-fixed w-full min-w-[900px]">
           <TableHeader>
@@ -416,6 +532,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
           </TableBody>
         </Table>
       </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
