@@ -1,43 +1,31 @@
 
 
-## Plan: Redesign karty zlecenia w widoku "Twój dzień" pracownika
+## Plan: Zmiana formatu adresu na kartach zleceń
 
-### Zmiany w `src/components/employee/EmployeeDashboard.tsx`
+### Zmiana w `src/components/employee/EmployeeDashboard.tsx`
 
-**1. Usunięcie elementów:**
-- Usunąć subtitle z zakresem dat pod "Twój dzień" (linia 201-203)
-- Usunąć wszystkie ikony z wierszy karty (Clock, User, MapPin, HardHat) — zostawić tylko Calendar i Bell przy nagłówkach sekcji
+**1. Zmienić `buildFullAddress`** (linia 181-184):
+- Obecny format: `nazwa, ulica, miasto`
+- Nowy format: `miasto, ulica` (bez nazwy adresu)
+- Kolejność: `address_city`, `address_street`
 
-**2. Nowa struktura karty zlecenia:**
-Każda karta to klikalny wiersz z chevron-right po prawej (fixed 40px kolumna):
+**2. Uprościć blok adresu** (linie 245-272):
+- Połączyć tekst adresu i pinezke w jeden klikalny `<a>` link do Google Maps
+- Usunąć oddzielną ikonę pinezki — pinezka będzie częścią tekstu linku
+- Format wyświetlany: `Miasto, ulica 📍` — całość jako jeden klikalny link
+- Jeśli brak `mapsUrl`, wyświetlić jako zwykły tekst
 
-```text
-┌─────────────────────────────────────────────┬──────┐
-│ Tytuł zlecenia (18px, bold)                 │  >   │
-│ [Dziś] lub [Jutro] lub [Poniedziałek] pill  │      │
-│ 📍 Lokalizacja (link do Google Maps)   🗺️   │      │
-│ Jan Kowalski                                │      │
-│ 123 456 789  📱                             │      │
-└─────────────────────────────────────────────┴──────┘
+Struktura:
+```tsx
+{addr && mapsUrl ? (
+  <a href={mapsUrl} target="_blank" className="text-sm text-primary hover:underline flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+    {addr}
+    <svg ...pinezka... />
+  </a>
+) : addr ? (
+  <span className="text-sm text-foreground">{addr}</span>
+) : null}
 ```
 
-- **Tytuł**: `text-lg font-bold` (18px)
-- **Pill dnia**: zielony dla "Dziś", fioletowy dla "Jutro" / nazwy dnia roboczego. Logika: porównanie `item_date` z dzisiejszą datą — 0 dni = Dziś, 1 dzień roboczy = Jutro, dalej = nazwa dnia tygodnia (np. "Poniedziałek")
-- **Lokalizacja**: cały wiersz to klikalny link `<a>` do Google Maps (directions mode: `https://www.google.com/maps/dir/?api=1&destination=...`). Po prawej ikona Google Maps SVG (ta sama co w CalendarItemDetailsDrawer). Adres budowany z `buildFullAddress(item)`. Jeśli brak koordynatów, użyć adresu tekstowego jako destination
-- **Klient**: imię i nazwisko bez ikony
-- **Telefon**: `formatPhoneDisplay(phone)` jako klikalny `<a href="tel:...">`, obok ikona SMS `<a href="sms:...">` (ikona MessageSquare z lucide)
-- **Chevron**: `ChevronRight` w stałej kolumnie 40px po prawej, wycentrowany pionowo. Cała karta klikalna → `onItemClick`
-
-**3. Importy do dodania:**
-- `ChevronRight, MessageSquare` z lucide-react
-- `formatPhoneDisplay, normalizePhone` z `@/lib/phoneUtils`
-- Usunąć nieużywane: `Clock, User, MapPin, HardHat`
-
-**4. Przypomnienia — usunąć ikony z wierszy:**
-- Usunąć ikony Clock, User, Tag z wierszy przypomnień (zostawić Bell przy nagłówku)
-
-### Dane potrzebne
-- Lokalizacja: już pobierana (`address_street`, `address_city`, `address_name`)
-- Telefon: `customer_phone` już w select query
-- Brak koordynatów w obecnym fetchu — użyć adresu tekstowego jako `destination` parametru Google Maps (zadziała bez koordynatów)
+**Uwaga**: `buildGoogleMapsUrl` nadal używa pełnego adresu z nazwą do lepszego geokodowania — zmiana dotyczy tylko wyświetlania.
 
