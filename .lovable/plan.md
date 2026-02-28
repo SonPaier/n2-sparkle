@@ -1,19 +1,58 @@
 
+# Przebudowa Drawera Klienta -- zaktualizowany plan
 
-## Plan: Flat layout usług w szczegółach zlecenia
+## Zmiana wzgledem poprzedniego planu
 
-### Plik: `src/components/admin/CalendarItemDetailsDrawer.tsx`
+Wyszukiwarka NIP z pobieraniem danych z GUS zostanie wydzielona jako **osobny, reużywalny komponent** `NipLookupForm`, gotowy do użycia w różnych miejscach aplikacji (drawer klienta, fakturowanie, oferty itp.).
 
-#### 1. Przepisać `ServicesSummary` (linie 116-135) — flat layout bez tła i paddingu
+## Nowy komponent: `src/components/admin/NipLookupForm.tsx`
 
-- Usunąć `bg-muted/30 rounded-lg p-3` z wrappera
-- Każda linia usługi: nazwa (flex-1, left), ilość + jednostka, cena jednostkowa (text-right), suma (text-right, bold)
-- Bez żadnych borders między wierszami, czyste wyrównanie kolumnowe
-- Separator na dole tylko przed "Razem netto"
+Samodzielny komponent zawierający:
+- Pole NIP (input)
+- Przycisk "Pobierz z GUS" (obok inputa, w jednym wierszu)
+- Po pobraniu: pola Nazwa firmy, Ulica, Kod pocztowy, Miasto
+- Logika fetcha z White List API MF (`https://wl-api.mf.gov.pl/api/search/nip/{nip}?date={today}`)
+- Parsowanie adresu z formatu "ULICA NR, KOD MIASTO"
 
-#### 2. Zmienić "Razem" → "Razem netto" (linia 130)
+**Props:**
+```text
+nip, company, billingStreet, billingPostalCode, billingCity
++ onChange callback zwracajacy wszystkie pola po zmianie
++ readOnly (opcjonalnie, dla trybu podgladu)
+```
 
-#### 3. Usunąć osobne pole "Cena netto" (linie 842-848)
+Komponent sam zarzadza stanem ladowania i bledami. Wywoluje `onChange` przy kazdej zmianie dowolnego pola lub po pobraniu danych z GUS.
 
-Blok z `item.price` zostanie usunięty, bo ta informacja jest już w "Razem netto".
+## Zmiany w `CustomerEditDrawer.tsx`
 
+1. **Label "Nazwa"** zmieniony na **"Imie i nazwisko"**
+2. **Reorganizacja w 3 sekcje** z naglowkami i dividerami:
+   - **Informacje podstawowe**: imie i nazwisko, telefon, email, adresy serwisowe, kategorie, notatki
+   - **Osoby kontaktowe**: dynamiczna lista (imie, telefon, email) + przycisk "Dodaj osobe"
+   - **Dane firmy**: `Collapsible`, domyslnie zwinieta, rozwijana jesli dane istnieja; uzywa `NipLookupForm`
+3. Usunięcie starych pol firma/NIP/billing -- zastapione przez `NipLookupForm`
+4. Osoby kontaktowe: pierwsza mapuje sie na `contact_person/contact_phone/contact_email`, dodatkowe w nowym polu JSONB
+
+## Zmiana w `CustomerAddressesSection.tsx`
+
+Usunięcie ikony MapPin z labela "Adresy serwisowe"
+
+## Migracja bazy danych
+
+```sql
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS additional_contacts jsonb DEFAULT '[]';
+```
+
+## Zmiana w `CustomersView.tsx`
+
+Dodanie `additional_contacts` do typu `Customer` i query SELECT.
+
+## Podsumowanie plikow do zmiany
+
+| Plik | Akcja |
+|------|-------|
+| `src/components/admin/NipLookupForm.tsx` | **Nowy** -- reużywalny komponent NIP + GUS |
+| `src/components/admin/CustomerEditDrawer.tsx` | Przebudowa formularza na 3 sekcje, użycie NipLookupForm |
+| `src/components/admin/CustomerAddressesSection.tsx` | Usunięcie ikony MapPin |
+| `src/components/admin/CustomersView.tsx` | Dodanie additional_contacts do typu i query |
+| Migracja SQL | Nowa kolumna additional_contacts |
