@@ -1,38 +1,37 @@
 import { format, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface CustomerOrderCardProps {
   itemDate: string;
+  endDate?: string | null;
+  title?: string;
   status: string;
-  addressName?: string;
-  addressStreet?: string;
-  addressCity?: string;
   services: { name: string; price?: number }[];
   price?: number;
-  protocolPublicToken?: string;
   onClick?: () => void;
   hidePrices?: boolean;
+  assignedEmployeeNames?: string[];
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   confirmed: { label: 'Do wykonania', className: 'bg-green-100 text-green-800 border-green-200' },
+  in_progress: { label: 'W trakcie', className: 'bg-orange-100 text-orange-800 border-orange-200' },
   completed: { label: 'Zakończone', className: 'bg-blue-100 text-blue-800 border-blue-200' },
   cancelled: { label: 'Anulowane', className: 'bg-red-100 text-red-800 border-red-200' },
+  change_requested: { label: 'Zmiana', className: 'bg-red-100 text-red-800 border-red-200' },
 };
 
 const CustomerOrderCard = ({
   itemDate,
+  endDate,
+  title,
   status,
-  addressName,
-  addressStreet,
-  addressCity,
   services,
   price,
-  protocolPublicToken,
   onClick,
   hidePrices,
+  assignedEmployeeNames,
 }: CustomerOrderCardProps) => {
   const statusInfo = statusConfig[status] || { label: status, className: 'bg-muted text-muted-foreground' };
 
@@ -41,60 +40,42 @@ const CustomerOrderCard = ({
     formattedDate = format(parseISO(itemDate), 'd MMM yyyy', { locale: pl });
   } catch {}
 
-  const hasAddress = addressName || addressStreet || addressCity;
+  const isMultiDay = endDate && endDate !== itemDate;
+  let dateDisplay = formattedDate;
+  if (isMultiDay) {
+    try {
+      const endFormatted = format(parseISO(endDate), 'd MMM yyyy', { locale: pl });
+      dateDisplay = `${formattedDate} — ${endFormatted}`;
+    } catch {}
+  }
 
   return (
     <div
-      className="bg-white border rounded-lg p-3 space-y-2 shadow-sm cursor-pointer hover:border-primary/30 transition-colors"
+      className="bg-white border rounded-lg p-3 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
       onClick={onClick}
     >
-      {/* Top: date + status */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{formattedDate}</span>
+      {/* Line 1: date, title, price */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-xs text-muted-foreground">{dateDisplay}</div>
+          {title && <div className="text-sm font-semibold truncate">{title}</div>}
+        </div>
+        {!hidePrices && price != null && (
+          <span className="text-sm font-semibold shrink-0">{price.toFixed(2)} zł</span>
+        )}
+      </div>
+
+      {/* Line 2: status badge + employee pills */}
+      <div className="flex items-center gap-1.5 flex-wrap">
         <Badge variant="outline" className={statusInfo.className}>
           {statusInfo.label}
         </Badge>
-      </div>
-
-      {/* Address */}
-      {hasAddress && (
-        <div className="text-sm text-foreground">
-          {addressName && <div className="font-medium">{addressName}</div>}
-          {(addressStreet || addressCity) && (
-            <div>{[addressStreet, addressCity].filter(Boolean).join(', ')}</div>
-          )}
-        </div>
-      )}
-
-      {/* Services */}
-      {services.length > 0 && (
-        <div className="text-sm space-y-0.5">
-          {services.map((s, i) => (
-            <div key={i} className="flex justify-between text-foreground">
-              <span>{s.name}</span>
-              {!hidePrices && s.price != null && <span>{s.price.toFixed(2)} zł</span>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Bottom: total + protocol link */}
-      <div className="flex items-center justify-between pt-1 border-t">
-        {!hidePrices && (
-          <span className="text-sm font-semibold">
-            {price != null ? `${price.toFixed(2)} zł` : '—'}
-          </span>
-        )}
-        {hidePrices && <span />}
-        {protocolPublicToken && (
-          <a
-            href={`/protocol/${protocolPublicToken}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-primary hover:underline inline-flex items-center gap-1"
-          >
-            Protokół <ExternalLink className="w-3 h-3" />
-          </a>
+        {assignedEmployeeNames && assignedEmployeeNames.length > 0 && (
+          assignedEmployeeNames.map((name, i) => (
+            <span key={i} className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium bg-primary text-primary-foreground">
+              {name.split(' ')[0]}
+            </span>
+          ))
         )}
       </div>
     </div>
