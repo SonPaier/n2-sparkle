@@ -294,7 +294,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                   const mins = displayMinutes % 60;
                   
                   return (
-                    <TableRow key={employee.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleTileClick(employee)}>
+                    <TableRow key={employee.id} className="cursor-pointer" onClick={() => handleTileClick(employee)}>
                       <TableCell className="py-3" style={{ width: '47%' }}>
                         <div className="flex items-center gap-2 min-w-0">
                           <Avatar className="h-8 w-8 flex-shrink-0">

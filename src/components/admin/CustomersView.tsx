@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
-import { Search, Phone, MessageSquare, Plus, Trash2, MapPin, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { Search, Phone, MessageSquare, Plus, Trash2, MapPin, ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { Input } from '@/components/ui/input';
@@ -372,7 +372,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         <h2 className="text-xl font-semibold text-foreground">Klienci</h2>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => setCategoryDialogOpen(true)} title="Zarządzaj kategoriami">
-            <Settings className="w-4 h-4" />
+            <Settings2 className="w-4 h-4" />
           </Button>
           <Button variant="outline" onClick={() => setMapOpen(true)}>
             <MapPin className="w-4 h-4 mr-1" />

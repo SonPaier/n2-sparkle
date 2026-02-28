@@ -496,9 +496,8 @@ const ServicesView = ({ instanceId }: ServicesViewProps) => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <Button onClick={() => setCategoryManagementOpen(true)} variant="outline" className="gap-2">
+          <Button onClick={() => setCategoryManagementOpen(true)} variant="outline" size="icon" title="Kategorie">
             <Settings2 className="w-4 h-4" />
-            Kategorie
           </Button>
           <Button onClick={() => openEditDialog()} className="gap-2">
             <Plus className="w-4 h-4" />
