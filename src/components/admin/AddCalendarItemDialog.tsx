@@ -135,6 +135,7 @@ const AddCalendarItemDialog = ({
   const [customerDetailData, setCustomerDetailData] = useState<Customer | null>(null);
   // Add new customer drawer state
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [addCustomerPrefilledName, setAddCustomerPrefilledName] = useState('');
 
   // SMS notification state
   const [sendImmediateSms, setSendImmediateSms] = useState(false);
@@ -637,7 +638,7 @@ const AddCalendarItemDialog = ({
                 onSelect={handleSelectCustomer}
                 onClear={handleClearCustomer}
                 onCustomerClick={handleCustomerClick}
-                onAddNew={() => setAddCustomerOpen(true)}
+                onAddNew={(q) => { setAddCustomerPrefilledName(q); setAddCustomerOpen(true); }}
               />
             </div>
 
@@ -894,6 +895,7 @@ const AddCalendarItemDialog = ({
         open={addCustomerOpen}
         onClose={() => setAddCustomerOpen(false)}
         isAddMode
+        prefilledName={addCustomerPrefilledName}
         onCustomerCreated={(newCustomer, firstAddressId) => {
           setCustomerId(newCustomer.id);
           setCustomerName(newCustomer.name);

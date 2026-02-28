@@ -46,6 +46,7 @@ interface CustomerEditDrawerProps {
   onCustomerCreated?: (customer: SelectedCustomer, firstAddressId?: string) => void;
   customerCategories?: CustomerCategory[];
   customerCategoryMap?: Map<string, string[]>;
+  prefilledName?: string;
 }
 
 const CustomerEditDrawer = ({
@@ -62,6 +63,7 @@ const CustomerEditDrawer = ({
   onCustomerCreated,
   customerCategories = [],
   customerCategoryMap,
+  prefilledName = '',
 }: CustomerEditDrawerProps) => {
   const isMobile = useIsMobile();
   const [newOrderOpen, setNewOrderOpen] = useState(false);
@@ -106,7 +108,7 @@ const CustomerEditDrawer = ({
     if (open) {
       if (isAddMode) {
         setIsEditing(true);
-        setEditName('');
+        setEditName(prefilledName || '');
         setEditPhone('');
         setEditEmail('');
         setEditNotes('');
@@ -350,7 +352,7 @@ const CustomerEditDrawer = ({
     <>
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent
-        className="w-full sm:max-w-md p-0 flex flex-col z-[1000]"
+        className="w-full sm:max-w-lg p-0 flex flex-col z-[1000]"
         hideCloseButton
         hideOverlay
         onFocusOutside={(e) => e.preventDefault()}

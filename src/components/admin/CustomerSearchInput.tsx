@@ -24,7 +24,7 @@ interface CustomerSearchInputProps {
   onSelect: (customer: SelectedCustomer) => void;
   onClear: () => void;
   onCustomerClick?: (customerId: string) => void;
-  onAddNew?: () => void;
+  onAddNew?: (query: string) => void;
 }
 
 const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, onCustomerClick, onAddNew }: CustomerSearchInputProps) => {
@@ -40,6 +40,7 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
   const search = useCallback(async (q: string) => {
     if (q.length < 2) {
       setResults([]);
+      setSearching(false);
       return;
     }
 
@@ -245,9 +246,10 @@ const CustomerSearchInput = ({ instanceId, selectedCustomer, onSelect, onClear, 
                   type="button"
                   className="w-full"
                   onClick={() => {
+                    const currentQuery = query;
                     setOpen(false);
                     setQuery('');
-                    onAddNew();
+                    onAddNew(currentQuery);
                   }}
                 >
                   Dodaj
