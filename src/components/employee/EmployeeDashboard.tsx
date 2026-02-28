@@ -197,7 +197,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-2">Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-2">Twój dzień</h1>
       <p className="text-sm text-muted-foreground mb-6">
         {formatDateLabel(dateStart)} — {formatDateLabel(dateEnd)}
       </p>

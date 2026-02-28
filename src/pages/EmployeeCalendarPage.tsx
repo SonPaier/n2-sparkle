@@ -334,8 +334,7 @@ const EmployeeCalendarPage = () => {
   }
 
   const navItems = [
-    { id: 'dashboard' as EmployeeView, label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'kalendarz' as EmployeeView, label: 'Kalendarz', icon: CalendarIcon },
+    { id: 'dashboard' as EmployeeView, label: 'Twój dzień', icon: LayoutDashboard },
     { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
   ];
 
@@ -571,9 +570,8 @@ const EmployeeCalendarPage = () => {
         {/* Mobile bottom navigation bar */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 flex items-center justify-around h-14">
           {[
-            { id: 'dashboard' as EmployeeView, label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'dashboard' as EmployeeView, label: 'Twój dzień', icon: LayoutDashboard },
             { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
-            { id: 'kalendarz' as EmployeeView, label: 'Kalendarz', icon: CalendarIcon },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}

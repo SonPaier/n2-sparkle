@@ -22,19 +22,22 @@ export function getNextWorkingDays(count: number, workingHours: WorkingHours): s
   const d = new Date();
   d.setHours(0, 0, 0, 0);
 
+  // Treat null/undefined/empty object as "no config" → fallback to Mon-Fri
+  const hasConfig = workingHours != null && Object.keys(workingHours).length > 0;
+
   // Safety: max 30 iterations to avoid infinite loops
   let iterations = 0;
   while (dates.length < count && iterations < 30) {
     const dayKey = WEEKDAY_MAP[d.getDay()];
     
-    if (workingHours == null) {
+    if (!hasConfig) {
       // Fallback: skip Saturday (6) and Sunday (0)
       if (d.getDay() !== 0 && d.getDay() !== 6) {
         dates.push(format(d, 'yyyy-MM-dd'));
       }
     } else {
       // Check if this day is open in working_hours
-      if (workingHours[dayKey] != null) {
+      if (workingHours![dayKey] != null) {
         dates.push(format(d, 'yyyy-MM-dd'));
       }
     }
