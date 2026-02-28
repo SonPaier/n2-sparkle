@@ -1,56 +1,43 @@
 
 
-## Plan: 3 zmiany
+## Plan: Redesign karty zlecenia w widoku "Twój dzień" pracownika
 
-### 1. Ukrywanie godzin zleceń dla pracowników
+### Zmiany w `src/components/employee/EmployeeDashboard.tsx`
 
-**Nowe pole w konfiguracji kalendarza pracownika** (`AddEditEmployeeCalendarDrawer.tsx`):
-- Dodać `hours` do `FIELD_LABELS` → `'Godziny zlecenia'`
-- Dodać `hours: true` do `defaultVisibleFields`
-- Pole działa identycznie jak `price` — checkbox w sekcji "Widoczne pola"
+**1. Usunięcie elementów:**
+- Usunąć subtitle z zakresem dat pod "Twój dzień" (linia 201-203)
+- Usunąć wszystkie ikony z wierszy karty (Clock, User, MapPin, HardHat) — zostawić tylko Calendar i Bell przy nagłówkach sekcji
 
-**Propagacja flagi `hideHours`** w `EmployeeCalendarPage.tsx`:
-- Wyliczać `hideHours = config?.visible_fields?.hours === false`
-- Przekazywać `hideHours` do `AdminCalendar`, `EmployeeDashboard`, `CalendarItemDetailsDrawer`
+**2. Nowa struktura karty zlecenia:**
+Każda karta to klikalny wiersz z chevron-right po prawej (fixed 40px kolumna):
 
-**Ukrywanie godzin w komponentach:**
+```text
+┌─────────────────────────────────────────────┬──────┐
+│ Tytuł zlecenia (18px, bold)                 │  >   │
+│ [Dziś] lub [Jutro] lub [Poniedziałek] pill  │      │
+│ 📍 Lokalizacja (link do Google Maps)   🗺️   │      │
+│ Jan Kowalski                                │      │
+│ 123 456 789  📱                             │      │
+└─────────────────────────────────────────────┴──────┘
+```
 
-| Komponent | Co ukryć |
-|-----------|----------|
-| `AdminCalendar.tsx` | Dodać prop `hideHours?: boolean`. Gdy true: ukryć tekst godzin na kafelku (linia ~589), ukryć oś godzin po lewej stronie kalendarza |
-| `EmployeeDashboard.tsx` | Dodać prop `hideHours?: boolean`. Gdy true: ukryć `{item.start_time}–{item.end_time}` na karcie zlecenia (linia ~227) |
-| `CalendarItemDetailsDrawer.tsx` | Dodać prop `hideHours?: boolean`. Gdy true: ukryć godziny w nagłówku szuflady szczegółów |
+- **Tytuł**: `text-lg font-bold` (18px)
+- **Pill dnia**: zielony dla "Dziś", fioletowy dla "Jutro" / nazwy dnia roboczego. Logika: porównanie `item_date` z dzisiejszą datą — 0 dni = Dziś, 1 dzień roboczy = Jutro, dalej = nazwa dnia tygodnia (np. "Poniedziałek")
+- **Lokalizacja**: cały wiersz to klikalny link `<a>` do Google Maps (directions mode: `https://www.google.com/maps/dir/?api=1&destination=...`). Po prawej ikona Google Maps SVG (ta sama co w CalendarItemDetailsDrawer). Adres budowany z `buildFullAddress(item)`. Jeśli brak koordynatów, użyć adresu tekstowego jako destination
+- **Klient**: imię i nazwisko bez ikony
+- **Telefon**: `formatPhoneDisplay(phone)` jako klikalny `<a href="tel:...">`, obok ikona SMS `<a href="sms:...">` (ikona MessageSquare z lucide)
+- **Chevron**: `ChevronRight` w stałej kolumnie 40px po prawej, wycentrowany pionowo. Cała karta klikalna → `onItemClick`
 
-### 2. Zakres dni na kafelku wielodniowym (już częściowo zaimplementowane)
+**3. Importy do dodania:**
+- `ChevronRight, MessageSquare` z lucide-react
+- `formatPhoneDisplay, normalizePhone` z `@/lib/phoneUtils`
+- Usunąć nieużywane: `Clock, User, MapPin, HardHat`
 
-Obecny kod (linia 590-596 `AdminCalendar.tsx`) już dodaje `, PN-PT` do godzin. Trzeba upewnić się, że ten tekst jest widoczny nawet gdy `hideHours=true` — bo zakres dni to nie to samo co godziny. Gdy `hideHours=true`, kafelek powinien pokazywać tylko `PN - PT` (bez godzin).
+**4. Przypomnienia — usunąć ikony z wierszy:**
+- Usunąć ikony Clock, User, Tag z wierszy przypomnień (zostawić Bell przy nagłówku)
 
-### 3. Anulacja uploadu w MediaUploader
-
-**`mediaUtils.ts`** — zmienić `uploadFileWithProgress` aby:
-- Przyjmować opcjonalny `AbortSignal` jako parametr
-- Podłączyć `signal.addEventListener('abort', () => xhr.abort())` do XHR
-- Przy abort rzucić błąd `'Upload anulowany'`
-
-**`MediaUploader.tsx`** — dodać mechanizm anulacji:
-- Dodać `abortControllerRef = useRef<AbortController | null>(null)`
-- W `doUpload`: tworzyć nowy `AbortController`, przekazywać `signal` do `uploadFileWithProgress`
-- W `handleCancel`: wywołać `abortControllerRef.current?.abort()`, wyczyścić stan uploadu
-
-**`MediaUploadProgress.tsx`** — dodać przycisk X:
-- Dodać prop `onCancel?: () => void`
-- Gdy `onCancel` jest podany i trwa upload (brak error), pokazać przycisk X obok progress bara
-
-### Pliki do zmiany
-
-| Plik | Zmiana |
-|------|--------|
-| `AddEditEmployeeCalendarDrawer.tsx` | Dodać `hours` do `FIELD_LABELS` i `defaultVisibleFields` |
-| `EmployeeCalendarPage.tsx` | Wyliczać i przekazywać `hideHours` |
-| `AdminCalendar.tsx` | Prop `hideHours`, warunkowe ukrycie godzin na kafelku i osi |
-| `EmployeeDashboard.tsx` | Prop `hideHours`, ukrycie godzin na kartach |
-| `CalendarItemDetailsDrawer.tsx` | Prop `hideHours`, ukrycie godzin w szczegółach |
-| `mediaUtils.ts` | Parametr `AbortSignal` w `uploadFileWithProgress` |
-| `MediaUploader.tsx` | `AbortController` ref + `handleCancel` |
-| `MediaUploadProgress.tsx` | Przycisk X anulacji |
+### Dane potrzebne
+- Lokalizacja: już pobierana (`address_street`, `address_city`, `address_name`)
+- Telefon: `customer_phone` już w select query
+- Brak koordynatów w obecnym fetchu — użyć adresu tekstowego jako `destination` parametru Google Maps (zadziała bez koordynatów)
 
