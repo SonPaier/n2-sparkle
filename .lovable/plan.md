@@ -1,58 +1,28 @@
 
-# Przebudowa Drawera Klienta -- zaktualizowany plan
 
-## Zmiana wzgledem poprzedniego planu
+## Optymalizacja wyszukiwarek: skip search when already no results
 
-Wyszukiwarka NIP z pobieraniem danych z GUS zostanie wydzielona jako **osobny, reużywalny komponent** `NipLookupForm`, gotowy do użycia w różnych miejscach aplikacji (drawer klienta, fakturowanie, oferty itp.).
+### Logika
 
-## Nowy komponent: `src/components/admin/NipLookupForm.tsx`
+Jeśli fraza "ABC" zwróciła 0 wyników, to fraza "ABCD" (rozszerzenie) też nie zwróci — nie ma sensu ponownie odpytywać bazy. Dopiero gdy użytkownik skróci frazę (backspace) lub wpisze coś zupełnie innego, szukamy od nowa.
 
-Samodzielny komponent zawierający:
-- Pole NIP (input)
-- Przycisk "Pobierz z GUS" (obok inputa, w jednym wierszu)
-- Po pobraniu: pola Nazwa firmy, Ulica, Kod pocztowy, Miasto
-- Logika fetcha z White List API MF (`https://wl-api.mf.gov.pl/api/search/nip/{nip}?date={today}`)
-- Parsowanie adresu z formatu "ULICA NR, KOD MIASTO"
+### Zmiany w `CustomerSearchInput.tsx`
 
-**Props:**
-```text
-nip, company, billingStreet, billingPostalCode, billingCity
-+ onChange callback zwracajacy wszystkie pola po zmianie
-+ readOnly (opcjonalnie, dla trybu podgladu)
-```
+1. Dodać ref `noResultsForQueryRef` przechowujący frazę, dla której ostatnio zwrócono 0 wyników
+2. W funkcji `search`: jeśli nowa fraza zaczyna się od `noResultsForQueryRef.current` → pomiń zapytanie, od razu zwróć pustą listę (bez loadera)
+3. Gdy wyniki > 0 lub fraza się skróciła/zmieniła prefix → wyczyść ref i szukaj normalnie
+4. Dropdown "Brak klienta w bazie" + przycisk "Dodaj" pozostaje widoczny bez migania loaderem
 
-Komponent sam zarzadza stanem ladowania i bledami. Wywoluje `onChange` przy kazdej zmianie dowolnego pola lub po pobraniu danych z GUS.
+### Zmiany w `CustomerAddressSelect.tsx`
 
-## Zmiany w `CustomerEditDrawer.tsx`
+1. Identyczna logika z `noResultsForQueryRef`
+2. Zmiana komunikatu "Brak wyników" na **"Nie ma klienta z takim adresem serwisowym"**
+3. Dodanie dużego przycisku **"Dodaj klienta"** pod komunikatem (wymaga dodania propa `onAddNew?: (query: string) => void` do komponentu)
 
-1. **Label "Nazwa"** zmieniony na **"Imie i nazwisko"**
-2. **Reorganizacja w 3 sekcje** z naglowkami i dividerami:
-   - **Informacje podstawowe**: imie i nazwisko, telefon, email, adresy serwisowe, kategorie, notatki
-   - **Osoby kontaktowe**: dynamiczna lista (imie, telefon, email) + przycisk "Dodaj osobe"
-   - **Dane firmy**: `Collapsible`, domyslnie zwinieta, rozwijana jesli dane istnieja; uzywa `NipLookupForm`
-3. Usunięcie starych pol firma/NIP/billing -- zastapione przez `NipLookupForm`
-4. Osoby kontaktowe: pierwsza mapuje sie na `contact_person/contact_phone/contact_email`, dodatkowe w nowym polu JSONB
+### Podsumowanie plików
 
-## Zmiana w `CustomerAddressesSection.tsx`
+| Plik | Zmiana |
+|------|--------|
+| `CustomerSearchInput.tsx` | Dodanie logiki skip-search przy rozszerzaniu frazy bez wyników |
+| `CustomerAddressSelect.tsx` | Logika skip-search + nowy komunikat + przycisk "Dodaj klienta" z propem `onAddNew` |
 
-Usunięcie ikony MapPin z labela "Adresy serwisowe"
-
-## Migracja bazy danych
-
-```sql
-ALTER TABLE customers ADD COLUMN IF NOT EXISTS additional_contacts jsonb DEFAULT '[]';
-```
-
-## Zmiana w `CustomersView.tsx`
-
-Dodanie `additional_contacts` do typu `Customer` i query SELECT.
-
-## Podsumowanie plikow do zmiany
-
-| Plik | Akcja |
-|------|-------|
-| `src/components/admin/NipLookupForm.tsx` | **Nowy** -- reużywalny komponent NIP + GUS |
-| `src/components/admin/CustomerEditDrawer.tsx` | Przebudowa formularza na 3 sekcje, użycie NipLookupForm |
-| `src/components/admin/CustomerAddressesSection.tsx` | Usunięcie ikony MapPin |
-| `src/components/admin/CustomersView.tsx` | Dodanie additional_contacts do typu i query |
-| Migracja SQL | Nowa kolumna additional_contacts |
