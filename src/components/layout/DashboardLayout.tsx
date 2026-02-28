@@ -100,17 +100,20 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Logo */}
-          <div className={cn("border-b border-border/50 flex items-center", sidebarCollapsed ? "p-3 justify-center" : "p-6 justify-center relative")}>
+          <div className={cn("border-b border-border/50 flex items-center", sidebarCollapsed ? "p-3 justify-center" : "px-4 py-4 justify-start gap-3 relative")}>
             <button
               onClick={() => handleNavClick('dashboard')}
-              className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
             >
               {instanceLogo ? (
-                <img src={instanceLogo} alt={instanceName || 'Logo'} className={cn("object-contain", sidebarCollapsed ? "h-8" : "h-10 max-w-[180px]")} />
+                <img src={instanceLogo} alt={instanceName || 'Logo'} className={cn("object-contain", sidebarCollapsed ? "h-8" : "h-8")} />
               ) : (
                 <div className="rounded-xl bg-primary flex items-center justify-center w-10 h-10 shrink-0">
                   <span className="text-primary-foreground font-bold text-lg">N2</span>
                 </div>
+              )}
+              {!sidebarCollapsed && instanceName && (
+                <h3 className="text-base font-semibold text-foreground truncate">{instanceName}</h3>
               )}
             </button>
             <Button variant="ghost" size="icon" className="lg:hidden absolute right-3 top-1/2 -translate-y-1/2" onClick={() => setSidebarOpen(false)}>

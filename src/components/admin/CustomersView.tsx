@@ -380,7 +380,7 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
           </Button>
           <Button onClick={handleAddCustomer}>
             <Plus className="w-4 h-4 mr-1" />
-            Dodaj
+            Dodaj klienta
           </Button>
         </div>
       </div>
