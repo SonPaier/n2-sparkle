@@ -178,6 +178,11 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
     fetchData();
   };
 
+  const buildDisplayAddress = (item: CalendarItemRow) => {
+    const parts = [item.address_city, item.address_street].filter(Boolean);
+    return parts.join(', ');
+  };
+
   const buildFullAddress = (item: CalendarItemRow) => {
     const parts = [item.address_name, item.address_street, item.address_city].filter(Boolean);
     return parts.join(', ');
@@ -225,7 +230,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
               <div>
                 {items.map((item, idx) => {
                   const pill = getDayPill(item.item_date);
-                  const addr = buildFullAddress(item);
+                  const addr = buildDisplayAddress(item);
                   const mapsUrl = buildGoogleMapsUrl(item);
                   const phone = item.customer_phone;
                   const normalizedPhone = phone ? normalizePhone(phone) : null;
@@ -242,35 +247,20 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
                           <div>
                             <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
                           </div>
-                          {addr && (
-                            <div className="flex items-center gap-1.5">
-                              {mapsUrl ? (
-                                <a
-                                  href={mapsUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-primary hover:underline truncate"
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  {addr}
-                                </a>
-                              ) : (
-                                <span className="text-sm text-foreground truncate">{addr}</span>
-                              )}
-                              {mapsUrl && (
-                                <a
-                                  href={mapsUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="shrink-0 text-muted-foreground hover:text-primary"
-                                  onClick={e => e.stopPropagation()}
-                                  title="Otwórz w Google Maps"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                                </a>
-                              )}
-                            </div>
-                          )}
+                          {addr && mapsUrl ? (
+                            <a
+                              href={mapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              {addr}
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                            </a>
+                          ) : addr ? (
+                            <span className="text-sm text-foreground">{addr}</span>
+                          ) : null}
                           {item.customer_name && (
                             <div className="text-sm text-foreground">{item.customer_name}</div>
                           )}
