@@ -173,6 +173,7 @@ export type Database = {
           instance_id: string
           item_date: string
           media_items: Json | null
+          order_number: string | null
           payment_status: string | null
           photo_urls: Json | null
           price: number | null
@@ -198,6 +199,7 @@ export type Database = {
           instance_id: string
           item_date: string
           media_items?: Json | null
+          order_number?: string | null
           payment_status?: string | null
           photo_urls?: Json | null
           price?: number | null
@@ -223,6 +225,7 @@ export type Database = {
           instance_id?: string
           item_date?: string
           media_items?: Json | null
+          order_number?: string | null
           payment_status?: string | null
           photo_urls?: Json | null
           price?: number | null

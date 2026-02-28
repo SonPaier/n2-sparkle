@@ -47,6 +47,7 @@ interface CalendarItemRow {
   assigned_employee_ids: string[] | null;
   photo_urls: unknown;
   end_date: string | null;
+  order_number: string | null;
 }
 
 interface InvoiceRow {
@@ -91,7 +92,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('calendar_items')
-        .select('id, title, item_date, customer_name, customer_id, customer_email, customer_phone, customer_address_id, created_at, status, payment_status, price, admin_notes, start_time, end_time, column_id, assigned_employee_ids, photo_urls, end_date')
+        .select('id, title, item_date, customer_name, customer_id, customer_email, customer_phone, customer_address_id, created_at, status, payment_status, price, admin_notes, start_time, end_time, column_id, assigned_employee_ids, photo_urls, end_date, order_number')
         .eq('instance_id', instanceId)
         .order('item_date', { ascending: false });
       if (error) throw error;
@@ -190,11 +191,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   };
 
   const formatOrderNumber = (item: CalendarItemRow) => {
-    try {
-      return format(parseISO(item.item_date), 'dd.MM.yyyy');
-    } catch {
-      return item.item_date;
-    }
+    return item.order_number || '—';
   };
 
   const openInvoiceDrawer = (order: CalendarItemRow) => {
