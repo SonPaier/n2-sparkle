@@ -15,6 +15,7 @@ import CalendarMapPanel from '@/components/admin/CalendarMapPanel';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import EmployeeDashboard from '@/components/employee/EmployeeDashboard';
+import { useWorkingHours } from '@/hooks/useWorkingHours';
 import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
@@ -51,6 +52,7 @@ const EmployeeCalendarPage = () => {
   const [mapOpen, setMapOpen] = useState(false);
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
+  const { data: workingHours } = useWorkingHours(instanceId);
 
   // Protocol form state
   const [protocolFormOpen, setProtocolFormOpen] = useState(false);
@@ -398,6 +400,7 @@ const EmployeeCalendarPage = () => {
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                 onItemClick={(item) => handleItemClick(item)}
                 linkedEmployeeId={linkedEmployeeId}
+                workingHours={workingHours}
               />
               <CalendarItemDetailsDrawer
                 item={selectedItem}

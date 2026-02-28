@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { format, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { format, differenceInDays } from 'date-fns';
+import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, Clock, User, MapPin, Tag, CreditCard, DollarSign, HardHat } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,8 +10,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { toast } from 'sonner';
 
+type WorkingHours = Record<string, { open: string; close: string } | null> | null;
+
 interface DashboardOverviewProps {
   instanceId: string;
+  workingHours?: WorkingHours;
   onItemClick?: (itemId: string) => void;
   onReminderClick?: (reminderId: string) => void;
   onPaymentClick?: (itemId: string) => void;
@@ -49,18 +53,19 @@ interface ReminderRow {
   reminder_type_name?: string;
 }
 
-const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPaymentClick }: DashboardOverviewProps) => {
+const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick }: DashboardOverviewProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [allPaymentItems, setAllPaymentItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const workingDaysForFetch = useMemo(() => getNextWorkingDays(2, workingHours ?? null), [workingHours]);
+  const fetchDateStart = workingDaysForFetch[0] || format(new Date(), 'yyyy-MM-dd');
+  const fetchDateEnd = workingDaysForFetch[workingDaysForFetch.length - 1] || format(new Date(), 'yyyy-MM-dd');
+
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const now = new Date();
-    const today = format(now, 'yyyy-MM-dd');
-    const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+    const today = format(new Date(), 'yyyy-MM-dd');
 
     const selectFields = 'id, title, customer_name, customer_phone, item_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price';
 
@@ -70,8 +75,8 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
         .from('calendar_items')
         .select(selectFields)
         .eq('instance_id', instanceId)
-        .gte('item_date', weekStart)
-        .lte('item_date', weekEnd)
+        .gte('item_date', fetchDateStart)
+        .lte('item_date', fetchDateEnd)
         .neq('status', 'cancelled')
         .order('item_date')
         .order('start_time'),
@@ -198,7 +203,7 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
     setAllPaymentItems(filteredPayItems);
     setReminders(remItems);
     setLoading(false);
-  }, [instanceId]);
+  }, [instanceId, fetchDateStart, fetchDateEnd]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -213,12 +218,12 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
     fetchData();
   };
 
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const todayDate = new Date(today + 'T00:00:00');
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
 
-  // Orders: today + tomorrow
-  const tomorrow = format(new Date(todayDate.getTime() + 86400000), 'yyyy-MM-dd');
-  const dashboardItems = items.filter(i => i.item_date === today || i.item_date === tomorrow);
+  // Orders: next 2 working days based on working_hours
+  const workingDays = useMemo(() => getNextWorkingDays(2, workingHours ?? null), [workingHours]);
+  const dashboardItems = items.filter(i => workingDays.includes(i.item_date));
 
   // Reminders: notification window check (deadline - days_before <= today)
   const todayReminders = reminders.filter(r => {
@@ -261,7 +266,7 @@ const DashboardOverview = ({ instanceId, onItemClick, onReminderClick, onPayment
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={dashboardItems.length} emptyText="Brak zleceń na dziś i jutro">
+        <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={dashboardItems.length} emptyText="Brak zleceń na najbliższe dni robocze">
           {dashboardItems.map((item, idx) => (
             <OrderCard key={item.id} item={item} fullAddress={buildFullAddress(item)} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onClick={() => onItemClick?.(item.id)} />
           ))}
