@@ -167,7 +167,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side={isMobile ? 'bottom' : 'right'} className={isMobile ? 'h-[90vh] overflow-y-auto' : 'sm:max-w-lg overflow-y-auto'}>
+        <SheetContent side={isMobile ? 'bottom' : 'right'} className={isMobile ? 'h-[90vh] overflow-y-auto' : 'sm:max-w-lg overflow-y-auto'} hideOverlay>
           <SheetHeader>
             <SheetTitle>{isEditMode ? 'Edytuj protokół' : 'Nowy protokół'}</SheetTitle>
           </SheetHeader>

@@ -9,12 +9,9 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+} from '@/components/ui/sheet';
 import {
   Drawer,
   DrawerContent,
@@ -622,17 +619,12 @@ export const ServiceFormDialog = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
-        className="w-[80vw] max-w-[1000px] h-[80vh] max-h-[80vh] flex flex-col p-0 gap-0 [&>button]:h-10 [&>button]:w-10 [&>button]:rounded-full [&>button]:bg-transparent [&>button]:hover:bg-muted [&>button]:absolute [&>button]:right-4 [&>button]:top-4"
-        onPointerDownOutside={(e) => e.preventDefault()}
-        onInteractOutside={(e) => e.preventDefault()}
-      >
-        <DialogHeader className="flex-shrink-0 p-6 pb-4">
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription />
-        </DialogHeader>
-        <div className="flex-1 overflow-hidden px-6">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-[700px] sm:max-w-[700px] flex flex-col p-0 gap-0 bg-card" hideCloseButton hideOverlay>
+        <div className="px-6 py-4 border-b border-border shrink-0 bg-card flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{title}</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-4">
           <ServiceFormContent
             service={service}
             categories={categories}
@@ -646,7 +638,7 @@ export const ServiceFormDialog = ({
             existingServices={existingServices}
           />
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 };

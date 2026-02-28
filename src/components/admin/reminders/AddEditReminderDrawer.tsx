@@ -382,7 +382,7 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
   return (
     <>
       <Sheet open={open} onOpenChange={v => !v && onClose()}>
-        <SheetContent className="w-[480px] sm:max-w-[480px] flex flex-col p-0 gap-0 bg-card" hideCloseButton>
+        <SheetContent className="w-[480px] sm:max-w-[480px] flex flex-col p-0 gap-0 bg-card" hideCloseButton hideOverlay>
           {header}
           {formContent}
           {footer}
