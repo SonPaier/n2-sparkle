@@ -587,7 +587,13 @@ const AdminCalendar = ({
           {/* Line 1: Time + notes indicator */}
           <div className="flex items-center justify-between gap-0.5">
             <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
-              {isMultiDay ? `${displayStart.slice(0, 5)} - ${displayEnd.slice(0, 5)}` : `${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}`}
+              {`${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}`}
+              {isMultiDay && item.end_date && (() => {
+                const dayNames = ['ND', 'PN', 'WT', 'ŚR', 'CZ', 'PT', 'SO'];
+                const startDay = dayNames[new Date(item.item_date + 'T00:00:00').getDay()];
+                const endDay = dayNames[new Date(item.end_date + 'T00:00:00').getDay()];
+                return `, ${startDay}-${endDay}`;
+              })()}
               {item.status === 'change_requested' && <RefreshCw className="w-3 h-3 text-red-600" />}
             </span>
             <div className="flex items-center gap-0.5 shrink-0">

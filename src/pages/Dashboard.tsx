@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
 import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell, LayoutDashboard } from 'lucide-react';
@@ -50,6 +51,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { roles } = useAuth();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
 
   const currentView: ViewType = view && validViews.includes(view as ViewType) ? (view as ViewType) : 'dashboard';
 
@@ -330,6 +332,7 @@ const Dashboard = () => {
   const handleItemSuccess = () => {
     fetchItems();
     setEditingItem(null);
+    queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
   };
 
   const handleDateChange = (date: Date) => {
