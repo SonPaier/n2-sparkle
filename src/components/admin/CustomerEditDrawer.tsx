@@ -152,14 +152,14 @@ const CustomerEditDrawer = ({
     if (data) {
       setAddresses(data.map(a => {
         // Build contacts array from DB: contacts JSONB + legacy contact_person/contact_phone
-        let contacts: { name: string; phone: string }[] = [];
+        let contacts: { name: string; phone: string; email: string }[] = [];
         const dbContacts = (a as any).contacts;
         if (Array.isArray(dbContacts) && dbContacts.length > 0) {
-          contacts = dbContacts.map((c: any) => ({ name: c.name || '', phone: c.phone || '' }));
+          contacts = dbContacts.map((c: any) => ({ name: c.name || '', phone: c.phone || '', email: c.email || '' }));
         } else if (a.contact_person || a.contact_phone) {
-          contacts = [{ name: a.contact_person || '', phone: a.contact_phone || '' }];
+          contacts = [{ name: a.contact_person || '', phone: a.contact_phone || '', email: '' }];
         }
-        if (contacts.length === 0) contacts = [{ name: '', phone: '' }];
+        if (contacts.length === 0) contacts = [{ name: '', phone: '', email: '' }];
         return {
           id: a.id,
           name: a.name,
@@ -301,7 +301,7 @@ const CustomerEditDrawer = ({
         postal_code: addr.postal_code.trim() || null,
         contact_person: addr.contacts[0]?.name?.trim() || null,
         contact_phone: addr.contacts[0]?.phone?.trim() || null,
-        contacts: JSON.stringify(addr.contacts.filter(c => c.name || c.phone)),
+        contacts: addr.contacts.filter(c => c.name || c.phone || c.email) as unknown as import('@/integrations/supabase/types').Json,
         notes: addr.notes.trim() || null,
         is_default: addr.is_default,
         sort_order: i,

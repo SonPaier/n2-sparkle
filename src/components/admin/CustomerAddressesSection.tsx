@@ -8,6 +8,7 @@ import type { AddressSearchResult } from '@/lib/addressSearch';
 export interface AddressContact {
   name: string;
   phone: string;
+  email: string;
 }
 
 export interface CustomerAddress {
@@ -44,7 +45,7 @@ const CustomerAddressesSection = ({
       street: '',
       city: '',
       postal_code: '',
-      contacts: [{ name: '', phone: '' }],
+      contacts: [{ name: '', phone: '', email: '' }],
       notes: '',
       is_default: false,
       _isNew: true,
@@ -57,7 +58,7 @@ const CustomerAddressesSection = ({
       street: result.street,
       city: result.city,
       postal_code: result.postal_code,
-      contacts: [{ name: '', phone: '' }],
+      contacts: [{ name: '', phone: '', email: '' }],
       notes: '',
       is_default: false,
       lat: result.lat,
@@ -98,7 +99,7 @@ const CustomerAddressesSection = ({
   const addContact = (addrIndex: number) => {
     onAddressesChange(addresses.map((a, i) => {
       if (i !== addrIndex) return a;
-      return { ...a, contacts: [...a.contacts, { name: '', phone: '' }] };
+      return { ...a, contacts: [...a.contacts, { name: '', phone: '', email: '' }] };
     }));
   };
 
@@ -106,7 +107,7 @@ const CustomerAddressesSection = ({
     onAddressesChange(addresses.map((a, i) => {
       if (i !== addrIndex) return a;
       const newContacts = a.contacts.filter((_, ci) => ci !== contactIndex);
-      return { ...a, contacts: newContacts.length > 0 ? newContacts : [{ name: '', phone: '' }] };
+      return { ...a, contacts: newContacts.length > 0 ? newContacts : [{ name: '', phone: '', email: '' }] };
     }));
   };
 
@@ -124,9 +125,11 @@ const CustomerAddressesSection = ({
                   {addr.postal_code} {addr.city}
                 </div>
               )}
-              {addr.contacts.filter(c => c.name || c.phone).map((c, ci) => (
+              {addr.contacts.filter(c => c.name || c.phone || c.email).map((c, ci) => (
                 <div key={ci} className="text-foreground">
-                  Kontakt: {c.name} {c.phone && `• ${c.phone}`}
+                  {c.name && <span>Kontakt: {c.name}</span>}
+                  {c.phone && <span> • {c.phone}</span>}
+                  {c.email && <span> • {c.email}</span>}
                 </div>
               ))}
             </div>
@@ -199,24 +202,34 @@ const CustomerAddressesSection = ({
                 <div className="space-y-2 pt-1">
                   <span className="text-xs font-medium text-muted-foreground">Osoby kontaktowe</span>
                   {addr.contacts.map((contact, ci) => (
-                    <div key={ci} className="flex items-center gap-2">
-                      <Input
-                        value={contact.name}
-                        onChange={e => updateContact(idx, ci, 'name', e.target.value)}
-                        placeholder="Imię i nazwisko"
-                        className="text-sm bg-background flex-1"
-                      />
-                      <Input
-                        value={contact.phone}
-                        onChange={e => updateContact(idx, ci, 'phone', e.target.value)}
-                        placeholder="Telefon"
-                        className="text-sm bg-background flex-1"
-                      />
-                      {addr.contacts.length > 1 && (
-                        <Button variant="ghost" size="icon" className="w-6 h-6 shrink-0 text-destructive" onClick={() => removeContact(idx, ci)}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      )}
+                    <div key={ci} className="space-y-2 p-2 border border-border/50 rounded-md">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={contact.name}
+                          onChange={e => updateContact(idx, ci, 'name', e.target.value)}
+                          placeholder="Imię i nazwisko"
+                          className="text-sm bg-background flex-1"
+                        />
+                        {addr.contacts.length > 1 && (
+                          <Button variant="ghost" size="icon" className="w-6 h-6 shrink-0 text-destructive" onClick={() => removeContact(idx, ci)}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          value={contact.phone}
+                          onChange={e => updateContact(idx, ci, 'phone', e.target.value)}
+                          placeholder="Telefon"
+                          className="text-sm bg-background"
+                        />
+                        <Input
+                          value={contact.email}
+                          onChange={e => updateContact(idx, ci, 'email', e.target.value)}
+                          placeholder="Email (opcjonalnie)"
+                          className="text-sm bg-background"
+                        />
+                      </div>
                     </div>
                   ))}
                   <Button variant="ghost" size="sm" onClick={() => addContact(idx)} className="text-xs h-7 px-2">
