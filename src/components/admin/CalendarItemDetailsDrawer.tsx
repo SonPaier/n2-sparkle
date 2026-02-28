@@ -181,6 +181,9 @@ const CalendarItemDetailsDrawer = ({
   const [customerDetailData, setCustomerDetailData] = useState<Customer | null>(null);
   // Invoice drawer
   const [invoiceDrawerOpen, setInvoiceDrawerOpen] = useState(false);
+  // History item drawer
+  const [historyDetailItem, setHistoryDetailItem] = useState<CalendarItem | null>(null);
+  const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
   const { data: allEmployees = [] } = useEmployees(instanceId || null);
   const { settings: invoicingSettings } = useInvoicingSettings(instanceId || null);
   const { data: itemInvoices = [], refetch: refetchInvoices } = useInvoices(instanceId || null, item?.id);
@@ -222,6 +225,13 @@ const CalendarItemDetailsDrawer = ({
       const serviceMap = new Map((serviceDetails || []).map(s => [s.id, s]));
       const protocolMap = new Map((protocols || []).map(p => [p.calendar_item_id, p.public_token]));
 
+      // Fetch employee names
+      const allEmpIds = [...new Set(items.flatMap(i => i.assigned_employee_ids || []))];
+      const { data: employees } = allEmpIds.length > 0
+        ? await supabase.from('employees').select('id, name').in('id', allEmpIds)
+        : { data: [] };
+      const empMap = new Map((employees || []).map(e => [e.id, e.name]));
+
       return items.map(ci => {
         const ciServices = (services || [])
           .filter(s => s.calendar_item_id === ci.id)
@@ -229,10 +239,12 @@ const CalendarItemDetailsDrawer = ({
             const svc = serviceMap.get(s.service_id);
             return { name: svc?.name || '', price: s.custom_price ?? svc?.price ?? undefined };
           });
+        const empNames = (ci.assigned_employee_ids || []).map(id => empMap.get(id)).filter(Boolean) as string[];
         return {
           ...ci,
           services: ciServices,
           protocolPublicToken: protocolMap.get(ci.id) || undefined,
+          employeeNames: empNames,
         };
       });
     },
@@ -976,11 +988,26 @@ const CalendarItemDetailsDrawer = ({
                     <CustomerOrderCard
                       key={hi.id}
                       itemDate={hi.item_date}
+                      endDate={hi.end_date}
+                      title={hi.title}
                       status={hi.status}
                       services={hi.services || []}
                       price={hi.price}
-                      protocolPublicToken={hi.protocolPublicToken}
                       hidePrices={hidePrices}
+                      assignedEmployeeNames={hi.employeeNames}
+                      onClick={() => {
+                        const histItem: CalendarItem = {
+                          id: hi.id, title: hi.title, item_date: hi.item_date, end_date: hi.end_date,
+                          start_time: hi.start_time, end_time: hi.end_time, column_id: hi.column_id,
+                          status: hi.status, admin_notes: hi.admin_notes, price: hi.price,
+                          customer_id: hi.customer_id, customer_address_id: hi.customer_address_id,
+                          assigned_employee_ids: hi.assigned_employee_ids,
+                          customer_name: hi.customer_name, customer_phone: hi.customer_phone,
+                          customer_email: hi.customer_email, photo_urls: hi.photo_urls,
+                        };
+                        setHistoryDetailItem(histItem);
+                        setHistoryDetailOpen(true);
+                      }}
                     />
                   ))}
                 </div>
@@ -1046,6 +1073,17 @@ const CalendarItemDetailsDrawer = ({
           }}
         />
       )}
+
+      {/* History Item Detail Drawer */}
+      <CalendarItemDetailsDrawer
+        item={historyDetailItem}
+        open={historyDetailOpen}
+        onClose={() => { setHistoryDetailOpen(false); setHistoryDetailItem(null); }}
+        columns={columns}
+        instanceId={instanceId}
+        hidePrices={hidePrices}
+        hideHours={hideHours}
+      />
     </>
   );
 };

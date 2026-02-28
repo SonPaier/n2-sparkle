@@ -1,10 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { format } from 'date-fns';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import CustomerOrderCard from './CustomerOrderCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import CalendarItemDetailsDrawer from './CalendarItemDetailsDrawer';
 import type { CalendarItem, CalendarColumn } from './AdminCalendar';
 
@@ -17,19 +14,17 @@ interface CustomerOrdersTabProps {
 interface OrderData {
   id: string;
   itemDate: string;
+  endDate?: string | null;
+  title: string;
   status: string;
   price: number | null;
-  addressName?: string;
-  addressStreet?: string;
-  addressCity?: string;
   services: { name: string; price?: number }[];
-  protocolPublicToken?: string;
+  assignedEmployeeNames: string[];
 }
 
 const CustomerOrdersTab = ({ customerId, instanceId, hidePrices }: CustomerOrdersTabProps) => {
   const [orders, setOrders] = useState<OrderData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showPast, setShowPast] = useState(false);
   const [columns, setColumns] = useState<CalendarColumn[]>([]);
   const [detailItem, setDetailItem] = useState<CalendarItem | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -54,7 +49,7 @@ const CustomerOrdersTab = ({ customerId, instanceId, hidePrices }: CustomerOrder
     try {
       const { data: items } = await supabase
         .from('calendar_items')
-        .select('id, item_date, status, price, customer_address_id')
+        .select('id, title, item_date, end_date, status, price, assigned_employee_ids')
         .eq('customer_id', customerId)
         .eq('instance_id', instanceId)
         .order('item_date', { ascending: false });
@@ -65,17 +60,16 @@ const CustomerOrdersTab = ({ customerId, instanceId, hidePrices }: CustomerOrder
       }
 
       const itemIds = items.map(i => i.id);
-      const addressIds = items.map(i => i.customer_address_id).filter(Boolean) as string[];
+      const allEmpIds = [...new Set(items.flatMap(i => i.assigned_employee_ids || []))];
 
-      const [servicesRes, addressesRes, protocolsRes] = await Promise.all([
+      const [servicesRes, employeesRes] = await Promise.all([
         supabase
           .from('calendar_item_services')
           .select('calendar_item_id, custom_price, service_id, unified_services(name, price)')
           .in('calendar_item_id', itemIds),
-        addressIds.length > 0
-          ? supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds)
+        allEmpIds.length > 0
+          ? supabase.from('employees').select('id, name').in('id', allEmpIds)
           : Promise.resolve({ data: [] }),
-        supabase.from('protocols').select('calendar_item_id, public_token').in('calendar_item_id', itemIds),
       ]);
 
       const servicesMap = new Map<string, { name: string; price?: number }[]>();
@@ -88,34 +82,18 @@ const CustomerOrdersTab = ({ customerId, instanceId, hidePrices }: CustomerOrder
         }
       }
 
-      const addressMap = new Map<string, { name: string; street?: string; city?: string }>();
-      if (addressesRes.data) {
-        for (const a of addressesRes.data as any[]) {
-          addressMap.set(a.id, { name: a.name, street: a.street, city: a.city });
-        }
-      }
+      const empMap = new Map((employeesRes.data || []).map((e: any) => [e.id, e.name]));
 
-      const protocolMap = new Map<string, string>();
-      if (protocolsRes.data) {
-        for (const p of protocolsRes.data) {
-          if (p.calendar_item_id && p.public_token) protocolMap.set(p.calendar_item_id, p.public_token);
-        }
-      }
-
-      const result: OrderData[] = items.map(item => {
-        const addr = item.customer_address_id ? addressMap.get(item.customer_address_id) : undefined;
-        return {
-          id: item.id,
-          itemDate: item.item_date,
-          status: item.status,
-          price: item.price,
-          addressName: addr?.name,
-          addressStreet: addr?.street,
-          addressCity: addr?.city,
-          services: servicesMap.get(item.id) || [],
-          protocolPublicToken: protocolMap.get(item.id),
-        };
-      });
+      const result: OrderData[] = items.map(item => ({
+        id: item.id,
+        itemDate: item.item_date,
+        endDate: item.end_date,
+        title: item.title,
+        status: item.status,
+        price: item.price,
+        services: servicesMap.get(item.id) || [],
+        assignedEmployeeNames: (item.assigned_employee_ids || []).map(id => empMap.get(id)).filter(Boolean) as string[],
+      }));
 
       setOrders(result);
     } catch (err) {
@@ -134,21 +112,12 @@ const CustomerOrdersTab = ({ customerId, instanceId, hidePrices }: CustomerOrder
 
     if (data) {
       const calendarItem: CalendarItem = {
-        id: data.id,
-        title: data.title,
-        item_date: data.item_date,
-        end_date: data.end_date,
-        start_time: data.start_time,
-        end_time: data.end_time,
-        column_id: data.column_id,
-        status: data.status,
-        admin_notes: data.admin_notes,
-        price: data.price,
-        customer_id: data.customer_id,
-        customer_address_id: data.customer_address_id,
+        id: data.id, title: data.title, item_date: data.item_date, end_date: data.end_date,
+        start_time: data.start_time, end_time: data.end_time, column_id: data.column_id,
+        status: data.status, admin_notes: data.admin_notes, price: data.price,
+        customer_id: data.customer_id, customer_address_id: data.customer_address_id,
         assigned_employee_ids: data.assigned_employee_ids,
-        customer_name: data.customer_name,
-        customer_phone: data.customer_phone,
+        customer_name: data.customer_name, customer_phone: data.customer_phone,
         customer_email: data.customer_email,
         photo_urls: Array.isArray(data.photo_urls) ? data.photo_urls as string[] : [],
       };
@@ -162,10 +131,6 @@ const CustomerOrdersTab = ({ customerId, instanceId, hidePrices }: CustomerOrder
     setDetailItem(null);
     fetchOrders();
   };
-
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const futureOrders = useMemo(() => orders.filter(o => o.itemDate >= today), [orders, today]);
-  const pastOrders = useMemo(() => orders.filter(o => o.itemDate < today), [orders, today]);
 
   if (loading) {
     return (
@@ -186,52 +151,21 @@ const CustomerOrdersTab = ({ customerId, instanceId, hidePrices }: CustomerOrder
   }
 
   return (
-    <div className="space-y-3 mt-4">
-      {futureOrders.map(order => (
+    <div className="space-y-2 mt-4">
+      {orders.map(order => (
         <CustomerOrderCard
           key={order.id}
           itemDate={order.itemDate}
+          endDate={order.endDate}
+          title={order.title}
           status={order.status}
           price={order.price ?? undefined}
-          addressName={order.addressName}
-          addressStreet={order.addressStreet}
-          addressCity={order.addressCity}
           services={order.services}
-          protocolPublicToken={order.protocolPublicToken}
           onClick={() => handleCardClick(order.id)}
           hidePrices={hidePrices}
+          assignedEmployeeNames={order.assignedEmployeeNames}
         />
       ))}
-
-      {pastOrders.length > 0 && (
-        <>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full text-muted-foreground"
-            onClick={() => setShowPast(!showPast)}
-          >
-            Zobacz przeszłe ({pastOrders.length})
-            {showPast ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />}
-          </Button>
-
-          {showPast && pastOrders.map(order => (
-            <CustomerOrderCard
-              key={order.id}
-              itemDate={order.itemDate}
-              status={order.status}
-              price={order.price ?? undefined}
-              addressName={order.addressName}
-              addressStreet={order.addressStreet}
-              addressCity={order.addressCity}
-              services={order.services}
-              protocolPublicToken={order.protocolPublicToken}
-              onClick={() => handleCardClick(order.id)}
-              hidePrices={hidePrices}
-            />
-          ))}
-        </>
-      )}
 
       <CalendarItemDetailsDrawer
         item={detailItem}
