@@ -116,18 +116,17 @@ const ServicesSummary = ({ itemId, instanceId }: { itemId: string; instanceId: s
   return (
     <div className="space-y-1">
       <span className="text-sm font-medium">Usługi i produkty</span>
-      <div className="bg-muted/30 rounded-lg p-3 space-y-1.5">
+    <div className="space-y-0.5">
         {servicesData.map((s, i) => (
-          <div key={i} className="flex items-center justify-between text-sm">
-            <span className="truncate flex-1 mr-2">{s.name}</span>
-            <span className="text-muted-foreground whitespace-nowrap">
-              {s.quantity} {s.unit} × {s.price} zł
-            </span>
-            <span className="font-semibold ml-2 whitespace-nowrap">{s.total.toFixed(0)} zł</span>
+          <div key={i} className="flex items-center text-sm gap-2">
+            <span className="truncate flex-1">{s.name}</span>
+            <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.quantity} {s.unit}</span>
+            <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.price} zł</span>
+            <span className="font-semibold whitespace-nowrap w-20 text-right">{s.total.toFixed(0)} zł</span>
           </div>
         ))}
-        <div className="border-t border-border pt-1.5 flex items-center justify-between">
-          <span className="text-sm font-bold">Razem</span>
+        <div className="border-t border-border pt-1.5 mt-1.5 flex items-center justify-between">
+          <span className="text-sm font-bold">Razem netto</span>
           <span className="text-base font-bold">{grandTotal.toFixed(0)} zł</span>
         </div>
       </div>
@@ -839,13 +838,6 @@ const CalendarItemDetailsDrawer = ({
                 <ServicesSummary itemId={item.id} instanceId={instanceId} />
               )}
 
-              {/* Price */}
-              {!hidePrices && item.price != null && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Cena netto</span>
-                  <span className="font-bold text-[15px]">{item.price.toFixed(2)} PLN</span>
-                </div>
-              )}
 
               {/* FV + SMS section */}
               {!hidePrices && (item.status === 'completed' || item.status === 'in_progress') && (
