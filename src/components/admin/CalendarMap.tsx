@@ -1,16 +1,30 @@
-import { useEffect, useRef, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import type { CalendarItem, CalendarColumn } from './AdminCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CalendarMapProps {
   items: CalendarItem[];
   columns: CalendarColumn[];
   onItemClick: (item: CalendarItem) => void;
   hqLocation?: { lat: number; lng: number; name: string } | null;
+  showNearby?: boolean;
+  instanceId?: string;
+}
+
+interface NearbyAddress {
+  id: string;
+  customer_id: string;
+  lat: number;
+  lng: number;
+  street: string | null;
+  city: string | null;
+  name: string;
+  customer_name?: string;
 }
 
 // Haversine distance in km
@@ -66,11 +80,29 @@ const createMarkerIcon = (color: string) => {
   });
 };
 
-const CalendarMap = ({ items, columns, onItemClick, hqLocation }: CalendarMapProps) => {
+const createGrayMarkerIcon = () => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="34" viewBox="0 0 32 42">
+    <path d="M16 0C7.16 0 0 7.16 0 16c0 12 16 26 16 26s16-14 16-26C32 7.16 24.84 0 16 0z" fill="#9ca3af" stroke="#fff" stroke-width="2.5"/>
+    <circle cx="16" cy="16" r="7" fill="#fff"/>
+  </svg>`;
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [26, 34],
+    iconAnchor: [13, 34],
+    tooltipAnchor: [0, -34],
+  });
+};
+
+const grayIcon = createGrayMarkerIcon();
+
+const CalendarMap = ({ items, columns, onItemClick, hqLocation, showNearby = false, instanceId }: CalendarMapProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const nearbyMarkersRef = useRef<L.Marker[]>([]);
   const isMobile = useIsMobile();
+  const [nearbyAddresses, setNearbyAddresses] = useState<NearbyAddress[]>([]);
 
   const columnColorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -184,6 +216,74 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation }: CalendarMapPro
       map.fitBounds(bounds, { padding: [padding, padding], maxZoom: 15 });
     }
   }, [validItems, columnColorMap, getIcon, onItemClick, isMobile, hqLocation]);
+
+  // Fetch nearby customer addresses
+  useEffect(() => {
+    if (!showNearby || !instanceId || validItems.length === 0) {
+      setNearbyAddresses([]);
+      return;
+    }
+    const fetchNearby = async () => {
+      const existingAddressIds = new Set(
+        validItems.map(i => i.customer_address_id).filter(Boolean)
+      );
+
+      const { data, error } = await supabase
+        .from('customer_addresses')
+        .select('id, customer_id, lat, lng, street, city, name, customers(name)')
+        .eq('instance_id', instanceId)
+        .not('lat', 'is', null)
+        .not('lng', 'is', null);
+
+      if (error || !data) return;
+
+      const nearby: NearbyAddress[] = [];
+      for (const addr of data) {
+        if (existingAddressIds.has(addr.id)) continue;
+        if (addr.lat == null || addr.lng == null) continue;
+        const isClose = validItems.some(item =>
+          item.address_lat != null && item.address_lng != null &&
+          haversineKm(item.address_lat, item.address_lng, addr.lat!, addr.lng!) <= 1.0
+        );
+        if (isClose) {
+          nearby.push({
+            ...addr,
+            lat: addr.lat!,
+            lng: addr.lng!,
+            customer_name: (addr.customers as any)?.name || '',
+          });
+        }
+      }
+      setNearbyAddresses(nearby);
+    };
+    fetchNearby();
+  }, [showNearby, instanceId, validItems]);
+
+  // Render nearby gray markers
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    nearbyMarkersRef.current.forEach(m => m.remove());
+    nearbyMarkersRef.current = [];
+
+    if (!showNearby) return;
+
+    nearbyAddresses.forEach(addr => {
+      const line1 = addr.customer_name || addr.name;
+      const line2 = [addr.street, addr.city].filter(Boolean).join(', ');
+      const tooltipHtml = `<div class="calendar-map-tooltip-content"><div class="cmt-line1">${line1}</div>${line2 ? `<div class="cmt-line2">${line2}</div>` : ''}</div>`;
+
+      const marker = L.marker([addr.lat, addr.lng], { icon: grayIcon })
+        .bindTooltip(tooltipHtml, {
+          permanent: false, direction: 'top', offset: [0, -4],
+          className: 'calendar-map-tooltip',
+        })
+        .addTo(map);
+
+      nearbyMarkersRef.current.push(marker);
+    });
+  }, [nearbyAddresses, showNearby]);
 
   // Invalidate size when container resizes
   useEffect(() => {
