@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, addDays, isAfter, isBefore, startOfDay, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { X, CalendarIcon } from 'lucide-react';
+import { X, CalendarIcon, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -17,13 +17,15 @@ interface CalendarMapPanelProps {
   onItemClick: (item: CalendarItem) => void;
   onClose: () => void;
   hqLocation?: { lat: number; lng: number; name: string } | null;
+  instanceId: string;
 }
 
-const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: CalendarMapPanelProps) => {
+const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, instanceId }: CalendarMapPanelProps) => {
   const [dateFilter, setDateFilter] = useState<DateFilter>('week');
   const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
   const [columnFilter, setColumnFilter] = useState<string>('all');
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [showNearby, setShowNearby] = useState(false);
 
   const filteredItems = useMemo(() => {
     const today = startOfDay(new Date());
@@ -124,9 +126,16 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
           </SelectContent>
         </Select>
 
-        <span className="text-xs text-muted-foreground ml-auto">
-          {filteredItems.length} {filteredItems.length === 1 ? 'punkt' : 'punktów'}
-        </span>
+        <Button
+          variant={showNearby ? 'secondary' : 'outline'}
+          size="sm"
+          onClick={() => setShowNearby(v => !v)}
+          className="h-9 gap-1 text-xs ml-auto"
+          title="Pokaż klientów w okolicy (1 km)"
+        >
+          <Users className="w-3.5 h-3.5" />
+          W okolicy
+        </Button>
 
         <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 shrink-0">
           <X className="w-4 h-4" />
@@ -135,7 +144,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation }: 
 
       {/* Map */}
       <div className="flex-1 min-h-0">
-        <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} hqLocation={hqLocation} />
+        <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} hqLocation={hqLocation} showNearby={showNearby} instanceId={instanceId} />
       </div>
     </div>
   );

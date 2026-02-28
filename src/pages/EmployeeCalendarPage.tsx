@@ -518,6 +518,7 @@ const EmployeeCalendarPage = () => {
                   onItemClick={handleItemClick}
                   onClose={() => setMapOpen(false)}
                   hqLocation={hqLocation}
+                  instanceId={instanceId || ''}
                 />
               ) : null;
 
