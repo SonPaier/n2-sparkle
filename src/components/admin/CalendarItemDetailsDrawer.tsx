@@ -721,6 +721,14 @@ const CalendarItemDetailsDrawer = ({
 
             {/* Tab: Ogólne */}
             <TabsContent value="general" className="flex-1 overflow-y-auto px-6 py-4 space-y-5 m-0">
+              {/* Order number */}
+              {item.order_number && (
+                <div className="space-y-1">
+                  <span className="text-sm font-medium">Numer zlecenia</span>
+                  <p className="text-sm">{item.order_number}</p>
+                </div>
+              )}
+
               {/* Customer */}
               {(item.customer_name || item.customer_phone || item.customer_email) && (
                 <div className="space-y-2">

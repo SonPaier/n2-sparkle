@@ -53,6 +53,7 @@ export interface CalendarItem {
   price?: number | null;
   photo_urls?: string[] | null;
   payment_status?: string | null;
+  order_number?: string | null;
 }
 
 export interface Break {
