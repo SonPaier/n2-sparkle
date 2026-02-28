@@ -1,62 +1,56 @@
 
 
-## Plan: Dashboard zlecenia — pokaż dzisiejszy + następny dzień roboczy (z kalendarza)
+## Plan: 3 zmiany
 
-### Problem
-- `DashboardOverview` hardcodes "dziś + jutro" (today + tomorrow)
-- `EmployeeDashboard` hardcodes "3 kolejne dni robocze" pomijając sobotę/niedzielę, ale nie sprawdza czy sobota/niedziela są otwarte w `working_hours`
+### 1. Ukrywanie godzin zleceń dla pracowników
 
-### Rozwiązanie
+**Nowe pole w konfiguracji kalendarza pracownika** (`AddEditEmployeeCalendarDrawer.tsx`):
+- Dodać `hours` do `FIELD_LABELS` → `'Godziny zlecenia'`
+- Dodać `hours: true` do `defaultVisibleFields`
+- Pole działa identycznie jak `price` — checkbox w sekcji "Widoczne pola"
 
-Stworzyć wspólną funkcję `getNextWorkingDays(count, workingHours)` która:
-1. Zaczyna od dziś
-2. Sprawdza `working_hours` — jeśli dzień ma wpis (np. `{ open: "08:00", close: "17:00" }`), jest dniem roboczym; jeśli `null`, jest zamknięty
-3. Jeśli `working_hours` jest pusty/null — fallback na pon-pt (obecne zachowanie)
-4. Zwraca `count` kolejnych dni roboczych (włącznie z dziś jeśli jest roboczy)
+**Propagacja flagi `hideHours`** w `EmployeeCalendarPage.tsx`:
+- Wyliczać `hideHours = config?.visible_fields?.hours === false`
+- Przekazywać `hideHours` do `AdminCalendar`, `EmployeeDashboard`, `CalendarItemDetailsDrawer`
 
-### Zmiany w plikach
+**Ukrywanie godzin w komponentach:**
 
-**1. Nowy plik: `src/lib/workingDaysUtils.ts`**
-- Eksportuje `getNextWorkingDays(count: number, workingHours: WorkingHours): string[]`
-- Logika: iteruj od dziś, sprawdź czy dzień jest otwarty w working_hours, zbierz `count` dat
+| Komponent | Co ukryć |
+|-----------|----------|
+| `AdminCalendar.tsx` | Dodać prop `hideHours?: boolean`. Gdy true: ukryć tekst godzin na kafelku (linia ~589), ukryć oś godzin po lewej stronie kalendarza |
+| `EmployeeDashboard.tsx` | Dodać prop `hideHours?: boolean`. Gdy true: ukryć `{item.start_time}–{item.end_time}` na karcie zlecenia (linia ~227) |
+| `CalendarItemDetailsDrawer.tsx` | Dodać prop `hideHours?: boolean`. Gdy true: ukryć godziny w nagłówku szuflady szczegółów |
 
-**2. `DashboardOverview.tsx`**
-- Dodać prop `workingHours` (typ z `useWorkingHours`)
-- Zamiast `today + tomorrow` → użyć `getNextWorkingDays(2, workingHours)`
-- Filtrowanie `dashboardItems` zmieni się z `item_date === today || item_date === tomorrow` na `workingDays.includes(item_date)`
-- Zakres fetch: zamiast `weekStart/weekEnd` → `workingDays[0]` do `workingDays[workingDays.length - 1]` (optymalizacja, max 4-5 dni do przodu)
+### 2. Zakres dni na kafelku wielodniowym (już częściowo zaimplementowane)
 
-**3. `EmployeeDashboard.tsx`**
-- Dodać prop `workingHours` (lub pobrać wewnętrznie via `useWorkingHours`)
-- Zamienić `getNextBusinessDays(3)` na `getNextWorkingDays(3, workingHours)`
+Obecny kod (linia 590-596 `AdminCalendar.tsx`) już dodaje `, PN-PT` do godzin. Trzeba upewnić się, że ten tekst jest widoczny nawet gdy `hideHours=true` — bo zakres dni to nie to samo co godziny. Gdy `hideHours=true`, kafelek powinien pokazywać tylko `PN - PT` (bez godzin).
 
-**4. Wywołania w `Dashboard.tsx` i `EmployeeCalendarPage.tsx`**
-- Pobrać `workingHours` via `useWorkingHours(instanceId)` i przekazać do `DashboardOverview` / `EmployeeDashboard`
+### 3. Anulacja uploadu w MediaUploader
 
-### Logika `getNextWorkingDays`
+**`mediaUtils.ts`** — zmienić `uploadFileWithProgress` aby:
+- Przyjmować opcjonalny `AbortSignal` jako parametr
+- Podłączyć `signal.addEventListener('abort', () => xhr.abort())` do XHR
+- Przy abort rzucić błąd `'Upload anulowany'`
 
-```text
-function getNextWorkingDays(count, workingHours):
-  dates = []
-  d = today
-  while dates.length < count:
-    dayKey = WEEKDAY_MAP[d.getDay()]  // 'monday', 'tuesday', etc.
-    if workingHours == null:
-      // fallback: skip sat/sun
-      if d.getDay() != 0 && d.getDay() != 6: dates.push(d)
-    else:
-      if workingHours[dayKey] != null: dates.push(d)
-    d = d + 1 day
-  return dates
-```
+**`MediaUploader.tsx`** — dodać mechanizm anulacji:
+- Dodać `abortControllerRef = useRef<AbortController | null>(null)`
+- W `doUpload`: tworzyć nowy `AbortController`, przekazywać `signal` do `uploadFileWithProgress`
+- W `handleCancel`: wywołać `abortControllerRef.current?.abort()`, wyczyścić stan uploadu
 
-### Podsumowanie plików
+**`MediaUploadProgress.tsx`** — dodać przycisk X:
+- Dodać prop `onCancel?: () => void`
+- Gdy `onCancel` jest podany i trwa upload (brak error), pokazać przycisk X obok progress bara
+
+### Pliki do zmiany
 
 | Plik | Zmiana |
 |------|--------|
-| `src/lib/workingDaysUtils.ts` | Nowy — wspólna funkcja `getNextWorkingDays` |
-| `src/components/admin/DashboardOverview.tsx` | Przyjmij `workingHours`, użyj `getNextWorkingDays(2)` zamiast today+tomorrow |
-| `src/components/employee/EmployeeDashboard.tsx` | Przyjmij `workingHours`, zamień `getNextBusinessDays(3)` na `getNextWorkingDays(3)` |
-| `src/pages/Dashboard.tsx` | Pobierz `workingHours`, przekaż do `DashboardOverview` |
-| `src/pages/EmployeeCalendarPage.tsx` | Pobierz `workingHours`, przekaż do `EmployeeDashboard` |
+| `AddEditEmployeeCalendarDrawer.tsx` | Dodać `hours` do `FIELD_LABELS` i `defaultVisibleFields` |
+| `EmployeeCalendarPage.tsx` | Wyliczać i przekazywać `hideHours` |
+| `AdminCalendar.tsx` | Prop `hideHours`, warunkowe ukrycie godzin na kafelku i osi |
+| `EmployeeDashboard.tsx` | Prop `hideHours`, ukrycie godzin na kartach |
+| `CalendarItemDetailsDrawer.tsx` | Prop `hideHours`, ukrycie godzin w szczegółach |
+| `mediaUtils.ts` | Parametr `AbortSignal` w `uploadFileWithProgress` |
+| `MediaUploader.tsx` | `AbortController` ref + `handleCancel` |
+| `MediaUploadProgress.tsx` | Przycisk X anulacji |
 
