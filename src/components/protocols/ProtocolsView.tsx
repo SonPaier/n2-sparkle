@@ -108,7 +108,7 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
           </Button>
           <Button onClick={() => { setEditingProtocol(null); setFormOpen(true); }}>
             <Plus className="w-4 h-4 mr-2" />
-            Nowy protokół
+            Dodaj protokół
           </Button>
         </div>
       </div>

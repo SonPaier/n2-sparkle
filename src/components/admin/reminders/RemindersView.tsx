@@ -74,8 +74,9 @@ export default function RemindersView({ instanceId }: Props) {
           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setTypesDialogOpen(true)}>
             <Settings2 className="w-4 h-4" />
           </Button>
-          <Button size="icon" className="h-9 w-9" onClick={openNew}>
-            <Plus className="w-4 h-4" />
+          <Button className="h-9" onClick={openNew}>
+            <Plus className="w-4 h-4 mr-1" />
+            Dodaj przypomnienie
           </Button>
         </div>
       </div>
