@@ -190,7 +190,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-[100]">
         <main className={cn("flex-1 overflow-auto p-4 lg:p-6", isMobile && "pb-20")}>
           {children}
         </main>

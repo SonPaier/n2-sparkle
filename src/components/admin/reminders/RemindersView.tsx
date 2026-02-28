@@ -115,7 +115,7 @@ export default function RemindersView({ instanceId }: Props) {
             <div
               key={r.id}
               onClick={() => openEdit(r)}
-              className={`flex items-center gap-4 p-3 rounded-lg border border-border/50 border-l-4 cursor-pointer transition-colors hover:bg-muted/30 ${isArchive ? 'border-l-muted opacity-70' : urgency.border} bg-card`}
+              className={`flex items-center gap-4 p-3 rounded-lg border border-border/50 border-l-4 cursor-pointer transition-colors hover:bg-primary/5 ${isArchive ? 'border-l-muted opacity-70' : urgency.border} bg-card`}
             >
               {/* Checkbox for quick complete */}
               {!isArchive && (
