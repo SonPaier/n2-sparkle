@@ -293,6 +293,7 @@ const Dashboard = () => {
     // Optimistic update
     setCalendarItems(prev => prev.map(i => i.id === itemId ? { ...i, status: newStatus } : i));
     setSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
+    setDashboardSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
 
     const { error } = await supabase.from('calendar_items').update({ status: newStatus }).eq('id', itemId);
     if (error) {
@@ -322,6 +323,7 @@ const Dashboard = () => {
       price: item.price,
     });
     setDetailsOpen(false);
+    setDashboardDetailsOpen(false);
     setAddItemOpen(true);
   };
 
