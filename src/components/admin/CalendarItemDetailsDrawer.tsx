@@ -467,7 +467,6 @@ const CalendarItemDetailsDrawer = ({
   const renderFooter = () => {
     const protocolBtn = onAddProtocol && (
       <Button variant="outline" className="bg-white flex-1" onClick={() => onAddProtocol(item)}>
-        <ClipboardCheck className="w-4 h-4 mr-1" />
         Protokół
       </Button>
     );
@@ -524,7 +523,7 @@ const CalendarItemDetailsDrawer = ({
     );
 
     return (
-      <div className="flex-shrink-0 border-t border-border px-6 py-4 flex items-center gap-2">
+      <div className="flex-shrink-0 border-t border-border px-4 py-3 flex items-center gap-1.5">
         {item.status !== 'completed' && moreMenu}
         {protocolBtn}
         {editBtn}
