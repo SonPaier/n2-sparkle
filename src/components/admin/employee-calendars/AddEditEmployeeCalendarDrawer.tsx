@@ -46,6 +46,7 @@ const FIELD_LABELS: Record<string, string> = {
   admin_notes: 'Notatki',
   price: 'Cena',
   address: 'Adres',
+  hours: 'Godziny zlecenia',
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -62,6 +63,7 @@ const defaultVisibleFields = {
   admin_notes: true,
   price: true,
   address: true,
+  hours: true,
 };
 
 const defaultAllowedActions = {

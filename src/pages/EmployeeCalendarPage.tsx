@@ -398,6 +398,7 @@ const EmployeeCalendarPage = () => {
                 instanceId={instanceId}
                 columnIds={config.column_ids || []}
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
+                hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
                 onItemClick={(item) => handleItemClick(item)}
                 linkedEmployeeId={linkedEmployeeId}
                 workingHours={workingHours}
@@ -413,6 +414,7 @@ const EmployeeCalendarPage = () => {
                 onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                 onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
+                hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
                 onAddProtocol={(item) => {
                   setDetailsOpen(false);
                   setProtocolPrefill({
@@ -448,6 +450,7 @@ const EmployeeCalendarPage = () => {
                     selectedItemId={selectedItem?.id}
                     onToggleMap={() => setMapOpen(prev => !prev)}
                     mapOpen={mapOpen}
+                    hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
                   />
 
                   <AddCalendarItemDialog
@@ -473,6 +476,7 @@ const EmployeeCalendarPage = () => {
                     onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                     onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
                     hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
+                    hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
                     onAddProtocol={(item) => {
                       setDetailsOpen(false);
                       setProtocolPrefill({
