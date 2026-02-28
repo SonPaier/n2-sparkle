@@ -127,7 +127,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
               <Button
                 key={id}
                 variant={currentView === id ? 'secondary' : 'ghost'}
-                className={cn("w-full gap-3", sidebarCollapsed ? "justify-center px-2" : "justify-start")}
+                className={cn("w-full gap-3 hover:bg-primary/5", sidebarCollapsed ? "justify-center px-2" : "justify-start")}
                 onClick={() => handleNavClick(id)}
                 title={label}
               >
