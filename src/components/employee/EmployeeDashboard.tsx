@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, differenceInDays } from 'date-fns';
+import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, Clock, User, MapPin, HardHat, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,12 +9,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 
+type WorkingHours = Record<string, { open: string; close: string } | null> | null;
+
 interface EmployeeDashboardProps {
   instanceId: string;
   columnIds: string[];
   hidePrices?: boolean;
   onItemClick?: (item: any) => void;
   linkedEmployeeId?: string | null;
+  workingHours?: WorkingHours;
 }
 
 interface CalendarItemRow {
@@ -51,27 +55,12 @@ interface ReminderRow {
   reminder_type_name?: string;
 }
 
-/** Get next N business days starting from today (inclusive). */
-function getNextBusinessDays(count: number): string[] {
-  const dates: string[] = [];
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  while (dates.length < count) {
-    const day = d.getDay();
-    if (day !== 0 && day !== 6) {
-      dates.push(format(d, 'yyyy-MM-dd'));
-    }
-    d.setDate(d.getDate() + 1);
-  }
-  return dates;
-}
-
-const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, linkedEmployeeId }: EmployeeDashboardProps) => {
+const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, onItemClick, linkedEmployeeId, workingHours }: EmployeeDashboardProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const businessDays = getNextBusinessDays(3);
+  const businessDays = useMemo(() => getNextWorkingDays(3, workingHours ?? null), [workingHours]);
   const dateStart = businessDays[0];
   const dateEnd = businessDays[businessDays.length - 1];
 

@@ -25,6 +25,7 @@ import RemindersView from '@/components/admin/reminders/RemindersView';
 import AddEditReminderDrawer from '@/components/admin/reminders/AddEditReminderDrawer';
 import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import DashboardOverview from '@/components/admin/DashboardOverview';
+import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
@@ -100,6 +101,7 @@ const Dashboard = () => {
 
   const { types: reminderTypes } = useReminderTypes(instanceId);
   const { saveReminder, deleteReminder } = useReminders(instanceId || '');
+  const { data: workingHours } = useWorkingHours(instanceId);
 
   // Fetch columns
   const fetchColumns = useCallback(async () => {
@@ -389,6 +391,7 @@ const Dashboard = () => {
       return (
         <DashboardOverview
           instanceId={instanceId}
+          workingHours={workingHours}
           onItemClick={handleDashboardItemClick}
           onReminderClick={handleDashboardReminderClick}
           onPaymentClick={handleDashboardPaymentClick}
