@@ -395,22 +395,14 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              openDetailsDrawer(order);
-                            }}
+                            onSelect={() => openDetailsDrawer(order)}
                           >
                             Szczegóły
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              openInvoiceDrawer(order);
-                            }}
+                            onSelect={() => openInvoiceDrawer(order)}
                           >
                             Wystaw FV
                           </DropdownMenuItem>
