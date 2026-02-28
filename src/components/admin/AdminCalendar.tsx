@@ -2,6 +2,7 @@ import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin, DollarSign } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -828,54 +829,55 @@ const AdminCalendar = ({
               </Select>
             )}
 
-            {/* View mode toggle */}
-            {!isMobile && (
-              <div className="flex border border-border rounded-lg overflow-hidden">
-                <Button variant={viewMode === 'day' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('day')} className="rounded-none border-0 px-2.5" title="Dzień">
-                  <CalendarIcon className="w-4 h-4" />
-                </Button>
-                <Button variant={viewMode === 'two-days' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('two-days')} className="rounded-none border-0 px-2.5" title="2 dni">
-                  <Columns2 className="w-4 h-4" />
-                </Button>
-                <Button variant={viewMode === 'week' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('week')} className="rounded-none border-0 px-2.5" title="Tydzień">
-                  <CalendarDays className="w-4 h-4" />
-                </Button>
-              </div>
-            )}
-
-            {/* Column filter */}
+            {/* Unified view settings popover */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9" title="Kolumny">
+                <Button variant="outline" size="icon" className="h-9 w-9" title="Ustawienia widoku">
                   <Settings2 className="w-4 h-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-56 p-3 z-[1000]">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-sm">Widoczność kolumn</h4>
-                    {hasHiddenColumns && (
-                      <Button variant="ghost" size="sm" onClick={showAllColumns} className="h-7 text-xs">Pokaż wszystkie</Button>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    {columns.map((col) => (
-                      <div key={col.id} className="flex items-center gap-2">
-                        <Checkbox id={`col-${col.id}`} checked={!hiddenColumnIds.has(col.id)} onCheckedChange={() => toggleColumnVisibility(col.id)} />
-                        <Label htmlFor={`col-${col.id}`} className="text-sm cursor-pointer flex-1">{col.name}</Label>
+              <PopoverContent align="end" className="w-64 p-3 z-[1000]">
+                <div className="space-y-4">
+                  {/* View mode */}
+                  {!isMobile && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm">Pokaż</h4>
+                      <div className="flex border border-border rounded-lg overflow-hidden">
+                        <Button variant={viewMode === 'day' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('day')} className="rounded-none border-0 flex-1 text-xs">Dzień</Button>
+                        <Button variant={viewMode === 'two-days' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('two-days')} className="rounded-none border-0 flex-1 text-xs">2 dni</Button>
+                        <Button variant={viewMode === 'week' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('week')} className="rounded-none border-0 flex-1 text-xs">Tydzień</Button>
                       </div>
-                    ))}
+                    </div>
+                  )}
+
+                  {/* Column visibility */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm">Kolumny</h4>
+                      {hasHiddenColumns && (
+                        <Button variant="ghost" size="sm" onClick={showAllColumns} className="h-7 text-xs">Pokaż wszystkie</Button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {columns.map((col) => (
+                        <div key={col.id} className="flex items-center gap-2">
+                          <Checkbox id={`col-${col.id}`} checked={!hiddenColumnIds.has(col.id)} onCheckedChange={() => toggleColumnVisibility(col.id)} />
+                          <Label htmlFor={`col-${col.id}`} className="text-sm cursor-pointer flex-1">{col.name}</Label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Compact mode */}
+                  {!isMobile && (
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="compact-toggle" className="text-sm font-medium cursor-pointer">Widok kompaktowy</Label>
+                      <Switch id="compact-toggle" checked={isCompact} onCheckedChange={toggleCompact} />
+                    </div>
+                  )}
                 </div>
               </PopoverContent>
             </Popover>
-
-            {/* Compact mode */}
-            {!isMobile && (
-              <Button variant={isCompact ? "secondary" : "outline"} size="sm" onClick={toggleCompact} className="gap-1" title={isCompact ? 'Rozwiń kolumny' : 'Zwiń kolumny'}>
-                <ChevronsLeftRight className="w-4 h-4" />
-              </Button>
-            )}
 
             {/* Map toggle */}
             {onToggleMap && (
