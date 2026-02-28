@@ -270,6 +270,7 @@ export type Database = {
           city: string | null
           contact_person: string | null
           contact_phone: string | null
+          contacts: Json | null
           country_code: string | null
           created_at: string
           customer_id: string
@@ -291,6 +292,7 @@ export type Database = {
           city?: string | null
           contact_person?: string | null
           contact_phone?: string | null
+          contacts?: Json | null
           country_code?: string | null
           created_at?: string
           customer_id: string
@@ -312,6 +314,7 @@ export type Database = {
           city?: string | null
           contact_person?: string | null
           contact_phone?: string | null
+          contacts?: Json | null
           country_code?: string | null
           created_at?: string
           customer_id?: string

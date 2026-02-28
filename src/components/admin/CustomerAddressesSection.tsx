@@ -1,9 +1,14 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import AddressSearchInput from './AddressSearchInput';
 import type { AddressSearchResult } from '@/lib/addressSearch';
+
+export interface AddressContact {
+  name: string;
+  phone: string;
+}
 
 export interface CustomerAddress {
   id?: string;
@@ -11,8 +16,7 @@ export interface CustomerAddress {
   street: string;
   city: string;
   postal_code: string;
-  contact_person: string;
-  contact_phone: string;
+  contacts: AddressContact[];
   notes: string;
   is_default: boolean;
   lat?: number;
@@ -40,8 +44,7 @@ const CustomerAddressesSection = ({
       street: '',
       city: '',
       postal_code: '',
-      contact_person: '',
-      contact_phone: '',
+      contacts: [{ name: '', phone: '' }],
       notes: '',
       is_default: false,
       _isNew: true,
@@ -54,8 +57,7 @@ const CustomerAddressesSection = ({
       street: result.street,
       city: result.city,
       postal_code: result.postal_code,
-      contact_person: '',
-      contact_phone: '',
+      contacts: [{ name: '', phone: '' }],
       notes: '',
       is_default: false,
       lat: result.lat,
@@ -77,11 +79,34 @@ const CustomerAddressesSection = ({
     onAddressesChange(addresses.map((a, i) => {
       if (i !== index) return a;
       const updated = { ...a, [field]: value };
-      // Auto-generate name from street + city
       if (field === 'street' || field === 'city') {
         updated.name = [field === 'street' ? value : a.street, field === 'city' ? value : a.city].filter(Boolean).join(', ') || 'Adres';
       }
       return updated;
+    }));
+  };
+
+  const updateContact = (addrIndex: number, contactIndex: number, field: keyof AddressContact, value: string) => {
+    onAddressesChange(addresses.map((a, i) => {
+      if (i !== addrIndex) return a;
+      const newContacts = [...a.contacts];
+      newContacts[contactIndex] = { ...newContacts[contactIndex], [field]: value };
+      return { ...a, contacts: newContacts };
+    }));
+  };
+
+  const addContact = (addrIndex: number) => {
+    onAddressesChange(addresses.map((a, i) => {
+      if (i !== addrIndex) return a;
+      return { ...a, contacts: [...a.contacts, { name: '', phone: '' }] };
+    }));
+  };
+
+  const removeContact = (addrIndex: number, contactIndex: number) => {
+    onAddressesChange(addresses.map((a, i) => {
+      if (i !== addrIndex) return a;
+      const newContacts = a.contacts.filter((_, ci) => ci !== contactIndex);
+      return { ...a, contacts: newContacts.length > 0 ? newContacts : [{ name: '', phone: '' }] };
     }));
   };
 
@@ -99,11 +124,11 @@ const CustomerAddressesSection = ({
                   {addr.postal_code} {addr.city}
                 </div>
               )}
-              {addr.contact_person && (
-                <div className="text-foreground">
-                  Kontakt: {addr.contact_person} {addr.contact_phone && `• ${addr.contact_phone}`}
+              {addr.contacts.filter(c => c.name || c.phone).map((c, ci) => (
+                <div key={ci} className="text-foreground">
+                  Kontakt: {c.name} {c.phone && `• ${c.phone}`}
                 </div>
-              )}
+              ))}
             </div>
           ))}
         </div>
@@ -169,18 +194,37 @@ const CustomerAddressesSection = ({
                     className="text-sm bg-background"
                   />
                 </div>
-                <Input
-                  value={addr.contact_person}
-                  onChange={e => update(idx, 'contact_person', e.target.value)}
-                  placeholder="Osoba kontaktowa"
-                  className="text-sm bg-background"
-                />
-                <Input
-                  value={addr.contact_phone}
-                  onChange={e => update(idx, 'contact_phone', e.target.value)}
-                  placeholder="Telefon kontaktowy"
-                  className="text-sm bg-background"
-                />
+
+                {/* Osoby kontaktowe per adres */}
+                <div className="space-y-2 pt-1">
+                  <span className="text-xs font-medium text-muted-foreground">Osoby kontaktowe</span>
+                  {addr.contacts.map((contact, ci) => (
+                    <div key={ci} className="flex items-center gap-2">
+                      <Input
+                        value={contact.name}
+                        onChange={e => updateContact(idx, ci, 'name', e.target.value)}
+                        placeholder="Imię i nazwisko"
+                        className="text-sm bg-background flex-1"
+                      />
+                      <Input
+                        value={contact.phone}
+                        onChange={e => updateContact(idx, ci, 'phone', e.target.value)}
+                        placeholder="Telefon"
+                        className="text-sm bg-background flex-1"
+                      />
+                      {addr.contacts.length > 1 && (
+                        <Button variant="ghost" size="icon" className="w-6 h-6 shrink-0 text-destructive" onClick={() => removeContact(idx, ci)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button variant="ghost" size="sm" onClick={() => addContact(idx)} className="text-xs h-7 px-2">
+                    <UserPlus className="w-3 h-3 mr-1" />
+                    Dodaj osobę
+                  </Button>
+                </div>
+
                 <Textarea
                   value={addr.notes}
                   onChange={e => update(idx, 'notes', e.target.value)}

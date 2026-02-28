@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Phone, MessageSquare, Mail, X, ChevronDown, CalendarPlus, Plus, Trash2 } from 'lucide-react';
+import { Phone, MessageSquare, Mail, X, ChevronDown, CalendarPlus } from 'lucide-react';
 import type { SelectedCustomer } from './CustomerSearchInput';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { LightTabsList, LightTabsTrigger } from '@/components/ui/light-tabs';
@@ -29,11 +29,6 @@ import type { CustomerCategory } from '@/hooks/useCustomerCategories';
 import { syncCustomerCategoryAssignments } from '@/hooks/useCustomerCategories';
 import AddCalendarItemDialog from './AddCalendarItemDialog';
 
-interface ContactPerson {
-  name: string;
-  phone: string;
-  email: string;
-}
 
 interface CalendarColumn {
   id: string;
@@ -88,9 +83,6 @@ const CustomerEditDrawer = ({
   const [saving, setSaving] = useState(false);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
 
-  // Contact persons
-  const [contactPersons, setContactPersons] = useState<ContactPerson[]>([{ name: '', phone: '', email: '' }]);
-
   // Company data (NipLookupForm)
   const [companyData, setCompanyData] = useState<NipLookupData>({
     nip: '', company: '', billingStreet: '', billingPostalCode: '', billingCity: '',
@@ -124,7 +116,7 @@ const CustomerEditDrawer = ({
         setEditNotes('');
         setAddresses([]);
         setSelectedCategoryIds([]);
-        setContactPersons([{ name: '', phone: '', email: '' }]);
+        
         setCompanyData({ nip: '', company: '', billingStreet: '', billingPostalCode: '', billingCity: '' });
         setCompanyOpen(false);
       } else if (customer) {
@@ -135,24 +127,6 @@ const CustomerEditDrawer = ({
         setEditNotes(customer.notes || '');
         fetchAddresses(customer.id);
         setSelectedCategoryIds(customerCategoryMap?.get(customer.id) || []);
-
-        // Build contact persons from customer data
-        const persons: ContactPerson[] = [];
-        if (customer.contact_person || customer.contact_phone || customer.contact_email) {
-          persons.push({
-            name: customer.contact_person || '',
-            phone: customer.contact_phone || '',
-            email: customer.contact_email || '',
-          });
-        }
-        const additional = (customer as any).additional_contacts;
-        if (Array.isArray(additional)) {
-          for (const c of additional) {
-            persons.push({ name: c.name || '', phone: c.phone || '', email: c.email || '' });
-          }
-        }
-        if (persons.length === 0) persons.push({ name: '', phone: '', email: '' });
-        setContactPersons(persons);
 
         // Company data
         setCompanyData({
@@ -176,19 +150,29 @@ const CustomerEditDrawer = ({
       .order('sort_order');
 
     if (data) {
-      setAddresses(data.map(a => ({
-        id: a.id,
-        name: a.name,
-        street: a.street || '',
-        city: a.city || '',
-        postal_code: a.postal_code || '',
-        contact_person: a.contact_person || '',
-        contact_phone: a.contact_phone || '',
-        notes: a.notes || '',
-        is_default: a.is_default || false,
-        lat: a.lat ?? undefined,
-        lng: a.lng ?? undefined,
-      })));
+      setAddresses(data.map(a => {
+        // Build contacts array from DB: contacts JSONB + legacy contact_person/contact_phone
+        let contacts: { name: string; phone: string }[] = [];
+        const dbContacts = (a as any).contacts;
+        if (Array.isArray(dbContacts) && dbContacts.length > 0) {
+          contacts = dbContacts.map((c: any) => ({ name: c.name || '', phone: c.phone || '' }));
+        } else if (a.contact_person || a.contact_phone) {
+          contacts = [{ name: a.contact_person || '', phone: a.contact_phone || '' }];
+        }
+        if (contacts.length === 0) contacts = [{ name: '', phone: '' }];
+        return {
+          id: a.id,
+          name: a.name,
+          street: a.street || '',
+          city: a.city || '',
+          postal_code: a.postal_code || '',
+          contacts,
+          notes: a.notes || '',
+          is_default: a.is_default || false,
+          lat: a.lat ?? undefined,
+          lng: a.lng ?? undefined,
+        };
+      }));
     }
   };
 
@@ -211,23 +195,15 @@ const CustomerEditDrawer = ({
     try {
       let customerId: string | undefined;
 
-      // Map first contact person to main fields, rest to additional_contacts
-      const firstContact = contactPersons[0] || { name: '', phone: '', email: '' };
-      const additionalContacts = contactPersons.slice(1).filter(c => c.name || c.phone || c.email);
-
       const customerData = {
         name: editName.trim(),
         email: editEmail.trim() || null,
         notes: editNotes.trim() || null,
         company: companyData.company.trim() || null,
         nip: companyData.nip.trim() || null,
-        contact_person: firstContact.name.trim() || null,
-        contact_phone: firstContact.phone.trim() || null,
-        contact_email: firstContact.email.trim() || null,
         billing_street: companyData.billingStreet.trim() || null,
         billing_city: companyData.billingCity.trim() || null,
         billing_postal_code: companyData.billingPostalCode.trim() || null,
-        additional_contacts: additionalContacts.length > 0 ? JSON.stringify(additionalContacts) : '[]',
       };
 
       if (isAddMode) {
@@ -323,8 +299,9 @@ const CustomerEditDrawer = ({
         street: addr.street.trim() || null,
         city: addr.city.trim() || null,
         postal_code: addr.postal_code.trim() || null,
-        contact_person: addr.contact_person.trim() || null,
-        contact_phone: addr.contact_phone.trim() || null,
+        contact_person: addr.contacts[0]?.name?.trim() || null,
+        contact_phone: addr.contacts[0]?.phone?.trim() || null,
+        contacts: JSON.stringify(addr.contacts.filter(c => c.name || c.phone)),
         notes: addr.notes.trim() || null,
         is_default: addr.is_default,
         sort_order: i,
@@ -356,17 +333,6 @@ const CustomerEditDrawer = ({
         fetchAddresses(customer.id);
         setSelectedCategoryIds(customerCategoryMap?.get(customer.id) || []);
 
-        const persons: ContactPerson[] = [];
-        if (customer.contact_person || customer.contact_phone || customer.contact_email) {
-          persons.push({ name: customer.contact_person || '', phone: customer.contact_phone || '', email: customer.contact_email || '' });
-        }
-        const additional = (customer as any).additional_contacts;
-        if (Array.isArray(additional)) {
-          for (const c of additional) persons.push({ name: c.name || '', phone: c.phone || '', email: c.email || '' });
-        }
-        if (persons.length === 0) persons.push({ name: '', phone: '', email: '' });
-        setContactPersons(persons);
-
         setCompanyData({
           nip: customer.nip || '', company: customer.company || '',
           billingStreet: customer.billing_street || '', billingPostalCode: customer.billing_postal_code || '',
@@ -379,18 +345,6 @@ const CustomerEditDrawer = ({
   const handleClose = () => {
     setIsEditing(isAddMode);
     onClose();
-  };
-
-  const updateContact = (index: number, field: keyof ContactPerson, val: string) => {
-    setContactPersons(prev => prev.map((c, i) => i === index ? { ...c, [field]: val } : c));
-  };
-
-  const addContact = () => {
-    setContactPersons(prev => [...prev, { name: '', phone: '', email: '' }]);
-  };
-
-  const removeContact = (index: number) => {
-    setContactPersons(prev => prev.filter((_, i) => i !== index));
   };
 
   // Shared form content for both add and edit modes
@@ -446,45 +400,6 @@ const CustomerEditDrawer = ({
         <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} placeholder="Notatki..." rows={3} />
       </div>
 
-      {/* === SECTION: Osoby kontaktowe === */}
-      <Separator />
-      <h3 className="text-sm font-semibold text-foreground">Osoby kontaktowe</h3>
-      {contactPersons.map((cp, idx) => (
-        <div key={idx} className="space-y-2 p-3 border border-border rounded-lg relative">
-          {contactPersons.length > 1 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-1 right-1 w-6 h-6 text-destructive"
-              onClick={() => removeContact(idx)}
-            >
-              <Trash2 className="w-3 h-3" />
-            </Button>
-          )}
-          <Input
-            value={cp.name}
-            onChange={e => updateContact(idx, 'name', e.target.value)}
-            placeholder="Imię i nazwisko"
-            className="text-sm"
-          />
-          <Input
-            value={cp.phone}
-            onChange={e => updateContact(idx, 'phone', e.target.value)}
-            placeholder="Numer telefonu"
-            className="text-sm"
-          />
-          <Input
-            value={cp.email}
-            onChange={e => updateContact(idx, 'email', e.target.value)}
-            placeholder="Email"
-            className="text-sm"
-          />
-        </div>
-      ))}
-      <Button variant="outline" size="sm" onClick={addContact} className="w-full">
-        <Plus className="w-3 h-3 mr-1" />
-        Dodaj osobę kontaktową
-      </Button>
 
       {/* === SECTION: Dane firmy === */}
       <Separator />
@@ -545,22 +460,6 @@ const CustomerEditDrawer = ({
         </div>
       )}
 
-      {/* === Osoby kontaktowe === */}
-      {contactPersons.some(c => c.name || c.phone || c.email) && (
-        <>
-          <Separator />
-          <h3 className="text-sm font-semibold text-foreground">Osoby kontaktowe</h3>
-          <div className="space-y-2">
-            {contactPersons.filter(c => c.name || c.phone || c.email).map((cp, idx) => (
-              <div key={idx} className="text-sm text-foreground space-y-0.5">
-                {cp.name && <div className="font-medium">{cp.name}</div>}
-                {cp.phone && <div>{cp.phone}</div>}
-                {cp.email && <div>{cp.email}</div>}
-              </div>
-            ))}
-          </div>
-        </>
-      )}
 
       {/* === Dane firmy === */}
       {hasCompanyData && (
