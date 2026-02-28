@@ -224,19 +224,20 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-24">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold">Pracownicy i czas pracy</h1>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <h2 className="text-xl font-semibold text-foreground">Pracownicy</h2>
         {isAdmin && (
-          <div className="flex gap-2">
-            <Button onClick={() => setSettingsDrawerOpen(true)} variant="outline" size="icon" className="h-10 w-10" title="Ustawienia czasu pracy">
-              <Settings2 className="w-5 h-5" />
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setSettingsDrawerOpen(true)} variant="outline" size="icon" className="h-9 w-9" title="Ustawienia czasu pracy">
+              <Settings2 className="w-4 h-4" />
             </Button>
-            <Button onClick={() => setDayOffDialogOpen(true)} variant="outline" size="icon" className="h-10 w-10" title="Dodaj nieobecność">
-              <CalendarOff className="w-5 h-5" />
+            <Button onClick={() => setDayOffDialogOpen(true)} variant="outline" size="icon" className="h-9 w-9" title="Dodaj nieobecność">
+              <CalendarOff className="w-4 h-4" />
             </Button>
-            <Button onClick={handleAddEmployee} className="h-10" title="Dodaj pracownika">
-              <Plus className="w-5 h-5" />
+            <Button onClick={handleAddEmployee} title="Dodaj pracownika">
+              <Plus className="w-4 h-4 mr-1" />
               Dodaj pracownika
             </Button>
           </div>
@@ -271,8 +272,8 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-lg max-w-full">
-            <Table className="bg-card w-full" style={{ tableLayout: 'fixed' }}>
+          <div className="rounded-lg border border-border bg-card overflow-x-auto">
+            <Table className="w-full" style={{ tableLayout: 'fixed' }}>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead style={{ width: '47%' }}>Imię</TableHead>
