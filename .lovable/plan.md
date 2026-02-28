@@ -1,34 +1,62 @@
 
 
-## Plan: 3 poprawki kalendarza
+## Plan: Dashboard zlecenia — pokaż dzisiejszy + następny dzień roboczy (z kalendarza)
 
-### 1. Kafelek wielodniowy — godziny na kalendarzu
+### Problem
+- `DashboardOverview` hardcodes "dziś + jutro" (today + tomorrow)
+- `EmployeeDashboard` hardcodes "3 kolejne dni robocze" pomijając sobotę/niedzielę, ale nie sprawdza czy sobota/niedziela są otwarte w `working_hours`
 
-**Problem**: Linia 590 w `AdminCalendar.tsx` — dla zleceń wielodniowych (`isMultiDay`) wyświetla `displayStart/displayEnd` zamiast rzeczywistych godzin `start_time/end_time`. `displayEnd` na dni nieostatnie to 19:00 (bo tak działa pozycjonowanie kafelka), ale tekst powinien zawsze pokazywać prawdziwe godziny zlecenia.
+### Rozwiązanie
 
-**Zmiana w `AdminCalendar.tsx`** (linia ~590):
-- Zmienić tekst godzin: zawsze pokazywać `item.start_time - item.end_time`, a nie `displayStart - displayEnd`
-- Dodać zakres dni dla wielodniowych, np. `06:30 - 17:00, PN - PT` (skrócone nazwy dni tygodnia z `item_date` i `end_date`)
+Stworzyć wspólną funkcję `getNextWorkingDays(count, workingHours)` która:
+1. Zaczyna od dziś
+2. Sprawdza `working_hours` — jeśli dzień ma wpis (np. `{ open: "08:00", close: "17:00" }`), jest dniem roboczym; jeśli `null`, jest zamknięty
+3. Jeśli `working_hours` jest pusty/null — fallback na pon-pt (obecne zachowanie)
+4. Zwraca `count` kolejnych dni roboczych (włącznie z dziś jeśli jest roboczy)
 
-### 2. Przełączanie na „Wielodniowe" — auto-ustawienie daty
+### Zmiany w plikach
 
-**Problem**: W `AddCalendarItemDialog.tsx` (linia ~680), przy przełączeniu na 'multi' nic się nie dzieje z `dateRange.to` — zostaje ta sama data co `from`. Użytkownik oczekuje, że po przełączeniu na wielodniowe, `to` nie będzie identyczne jak `from`.
+**1. Nowy plik: `src/lib/workingDaysUtils.ts`**
+- Eksportuje `getNextWorkingDays(count: number, workingHours: WorkingHours): string[]`
+- Logika: iteruj od dziś, sprawdź czy dzień jest otwarty w working_hours, zbierz `count` dat
 
-**Zmiana**: Przy przełączaniu z `single` na `multi` — nie zmieniać dat automatycznie (zostawić jak jest), ale upewnić się, że kalendarz otwiera się w trybie range. Aktualny kod wygląda poprawnie — `to === from` to normalne zachowanie. Problem raczej leży gdzie indziej — sprawdzę czy `dateRange.to` nie jest nadpisywane przez efekt inicjalizujący.
+**2. `DashboardOverview.tsx`**
+- Dodać prop `workingHours` (typ z `useWorkingHours`)
+- Zamiast `today + tomorrow` → użyć `getNextWorkingDays(2, workingHours)`
+- Filtrowanie `dashboardItems` zmieni się z `item_date === today || item_date === tomorrow` na `workingDays.includes(item_date)`
+- Zakres fetch: zamiast `weekStart/weekEnd` → `workingDays[0]` do `workingDays[workingDays.length - 1]` (optymalizacja, max 4-5 dni do przodu)
 
-Po dokładnej analizie: linia 247 `setDateRange({ from: initDate, to: initDate })` + linia 683 (single→multi nic nie zmienia) = poprawne. Użytkownik prawdopodobnie myli ten problem z problemem #2 (widzą 19:00 na kafelku). Zostawiam bez zmian chyba że potwierdzi.
+**3. `EmployeeDashboard.tsx`**
+- Dodać prop `workingHours` (lub pobrać wewnętrznie via `useWorkingHours`)
+- Zamienić `getNextBusinessDays(3)` na `getNextWorkingDays(3, workingHours)`
 
-### 3. Nowe zlecenie niewidoczne w zakładce Zlecenia
+**4. Wywołania w `Dashboard.tsx` i `EmployeeCalendarPage.tsx`**
+- Pobrać `workingHours` via `useWorkingHours(instanceId)` i przekazać do `DashboardOverview` / `EmployeeDashboard`
 
-**Problem**: `handleItemSuccess` w `Dashboard.tsx` (linia 330) wywołuje tylko `fetchItems()` (odświeża dane kalendarza). Zakładka „Zlecenia" (`SettlementsView`) używa react-query z `queryKey: ['settlements', instanceId]` — ten cache nie jest inwalidowany po dodaniu zlecenia.
+### Logika `getNextWorkingDays`
 
-**Zmiana w `Dashboard.tsx`**:
-- W `handleItemSuccess` dodać `queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] })` aby zakładka zleceń odświeżyła dane
+```text
+function getNextWorkingDays(count, workingHours):
+  dates = []
+  d = today
+  while dates.length < count:
+    dayKey = WEEKDAY_MAP[d.getDay()]  // 'monday', 'tuesday', etc.
+    if workingHours == null:
+      // fallback: skip sat/sun
+      if d.getDay() != 0 && d.getDay() != 6: dates.push(d)
+    else:
+      if workingHours[dayKey] != null: dates.push(d)
+    d = d + 1 day
+  return dates
+```
 
 ### Podsumowanie plików
 
 | Plik | Zmiana |
 |------|--------|
-| `AdminCalendar.tsx` | Kafelek wielodniowy: zawsze pokazuj rzeczywiste godziny + zakres dni (PN-PT) |
-| `Dashboard.tsx` | Inwalidacja cache settlements po dodaniu/edycji zlecenia |
+| `src/lib/workingDaysUtils.ts` | Nowy — wspólna funkcja `getNextWorkingDays` |
+| `src/components/admin/DashboardOverview.tsx` | Przyjmij `workingHours`, użyj `getNextWorkingDays(2)` zamiast today+tomorrow |
+| `src/components/employee/EmployeeDashboard.tsx` | Przyjmij `workingHours`, zamień `getNextBusinessDays(3)` na `getNextWorkingDays(3)` |
+| `src/pages/Dashboard.tsx` | Pobierz `workingHours`, przekaż do `DashboardOverview` |
+| `src/pages/EmployeeCalendarPage.tsx` | Pobierz `workingHours`, przekaż do `EmployeeDashboard` |
 
