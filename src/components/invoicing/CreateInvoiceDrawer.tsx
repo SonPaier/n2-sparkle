@@ -50,6 +50,7 @@ export function CreateInvoiceDrawer({
       <SheetContent
         side={isMobile ? 'bottom' : 'right'}
         hideCloseButton
+        hideOverlay
         className={`flex flex-col p-0 gap-0 z-[1000] ${isMobile ? 'h-[95vh]' : 'sm:max-w-lg'}`}
       >
         <SheetTitle className="sr-only">Wystaw fakturę</SheetTitle>

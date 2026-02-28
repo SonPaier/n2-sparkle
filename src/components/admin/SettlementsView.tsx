@@ -254,7 +254,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
           disabled={syncing}
         >
           <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-          Synchronizuj
+          Sprawdź statusy płatności
         </Button>
       </div>
 
@@ -399,10 +399,22 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openDetailsDrawer(order)}>
+                          <DropdownMenuItem
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openDetailsDrawer(order);
+                            }}
+                          >
                             Szczegóły
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openInvoiceDrawer(order)}>
+                          <DropdownMenuItem
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              openInvoiceDrawer(order);
+                            }}
+                          >
                             Wystaw FV
                           </DropdownMenuItem>
                         </DropdownMenuContent>
