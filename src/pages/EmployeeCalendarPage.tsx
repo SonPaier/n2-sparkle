@@ -407,8 +407,6 @@ const EmployeeCalendarPage = () => {
                 open={detailsOpen}
                 onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
                 columns={calendarColumns}
-                onDelete={allowedActions.delete_item ? handleDeleteItem : undefined}
-                onEdit={allowedActions.edit_item ? handleEditItem : undefined}
                 onStatusChange={handleStatusChange}
                 onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                 onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
@@ -428,6 +426,7 @@ const EmployeeCalendarPage = () => {
                 }}
                 instanceId={instanceId || undefined}
                 forceSideRight
+                isEmployee
               />
             </>
           ) : currentView === 'protokoly' && instanceId ? (
@@ -469,8 +468,6 @@ const EmployeeCalendarPage = () => {
                     open={detailsOpen}
                     onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
                     columns={calendarColumns}
-                    onDelete={allowedActions.delete_item ? handleDeleteItem : undefined}
-                    onEdit={allowedActions.edit_item ? handleEditItem : undefined}
                     onStatusChange={handleStatusChange}
                     onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                     onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
@@ -489,6 +486,7 @@ const EmployeeCalendarPage = () => {
                       setProtocolFormOpen(true);
                     }}
                     instanceId={instanceId || undefined}
+                    isEmployee
                   />
 
                   <AddBreakDialog
