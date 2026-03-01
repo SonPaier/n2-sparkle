@@ -68,7 +68,7 @@ export default function RemindersView({ instanceId }: Props) {
   const openEdit = (r: Reminder) => {setEditingReminder(r);setDrawerOpen(true);};
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
+    <div className="w-full space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-foreground">Przypomnienia</h1>
