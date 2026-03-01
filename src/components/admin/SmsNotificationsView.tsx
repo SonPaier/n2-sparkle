@@ -136,7 +136,7 @@ export default function SmsNotificationsView({ instanceId }: SmsNotificationsVie
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="w-full">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
