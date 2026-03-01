@@ -236,20 +236,6 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
               </Button>
             )}
           </div>
-          {(() => {
-            const dayData = minutesByDate.get(editingCell.date);
-            const dayEntries = dayData?.entries || [];
-            if (dayEntries.length === 0) return null;
-            const formatTimeFromISO = (isoString: string | null) => {
-              if (!isoString) return '';
-              try { return format(new Date(isoString), 'HH:mm'); } catch { return ''; }
-            };
-            return (
-              <div className="text-center text-xl font-semibold text-foreground">
-                {dayEntries.map((entry, idx) => (<span key={entry.id}>{idx > 0 && ', '}{formatTimeFromISO(entry.start_time)}-{formatTimeFromISO(entry.end_time)}</span>))}
-              </div>
-            );
-          })()}
         </div>
       )}
 

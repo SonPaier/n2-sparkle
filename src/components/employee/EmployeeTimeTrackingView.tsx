@@ -52,13 +52,6 @@ const EmployeeTimeTrackingView = ({ instanceId }: EmployeeTimeTrackingViewProps)
     <div>
       <h1 className="text-2xl font-bold mb-6">Czas pracy</h1>
       <div className="max-w-2xl mx-auto">
-        <div className="flex flex-col items-center gap-2 mb-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-            <AvatarFallback className="bg-primary/10 text-primary text-lg">{employee.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <h2 className="text-lg font-semibold">{employee.name}</h2>
-        </div>
         <WeeklySchedule employee={employee} instanceId={instanceId} />
       </div>
     </div>
