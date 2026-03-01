@@ -60,7 +60,7 @@ export function CreateInvoiceDrawer({
         <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold">Wystaw fakturę</h2>
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-muted transition-colors">
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-primary/5 transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>

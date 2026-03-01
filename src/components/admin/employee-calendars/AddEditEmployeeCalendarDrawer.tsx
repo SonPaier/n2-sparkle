@@ -233,7 +233,7 @@ const AddEditEmployeeCalendarDrawer = ({
             <button
               type="button"
               onClick={() => onOpenChange(false)}
-              className="p-2 rounded-full hover:bg-muted transition-colors"
+              className="p-2 rounded-full hover:bg-primary/5 transition-colors"
             >
               <X className="w-6 h-6" />
             </button>
@@ -291,7 +291,7 @@ const AddEditEmployeeCalendarDrawer = ({
                 {columns.map(col => (
                   <label
                     key={col.id}
-                    className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-primary/5 transition-colors"
                   >
                     <Checkbox
                       checked={selectedColumnIds.includes(col.id)}
@@ -312,7 +312,7 @@ const AddEditEmployeeCalendarDrawer = ({
               {Object.entries(visibleFields).map(([key, value]) => (
                 <label
                   key={key}
-                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-primary/5 transition-colors"
                 >
                   <Checkbox
                     checked={value}
@@ -332,7 +332,7 @@ const AddEditEmployeeCalendarDrawer = ({
               {Object.entries(allowedActions).map(([key, value]) => (
                 <label
                   key={key}
-                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-primary/5 transition-colors"
                 >
                   <Checkbox
                     checked={value}

@@ -140,7 +140,7 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
   const header = (
     <div className="px-6 py-4 border-b border-border shrink-0 bg-card flex items-center justify-between">
       <h2 className="text-lg font-semibold">{isEditing ? 'Edytuj przypomnienie' : 'Nowe przypomnienie'}</h2>
-      <button onClick={onClose} className="p-2 rounded-full hover:bg-muted transition-colors">
+      <button onClick={onClose} className="p-2 rounded-full hover:bg-primary/5 transition-colors">
         <X className="w-5 h-5" />
       </button>
     </div>

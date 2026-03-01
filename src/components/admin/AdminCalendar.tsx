@@ -1009,7 +1009,7 @@ const AdminCalendar = ({
               const isDayToday = isSameDay(day, new Date());
               return (
                 <div key={dayStr} className={cn("flex-1", dayIdx < 1 && "border-r-2 border-border")}>
-                  <div className={cn("p-1 md:p-2 text-center font-medium text-xs border-b border-border cursor-pointer hover:bg-muted/50 transition-colors", isDayToday && "bg-primary/10")} onClick={() => { setCurrentDate(day); setViewMode('day'); }}>
+                  <div className={cn("p-1 md:p-2 text-center font-medium text-xs border-b border-border cursor-pointer hover:bg-primary/5 transition-colors", isDayToday && "bg-primary/10")} onClick={() => { setCurrentDate(day); setViewMode('day'); }}>
                     <span className={cn("font-bold", isDayToday && "text-primary")}>{format(day, 'EEEE d MMM', { locale: pl })}</span>
                   </div>
                   <div className="flex">
@@ -1112,7 +1112,7 @@ const AdminCalendar = ({
             const dayReservations = selectedColId ? getItemsForColumnAndDate(selectedColId, dayStr) : [];
 
             return (
-              <div key={dayStr} className={cn("flex-1 p-2 md:p-3 text-center font-medium text-xs md:text-sm min-w-[80px] cursor-pointer hover:bg-muted/50 transition-colors", idx < 6 && "border-r border-border", isDayToday && "bg-primary/10")} onClick={() => { setCurrentDate(day); setViewMode('day'); }}>
+              <div key={dayStr} className={cn("flex-1 p-2 md:p-3 text-center font-medium text-xs md:text-sm min-w-[80px] cursor-pointer hover:bg-primary/5 transition-colors", idx < 6 && "border-r border-border", isDayToday && "bg-primary/10")} onClick={() => { setCurrentDate(day); setViewMode('day'); }}>
                 <div className={cn("text-foreground", isDayToday && "text-primary font-bold")}>{format(day, 'EEEE', { locale: pl })}</div>
                 <div className={cn("text-lg font-bold", isDayToday && "text-primary")}>{format(day, 'd')}</div>
                 <div className="text-xs text-muted-foreground">{`${dayReservations.length} zleceń`}</div>

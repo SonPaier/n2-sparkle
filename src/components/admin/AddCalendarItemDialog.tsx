@@ -615,7 +615,7 @@ const AddCalendarItemDialog = ({
               <SheetTitle className="text-lg font-semibold">
                 {isEditMode ? 'Edytuj zlecenie' : 'Nowe zlecenie'}
               </SheetTitle>
-              <button onClick={onClose} className="p-2 rounded-full hover:bg-muted transition-colors">
+              <button onClick={onClose} className="p-2 rounded-full hover:bg-primary/5 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>

@@ -56,7 +56,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
         <div className="sticky top-0 z-10 bg-background border-b p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Ustawienia czasu pracy</h2>
-            <button onClick={handleClose} className="p-2 rounded-full hover:bg-muted"><X className="w-5 h-5" /></button>
+            <button onClick={handleClose} className="p-2 rounded-full hover:bg-primary/5"><X className="w-5 h-5" /></button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-6">

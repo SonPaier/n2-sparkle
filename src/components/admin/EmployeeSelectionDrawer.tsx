@@ -55,7 +55,7 @@ const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConf
             onClick={() => setLocalSelected([])}
             className={cn(
               "w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left",
-              localSelected.length === 0 ? "bg-primary/10 border border-primary/30" : "hover:bg-muted border border-transparent"
+              localSelected.length === 0 ? "bg-primary/10 border border-primary/30" : "hover:bg-primary/5 border border-transparent"
             )}
           >
             <span className="flex-1 text-sm font-medium text-muted-foreground">Brak</span>
@@ -73,7 +73,7 @@ const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConf
               onClick={() => toggle(emp.id)}
               className={cn(
                 "w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left",
-                isSelected ? "bg-primary/10 border border-primary/30" : "hover:bg-muted border border-transparent"
+                isSelected ? "bg-primary/10 border border-primary/30" : "hover:bg-primary/5 border border-transparent"
               )}
             >
               <Avatar className="w-8 h-8">

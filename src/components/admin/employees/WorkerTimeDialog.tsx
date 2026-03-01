@@ -111,7 +111,7 @@ const WorkerTimeDialog = ({ open, onOpenChange, employee, instanceId, showEditBu
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold">{employee.name}</h2>
               {showEditButton && onEditEmployee && (
-                <button onClick={onEditEmployee} className="p-1 rounded hover:bg-muted"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
+                <button onClick={onEditEmployee} className="p-1 rounded hover:bg-primary/5"><Pencil className="w-4 h-4 text-muted-foreground" /></button>
               )}
             </div>
             {totalMinutes > 0 && (

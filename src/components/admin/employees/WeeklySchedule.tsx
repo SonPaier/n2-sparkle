@@ -201,7 +201,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
                   isSelected ? 'ring-2 ring-primary border-primary bg-primary/10'
                     : isOff ? 'bg-orange-50 border-orange-200'
                     : totalMinutes > 0 ? 'bg-green-50 border-green-200 hover:bg-green-100'
-                    : 'bg-background hover:bg-muted/50'
+                    : 'bg-background hover:bg-primary/5'
                 }`}
               >
                 <span className={`text-sm font-medium ${isOff ? 'text-orange-600' : totalMinutes > 0 ? 'text-green-700' : 'text-muted-foreground'}`}>
