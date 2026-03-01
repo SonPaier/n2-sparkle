@@ -1,55 +1,26 @@
 
 
-## Plan
+## Plan: Zmiana siatki kalendarza z 15-minutowej na 30-minutową
 
-### 1. Scroll to top on view change (EmployeeCalendarPage)
-Add a `useEffect` in `EmployeeCalendarPage.tsx` that scrolls the main content container to the top whenever `currentView` changes. Use a ref on the `<main>` element.
+### Zakres zmian
 
-### 2. Add `created_by_user_id` to protocols table
-- Database migration: add `created_by_user_id uuid` column to `protocols` table.
-- In `CreateProtocolForm.tsx`, pass the current user's ID when creating a protocol. Also, resolve the employee name from the `employees` table (via `linked_user_id`) and auto-fill `prepared_by` with the employee's name.
+Trzy pliki wymagają modyfikacji:
 
-### 3. Fix video upload stuck at 0%
-The `compressVideo` function uses `MediaRecorder` + `captureStream` which often hangs on mobile (autoplay restrictions, unsupported codecs). Fix by adding a timeout to `compressVideo` -- if it doesn't resolve within 10 seconds, fall back to uploading the original file. Also skip compression entirely for files under 50MB to simplify.
+### 1. `src/components/admin/AdminCalendar.tsx`
+- Zmiana stałej `SLOT_MINUTES` z `15` na `30`
+- `SLOTS_PER_HOUR` automatycznie przeliczy się z 4 na 2
+- `SLOT_HEIGHT` pozostaje `32` (każdy slot 30-min będzie miał 32px, godzina = 64px zamiast 128px)
+- Alternatywnie: zwiększyć `SLOT_HEIGHT` do `48` lub `64`, żeby kalendarz nie był zbyt ściśnięty — do rozważenia
+- Cała reszta logiki (pozycjonowanie itemów, drag & drop, formatowanie czasu) korzysta z tych stałych i przeliczy się automatycznie
 
-### 4. Fix "Protokół" button closing drawer without opening protocol form (employee dashboard view)
-The `CreateProtocolForm` component is only rendered inside the `kalendarz` view branch but `onAddProtocol` is also used from the `dashboard` view. Move the `CreateProtocolForm` rendering outside the view-specific blocks so it's always available. Also needs to be done for the protocol form open/close state.
+### 2. `src/components/admin/AddCalendarItemDialog.tsx`
+- Zmiana kroku w `generateTimeOptions()` z `minute += 15` na `minute += 30`
+- Opcje czasu będą: 06:00, 06:30, 07:00, 07:30, ..., 19:00
+- Domyślny `endTime` po otwarciu (obecnie `startIdx + 4` co dawało +1h przy 15min) → zmienić na `startIdx + 2` (nadal +1h przy 30min)
 
-### 5. Fix protocol form layout -- fixed header and fixed bottom bar
-Update `CreateProtocolForm.tsx` to use a flex column layout with:
-- Fixed header (sticky top with title + close button)
-- Scrollable content area (flex-1 overflow-y-auto)
-- Fixed bottom bar with action buttons at 50% width each
-Model this after `CalendarItemDetailsDrawer`'s layout pattern.
+### 3. `src/components/admin/AddBreakDialog.tsx`
+- Analogiczna zmiana kroku w `generateTimeOptions()` z `15` na `30`
 
-### 6. If protocol already exists for calendar item, open existing protocol
-In the `onAddProtocol` handler (in `EmployeeCalendarPage.tsx` and `Dashboard.tsx`), before opening the create form, query the `protocols` table for an existing protocol linked to the `calendar_item_id`. If found, open it in edit mode instead of create mode.
-
-### 7. Fix intermittent data disappearing on employee dashboard
-The `EmployeeDashboard` component recalculates `businessDays` from `workingHours`. When navigating away and back, if `workingHours` is briefly `undefined` during re-fetch, the component may render with empty dates. Add a guard to preserve the previous data while loading, or use `useMemo` with stable defaults.
-
-### 8. Rename "Twój dzień" to "Mój dzień" in employee view
-Update the nav items in `EmployeeCalendarPage.tsx` (lines 338, 575) and the heading in `EmployeeDashboard.tsx` (line 216).
-
-### Technical details
-
-**Database migration:**
-```sql
-ALTER TABLE protocols ADD COLUMN created_by_user_id uuid;
-```
-
-**Video compression timeout** in `mediaUtils.ts`:
-Wrap the `compressVideo` promise with a `Promise.race` against a 10-second timeout that resolves with the original file.
-
-**Protocol existence check** -- query `protocols` table by `calendar_item_id` before deciding create vs edit mode. Store found protocol ID in state for passing to `CreateProtocolForm` as `editingProtocolId`.
-
-**Scroll reset** -- `useEffect(() => { mainRef.current?.scrollTo(0, 0); }, [currentView])`.
-
-**Files to modify:**
-- `src/pages/EmployeeCalendarPage.tsx` -- scroll fix, protocol form placement, existing protocol check, rename label
-- `src/components/employee/EmployeeDashboard.tsx` -- rename heading, fix data flash
-- `src/components/media/mediaUtils.ts` -- video compression timeout
-- `src/components/protocols/CreateProtocolForm.tsx` -- fixed header/footer layout, auto-fill employee name, save `created_by_user_id`
-- `src/pages/Dashboard.tsx` -- existing protocol check
-- Database migration for `created_by_user_id`
+### Uwaga dot. wysokości slotów
+Przy `SLOT_HEIGHT = 32` i 2 slotach/h, godzina będzie miała 64px (obecnie 128px). Kalendarz będzie dwa razy bardziej kompaktowy. Jeśli to zbyt ściśnięte, zwiększę `SLOT_HEIGHT` do np. `48` (96px/h) — dobry kompromis.
 
