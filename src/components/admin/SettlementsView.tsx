@@ -487,16 +487,16 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[100px] cursor-pointer select-none" onClick={() => handleSort('order_number')}>
+              <TableHead className="w-[8%] cursor-pointer select-none" onClick={() => handleSort('order_number')}>
                 <span className="flex items-center">Nr<SortIcon column="order_number" /></span>
               </TableHead>
-              <TableHead className="w-[200px] max-w-[200px] cursor-pointer select-none" onClick={() => handleSort('title')}>
+              <TableHead className="w-[20%] cursor-pointer select-none" onClick={() => handleSort('title')}>
                 <span className="flex items-center">Tytuł<SortIcon column="title" /></span>
               </TableHead>
-              <TableHead className="w-[200px] cursor-pointer select-none" onClick={() => handleSort('customer_name')}>
+              <TableHead className="w-[20%] cursor-pointer select-none" onClick={() => handleSort('customer_name')}>
                 <span className="flex items-center">Klient<SortIcon column="customer_name" /></span>
               </TableHead>
-              <TableHead className="w-[130px] cursor-pointer select-none" onClick={() => handleSort('created_at')}>
+              <TableHead className="w-[12%] cursor-pointer select-none" onClick={() => handleSort('created_at')}>
                 <span className="flex items-center">
                   <div className="leading-tight">
                     <div>Data utw.</div>
@@ -505,16 +505,16 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                   <SortIcon column="created_at" />
                 </span>
               </TableHead>
-              <TableHead className="w-[120px] cursor-pointer select-none" onClick={() => handleSort('status')}>
+              <TableHead className="w-[12%] cursor-pointer select-none" onClick={() => handleSort('status')}>
                 <span className="flex items-center">Status<SortIcon column="status" /></span>
               </TableHead>
-              <TableHead className="w-[160px] cursor-pointer select-none" onClick={() => handleSort('payment_status')}>
+              <TableHead className="w-[14%] cursor-pointer select-none" onClick={() => handleSort('payment_status')}>
                 <span className="flex items-center">Status płatności<SortIcon column="payment_status" /></span>
               </TableHead>
-              <TableHead className="text-right w-[120px] cursor-pointer select-none" onClick={() => handleSort('price')}>
+              <TableHead className="text-right w-[10%] cursor-pointer select-none" onClick={() => handleSort('price')}>
                 <span className="flex items-center justify-end">Kwota netto<SortIcon column="price" /></span>
               </TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              <TableHead className="w-[4%]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -542,7 +542,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                     <TableCell className="text-sm">
                       {formatOrderNumber(order)}
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-sm">
+                    <TableCell className="truncate text-sm">
                       {order.title || '—'}
                     </TableCell>
                     <TableCell className="font-medium">
