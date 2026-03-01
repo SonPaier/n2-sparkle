@@ -4,7 +4,6 @@ import { pl } from 'date-fns/locale';
 import { Plus, Search, MoreHorizontal, Trash2, Edit, Link2, Mail, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -154,10 +153,8 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
               protocols.map((p) => (
                 <TableRow key={p.id} className="group cursor-pointer" onClick={() => handleEdit(p)}>
                   <TableCell className="font-medium">{p.customer_name}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="text-xs">
-                      {protocolTypeLabels[p.protocol_type] || p.protocol_type}
-                    </Badge>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {protocolTypeLabels[p.protocol_type] || p.protocol_type}
                   </TableCell>
                   <TableCell className="text-sm">
                     {format(new Date(p.protocol_date), 'd MMM yyyy', { locale: pl })}
