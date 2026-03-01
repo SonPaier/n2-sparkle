@@ -30,7 +30,7 @@ interface AddBreakDialogProps {
 const generateTimeOptions = () => {
   const options: string[] = [];
   for (let hour = 6; hour <= 19; hour++) {
-    for (let minute = 0; minute < 60; minute += 15) {
+    for (let minute = 0; minute < 60; minute += 30) {
       if (hour === 19 && minute > 0) break;
       options.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
     }

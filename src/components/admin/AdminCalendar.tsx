@@ -83,9 +83,9 @@ interface AdminCalendarProps {
 
 const DEFAULT_START_HOUR = 6;
 const DEFAULT_END_HOUR = 19;
-const SLOT_MINUTES = 15;
+const SLOT_MINUTES = 30;
 const SLOTS_PER_HOUR = 60 / SLOT_MINUTES;
-const SLOT_HEIGHT = 32;
+const SLOT_HEIGHT = 48;
 const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR;
 
 const getStatusColor = (status: string) => {
