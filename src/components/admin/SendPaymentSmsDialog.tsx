@@ -100,7 +100,7 @@ const SendPaymentSmsDialog = ({
         body = body.replace(/\{firma\}/g, instance?.short_name || instance?.name || '');
         body = body.replace(/\{osoba_kontaktowa\}/g, instance?.contact_person || '');
         body = body.replace(/\{usluga\}/g, serviceNames);
-        body = body.replace(/\{cena\}/g, calendarItem.price != null ? calendarItem.price.toFixed(2) : '0.00');
+        body = body.replace(/\{cena\}/g, calendarItem.price != null ? Math.round(calendarItem.price).toString() : '0');
         body = body.replace(/\{blik_phone\}/g, instance?.blik_phone || '');
         body = body.replace(/\{numer_konta\}/g, instance?.bank_account_number || '');
         body = body.replace(/\{nazwa_banku\}/g, instance?.bank_name || '');
