@@ -101,7 +101,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
         const endTime = new Date(startTime.getTime() + totalMinutes * 60000);
         await createTimeEntry.mutateAsync({ employee_id: employee.id, entry_date: editingCell.date, start_time: startTime.toISOString(), end_time: endTime.toISOString(), entry_type: 'manual' });
       }
-      toast.success('Zapisano');
+      
     } catch (error) {
       console.error('Save error:', error);
       toast.error('Błąd podczas zapisywania');
