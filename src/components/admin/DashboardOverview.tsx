@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
-import { Calendar, Bell, Clock, User, MapPin, Tag, CreditCard, DollarSign, HardHat } from 'lucide-react';
+import { Calendar, Bell, Clock, User, Tag, CreditCard, DollarSign, ChevronRight, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { toast } from 'sonner';
+import { formatPhoneDisplay, normalizePhone } from '@/lib/phoneUtils';
 
 type WorkingHours = Record<string, { open: string; close: string } | null> | null;
 
@@ -53,6 +55,14 @@ interface ReminderRow {
   reminder_type_name?: string;
 }
 
+const getDayPill = (itemDate: string) => {
+  const date = new Date(itemDate + 'T00:00:00');
+  if (isToday(date)) return { label: 'Dziś', cls: 'bg-green-500 text-white border-transparent' };
+  if (isTomorrow(date)) return { label: 'Jutro', cls: 'bg-purple-500 text-white border-transparent' };
+  const dayName = format(date, 'EEEE', { locale: pl });
+  return { label: dayName.charAt(0).toUpperCase() + dayName.slice(1), cls: 'bg-purple-500 text-white border-transparent' };
+};
+
 const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick }: DashboardOverviewProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [allPaymentItems, setAllPaymentItems] = useState<CalendarItemRow[]>([]);
@@ -70,7 +80,6 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     const selectFields = 'id, title, customer_name, customer_phone, item_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price';
 
     const [itemsRes, paymentItemsRes, remindersRes, overdueInvoicesRes] = await Promise.all([
-      // Weekly items for orders section
       supabase
         .from('calendar_items')
         .select(selectFields)
@@ -80,7 +89,6 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
         .neq('status', 'cancelled')
         .order('item_date')
         .order('start_time'),
-      // Unsettled completed items for payments section (completed + not_invoiced, no date filter)
       supabase
         .from('calendar_items')
         .select(selectFields)
@@ -89,14 +97,12 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
         .eq('payment_status', 'not_invoiced')
         .order('item_date')
         .limit(100),
-      // All todo reminders (no date range filter)
       supabase
         .from('reminders')
         .select('id, name, deadline, customer_id, reminder_type_id, status, days_before')
         .eq('instance_id', instanceId)
         .eq('status', 'todo')
         .order('deadline'),
-      // Overdue invoices
       supabase
         .from('invoices')
         .select('calendar_item_id, payment_to')
@@ -110,13 +116,11 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     const payItems = (paymentItemsRes.data as CalendarItemRow[]) || [];
     const remItems = (remindersRes.data as ReminderRow[]) || [];
 
-    // Build overdue map: calendar_item_id -> payment_to
     const overdueMap = new Map<string, string>();
     ((overdueInvoicesRes.data as any[]) || []).forEach((inv) => {
       if (inv.calendar_item_id) overdueMap.set(inv.calendar_item_id, inv.payment_to);
     });
 
-    // Fetch overdue calendar items (items with overdue invoices not already in payItems)
     const overdueItemIds = [...overdueMap.keys()].filter(id => !payItems.find(p => p.id === id));
     let overdueCalItems: CalendarItemRow[] = [];
     if (overdueItemIds.length > 0) {
@@ -127,10 +131,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
       overdueCalItems = (data as CalendarItemRow[]) || [];
     }
 
-    // Combine: overdue items + unsettled completed items
     const allPayItems = [...overdueCalItems, ...payItems];
-
-    // Mark overdue days
     allPayItems.forEach(item => {
       const paymentTo = overdueMap.get(item.id);
       if (paymentTo) {
@@ -139,22 +140,18 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
       }
     });
 
-    // Sort: overdue first (most overdue on top), then by item_date asc (oldest first)
     allPayItems.sort((a, b) => {
       if (a.overdue_days && !b.overdue_days) return -1;
       if (!a.overdue_days && b.overdue_days) return 1;
       if (a.overdue_days && b.overdue_days) return b.overdue_days - a.overdue_days;
       return a.item_date.localeCompare(b.item_date);
     });
-    const filteredPayItems = allPayItems;
 
-    // Combine all items for address/employee resolution
     const allItemsForResolve = [...calItems];
-    filteredPayItems.forEach(pi => {
+    allPayItems.forEach(pi => {
       if (!allItemsForResolve.find(ci => ci.id === pi.id)) allItemsForResolve.push(pi);
     });
 
-    // Fetch addresses
     const addressIds = [...new Set(allItemsForResolve.filter(i => i.customer_address_id).map(i => i.customer_address_id!))];
     if (addressIds.length > 0) {
       const { data: addresses } = await supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds);
@@ -169,7 +166,6 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
       }
     }
 
-    // Fetch employee names
     const allEmpIds = [...new Set(allItemsForResolve.flatMap(i => i.assigned_employee_ids || []))];
     if (allEmpIds.length > 0) {
       const { data: employees } = await supabase.from('employees').select('id, name').in('id', allEmpIds);
@@ -183,7 +179,6 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
       }
     }
 
-    // Fetch customer names and type names for reminders
     const customerIds = [...new Set(remItems.filter(r => r.customer_id).map(r => r.customer_id!))];
     const typeIds = [...new Set(remItems.filter(r => r.reminder_type_id).map(r => r.reminder_type_id!))];
     const [custRes, typeRes] = await Promise.all([
@@ -200,7 +195,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     }
 
     setItems(calItems);
-    setAllPaymentItems(filteredPayItems);
+    setAllPaymentItems(allPayItems);
     setReminders(remItems);
     setLoading(false);
   }, [instanceId, fetchDateStart, fetchDateEnd]);
@@ -221,11 +216,9 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
 
-  // Orders: next 2 working days based on working_hours
   const workingDays = useMemo(() => getNextWorkingDays(2, workingHours ?? null), [workingHours]);
   const dashboardItems = items.filter(i => workingDays.includes(i.item_date));
 
-  // Reminders: notification window check (deadline - days_before <= today)
   const todayReminders = reminders.filter(r => {
     const deadlineDate = new Date(r.deadline + 'T00:00:00');
     const notifyDate = new Date(deadlineDate);
@@ -233,15 +226,20 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     return notifyDate <= todayDate;
   });
 
-  const formatDateLabel = (date: string) => {
-    try {
-      return format(new Date(date + 'T00:00:00'), 'EEEE, d MMM', { locale: pl });
-    } catch { return date; }
+  const buildDisplayAddress = (item: CalendarItemRow) => {
+    const parts = [item.address_city, item.address_street].filter(Boolean);
+    return parts.join(', ');
   };
 
   const buildFullAddress = (item: CalendarItemRow) => {
     const parts = [item.address_name, item.address_street, item.address_city].filter(Boolean);
     return parts.join(', ');
+  };
+
+  const buildGoogleMapsUrl = (item: CalendarItemRow) => {
+    const addr = buildFullAddress(item);
+    if (!addr) return null;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;
   };
 
   if (loading) {
@@ -267,9 +265,74 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={dashboardItems.length} emptyText="Brak zleceń na najbliższe dni robocze">
-          {dashboardItems.map((item, idx) => (
-            <OrderCard key={item.id} item={item} fullAddress={buildFullAddress(item)} showDate formatDateLabel={formatDateLabel} isFirst={idx === 0} onClick={() => onItemClick?.(item.id)} />
-          ))}
+          {dashboardItems.map((item, idx) => {
+            const pill = getDayPill(item.item_date);
+            const addr = buildDisplayAddress(item);
+            const mapsUrl = buildGoogleMapsUrl(item);
+            const phone = item.customer_phone;
+            const normalizedPhone = phone ? normalizePhone(phone) : null;
+
+            return (
+              <div
+                key={item.id}
+                className={`py-3 px-1 cursor-pointer hover:bg-primary/5 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
+                onClick={() => onItemClick?.(item.id)}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="text-lg font-bold leading-tight">{item.title}</div>
+                    <div>
+                      <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+                    </div>
+                    {addr && mapsUrl ? (
+                      <a
+                        href={mapsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {addr}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                      </a>
+                    ) : addr ? (
+                      <span className="text-sm text-foreground">{addr}</span>
+                    ) : null}
+                    {item.customer_name && (
+                      <div className="text-sm text-foreground">{item.customer_name}</div>
+                    )}
+                    {normalizedPhone && (
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={`tel:${normalizedPhone}`}
+                          className="text-sm text-primary hover:underline"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {formatPhoneDisplay(phone!)}
+                        </a>
+                        <a
+                          href={`sms:${normalizedPhone}`}
+                          className="text-muted-foreground hover:text-primary"
+                          onClick={e => e.stopPropagation()}
+                          title="Wyślij SMS"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                        </a>
+                      </div>
+                    )}
+                    {(item.price ?? 0) > 0 && (
+                      <div className="text-sm font-medium text-foreground">
+                        {item.price?.toFixed(2)} PLN
+                      </div>
+                    )}
+                  </div>
+                  <div className="w-10 shrink-0 flex items-center justify-center">
+                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </DashboardColumn>
         <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={todayReminders.length} emptyText="Brak przypomnień">
           {todayReminders.map((r, idx) => (
@@ -306,45 +369,6 @@ const DashboardColumn = ({ icon, title, count, emptyText, children }: {
   </Card>
 );
 
-const OrderCard = ({ item, fullAddress, showDate, formatDateLabel, isFirst, onClick }: {
-  item: CalendarItemRow; fullAddress: string; showDate?: boolean; formatDateLabel?: (d: string) => string; isFirst?: boolean; onClick?: () => void;
-}) => (
-  <div
-    className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
-    onClick={onClick}
-  >
-    <div className="space-y-1">
-      <span className="font-medium text-sm leading-tight">{item.title}</span>
-      <div className="flex items-center gap-1.5 text-xs text-foreground">
-        <Clock className="w-3 h-3" />
-        {showDate && formatDateLabel ? (
-          <span>{formatDateLabel(item.item_date)}, {item.start_time}–{item.end_time}</span>
-        ) : (
-          <span>{item.start_time}–{item.end_time}</span>
-        )}
-      </div>
-      {item.customer_name && (
-        <div className="flex items-center gap-1.5 text-xs text-foreground">
-          <User className="w-3 h-3" />
-          <span>{item.customer_name}</span>
-        </div>
-      )}
-      {fullAddress && (
-        <div className="flex items-center gap-1.5 text-xs text-foreground">
-          <MapPin className="w-3 h-3" />
-          <span>{fullAddress}</span>
-        </div>
-      )}
-      {item.employee_names && item.employee_names.length > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-foreground">
-          <HardHat className="w-3 h-3" />
-          <span>{item.employee_names.join(', ')}</span>
-        </div>
-      )}
-    </div>
-  </div>
-);
-
 function getReminderUrgency(deadline: string): { badge: string; label: string | null } {
   const d = new Date(deadline + 'T00:00:00');
   const now = new Date();
@@ -355,14 +379,14 @@ function getReminderUrgency(deadline: string): { badge: string; label: string | 
   return { badge: 'bg-green-100 text-green-700 border border-green-200', label: null };
 }
 
-const ReminderCard = ({ reminder, showDate, formatDateLabel, isFirst, onDone, onClick }: {
-  reminder: ReminderRow; showDate?: boolean; formatDateLabel?: (d: string) => string; isFirst?: boolean;
+const ReminderCard = ({ reminder, isFirst, onDone, onClick }: {
+  reminder: ReminderRow; isFirst?: boolean;
   onDone: (e: React.MouseEvent) => void; onClick?: () => void;
 }) => {
   const urgency = getReminderUrgency(reminder.deadline);
   return (
     <div
-      className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
+      className={`py-3 px-1 cursor-pointer hover:bg-primary/5 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
       onClick={onClick}
     >
       <div className="flex items-start gap-2">
@@ -379,21 +403,12 @@ const ReminderCard = ({ reminder, showDate, formatDateLabel, isFirst, onDone, on
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-foreground">
-            <Clock className="w-3 h-3" />
-            <span>{showDate && formatDateLabel ? formatDateLabel(reminder.deadline) : formatReminderDeadline(reminder.deadline)}</span>
-          </div>
+          <div className="text-sm text-foreground">{formatReminderDeadline(reminder.deadline)}</div>
           {reminder.customer_name && (
-            <div className="flex items-center gap-1.5 text-xs text-foreground">
-              <User className="w-3 h-3" />
-              <span>{reminder.customer_name}</span>
-            </div>
+            <div className="text-sm text-foreground">{reminder.customer_name}</div>
           )}
           {reminder.reminder_type_name && (
-            <div className="flex items-center gap-1.5 text-xs text-foreground">
-              <Tag className="w-3 h-3" />
-              <span>{reminder.reminder_type_name}</span>
-            </div>
+            <div className="text-sm text-muted-foreground">{reminder.reminder_type_name}</div>
           )}
         </div>
       </div>
@@ -401,7 +416,6 @@ const ReminderCard = ({ reminder, showDate, formatDateLabel, isFirst, onDone, on
   );
 };
 
-/** Show "Dziś" or relative date for reminder deadline */
 function formatReminderDeadline(deadline: string): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -413,11 +427,11 @@ function formatReminderDeadline(deadline: string): string {
   return `Deadline: za ${days} dni`;
 }
 
-const PaymentCard = ({ item, showDate, formatDateLabel, isFirst, onClick }: {
-  item: CalendarItemRow; showDate?: boolean; formatDateLabel?: (d: string) => string; isFirst?: boolean; onClick?: () => void;
+const PaymentCard = ({ item, isFirst, onClick }: {
+  item: CalendarItemRow; isFirst?: boolean; onClick?: () => void;
 }) => (
   <div
-    className={`py-3 px-1 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
+    className={`py-3 px-1 cursor-pointer hover:bg-primary/5 transition-colors border-b border-border ${isFirst ? 'border-t' : ''}`}
     onClick={onClick}
   >
     <div className="space-y-1">
@@ -431,28 +445,15 @@ const PaymentCard = ({ item, showDate, formatDateLabel, isFirst, onClick }: {
           <InvoiceStatusBadge status={item.payment_status} size="sm" />
         )}
       </div>
-      {showDate && formatDateLabel && (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock className="w-3 h-3" />
-          <span>{formatDateLabel(item.item_date)}</span>
-        </div>
-      )}
-      {!showDate && (
-        <div className="flex items-center gap-1.5 text-xs text-foreground">
-          <Clock className="w-3 h-3" />
-          <span>{format(new Date(item.item_date + 'T00:00:00'), 'd MMM', { locale: pl })}</span>
-        </div>
-      )}
+      <div className="text-sm text-muted-foreground">
+        {format(new Date(item.item_date + 'T00:00:00'), 'd MMM', { locale: pl })}
+      </div>
       {item.customer_name && (
-        <div className="flex items-center gap-1.5 text-xs text-foreground">
-          <User className="w-3 h-3" />
-          <span>{item.customer_name}</span>
-        </div>
+        <div className="text-sm text-foreground">{item.customer_name}</div>
       )}
       {(item.price ?? 0) > 0 && (
-        <div className="flex items-center gap-1.5 text-xs text-foreground">
-          <DollarSign className="w-3 h-3" />
-          <span>{item.price?.toFixed(2)} PLN</span>
+        <div className="text-sm font-medium text-foreground">
+          {item.price?.toFixed(2)} PLN
         </div>
       )}
     </div>
