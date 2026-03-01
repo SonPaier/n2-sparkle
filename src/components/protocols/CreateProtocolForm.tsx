@@ -184,12 +184,19 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
 
   const formContent = (
     <div className="flex flex-col h-full">
-      {/* Fixed header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <h2 className="text-lg font-semibold">{isEditMode ? 'Edytuj protokół' : 'Nowy protokół'}</h2>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="w-5 h-5" />
-        </Button>
+      {/* Fixed header - matching drawer style */}
+      <div className="px-6 pt-6 pb-4 shrink-0">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[17px] font-bold truncate pr-2">
+            {isEditMode ? 'Edytuj protokół' : 'Protokół'}
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Scrollable content */}
@@ -198,7 +205,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {/* Protocol Type */}
           <div className="space-y-2">
             <Label>Typ protokołu</Label>
@@ -325,12 +332,12 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
         </div>
       )}
 
-      {/* Fixed bottom bar */}
-      <div className="flex border-t border-border shrink-0">
-        <Button variant="outline" className="flex-1 rounded-none h-12" onClick={onClose}>
+      {/* Fixed bottom bar - matching drawer style */}
+      <div className="flex-shrink-0 border-t border-border px-4 py-3 flex items-center gap-1.5">
+        <Button variant="outline" className="bg-white flex-1" onClick={onClose}>
           Anuluj
         </Button>
-        <Button className="flex-1 rounded-none h-12" onClick={handleSubmit} disabled={loading}>
+        <Button className="flex-1" onClick={handleSubmit} disabled={loading}>
           {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
           {isEditMode ? 'Zapisz zmiany' : 'Utwórz protokół'}
         </Button>

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { Camera, Video, Mic, FileText, Plus, Play, Pause, Trash2, FileIcon, FolderOpen } from 'lucide-react';
+import EmptyState from '@/components/ui/empty-state';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -218,10 +219,7 @@ export const MediaUploader = ({
         <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={handleVideoSelect} className="hidden" />
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileSelect} className="hidden" />
 
-        <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-          <FolderOpen className="h-12 w-12 mb-3 opacity-40" />
-          <p className="text-sm">To zlecenie nie ma dodanych plików</p>
-        </div>
+        <EmptyState icon={FolderOpen} message="To zlecenie nie ma dodanych plików" />
 
         {!disabled && (
           <div className="flex justify-center">
