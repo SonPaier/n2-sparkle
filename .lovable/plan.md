@@ -1,54 +1,71 @@
 
 
-## Plan: Zmiany w widoku pracownika (employee role)
+## Plan: Etap 1 — Dashboard admina w stylu pracownika + Szablony SMS w ustawieniach
 
-### 1. Hover na karcie zlecenia w EmployeeDashboard
-**Plik**: `src/components/employee/EmployeeDashboard.tsx`, linia 241
-- Zmienić `hover:bg-muted/50` na `hover:bg-primary/5` (jasnofioletowy, zgodny z resztą aplikacji)
+### Część 1: Karty zleceń w admin Dashboard (`DashboardOverview.tsx`)
 
-### 2. Dodać prop `isEmployee` do CalendarItemDetailsDrawer
-**Plik**: `src/components/admin/CalendarItemDetailsDrawer.tsx`
-- Dodać `isEmployee?: boolean` do interfejsu props (linia 46-61)
-- Drawer na mobile: gdy `isEmployee`, ustawić `className` na `w-full` / pełną szerokość (linia 671-675 — usunąć `sm:max-w-md` dla mobile gdy `isEmployee`)
+**OrderCard** — przepisać w stylu EmployeeDashboard:
+- Tytuł 18px bold, pill dnia (Dziś/Jutro/nazwa dnia), adres jako klikalny link Google Maps z pinezką, klient, telefon klikalny + SMS ikona, chevron-right po prawej (40px)
+- Usunąć ikony Clock, User, MapPin, HardHat z wierszy
+- Hover `bg-primary/5`
+- **Dodatkowo vs pracownik**: admin widzi cenę (`item.price`) pod telefonem jeśli jest przypisana
+- Potrzebne dodatkowe dane: `address_street`, `address_city` — już pobierane w Dashboard.tsx i przekazywane do DashboardOverview, ale trzeba je dodać do selectu i address resolution w `DashboardOverview.tsx`
+- Import: `ChevronRight`, `MessageSquare` z lucide, `formatPhoneDisplay`, `normalizePhone` z phoneUtils, `Badge` z ui, `isToday`, `isTomorrow` z date-fns
 
-### 3. Ukryć elementy dla roli employee w CalendarItemDetailsDrawer
+**Logika `getDayPill`** — ta sama co w EmployeeDashboard:
+```
+isToday → zielony "Dziś"
+isTomorrow → fioletowy "Jutro"  
+else → fioletowy, nazwa dnia
+```
 
-**Footer (renderFooter, linie 481-654)**:
-- Ukryć `moreMenu` (przycisk "..." z "Usuń") gdy `isEmployee`
-- Ukryć `editBtn` (przycisk "Edytuj") gdy `isEmployee`
-- Ukryć dropdown statusów (ChevronDown) — pracownik widzi tylko prosty przycisk "Rozpocznij pracę" i "Zakończ pracę" (bez dropdown z innymi statusami)
-- Usunąć "Prośba o zmianę" z UI całkowicie (zarówno dropdown jak i status `change_requested` w stopce)
+**`buildDisplayAddress`** — `address_city, address_street` (bez nazwy adresu)
+**`buildGoogleMapsUrl`** — pełny adres jako destination
 
-**Status badge (linia 704-709)**:
-- Ukryć `InvoiceStatusBadge` (status płatności "Do rozliczenia" itp.) gdy `isEmployee`
+**Fetch addresses** — rozszerzyć select o `street, city` (linia 160, już pobiera `name, street, city`)  
+Dodać `address_street`, `address_city` do `CalendarItemRow` interface i mapping
 
-**Przypisani pracownicy (linie 807-834)**:
-- Ukryć przycisk "Dodaj" gdy `isEmployee` (linia 824-832)
-- Ukryć przycisk X (usuwania) z chipów pracowników gdy `isEmployee` (linia 816-821)
-- Pracownik widzi readonly listę przypisanych pracowników
-- **BUG FIX**: Pracownik nie widzi przypisanych pracowników, bo `item.assigned_employees` nie jest ustawione — w EmployeeCalendarPage dashboard view, dane z EmployeeDashboard nie mają `assigned_employees`. Trzeba użyć `allEmployees` i `item.assigned_employee_ids` do wyświetlenia chipów readonly
+### Część 2: Nowa zakładka "Szablony SMS" w Ustawieniach (`SettingsView.tsx`)
 
-### 4. Przekazać `isEmployee` z EmployeeCalendarPage
-**Plik**: `src/pages/EmployeeCalendarPage.tsx`
-- Dodać `isEmployee` prop do obu instancji `CalendarItemDetailsDrawer` (linie 405, 467)
-- Na dashboard view (linia 405): Nie przekazywać `onDelete`, `onEdit` (i tak kontrolowane przez `allowedActions`, ale lepiej nie przekazywać)
-- Nie przekazywać `onStatusChange` — zamiast tego kontrolować w drawer
+- Dodać nową zakładkę `sms-templates` z ikoną `MessageSquare` między "Użytkownicy" a "Integracje"
+- Label: "Szablony SMS"
+- Nowy komponent `SmsPaymentTemplatesView` w `src/components/admin/settings/SmsPaymentTemplatesView.tsx`
 
-### 5. Usunąć "Prośba o zmianę" z UI
-- Usunąć `change_requested` z opcji dropdown we wszystkich sekcjach stopki (linie 552, 563, 588-591, 617-620, 625-652)
-- Zostawić w `statusLabels` i `statusColors` na wypadek istniejących danych, ale usunąć z opcji zmiany statusu
+### Część 3: Komponent `SmsPaymentTemplatesView`
 
-### Podsumowanie zmian:
-| Element | Admin | Employee |
-|---------|-------|----------|
-| Przycisk "..." (Usuń) | ✅ | ❌ |
-| Przycisk "Edytuj" | ✅ | ❌ |
-| Status płatności badge | ✅ | ❌ |
-| Dropdown statusów | ✅ | ❌ (tylko prosty przycisk Rozpocznij/Zakończ) |
-| "Prośba o zmianę" | ❌ (usunięte) | ❌ (usunięte) |
-| Dodaj pracownika | ✅ | ❌ |
-| Usuń pracownika (X) | ✅ | ❌ |
-| Lista pracowników | ✅ | ✅ (readonly) |
-| Drawer width mobile | sm:max-w-md | 100% |
-| Hover karty | bg-primary/5 | bg-primary/5 |
+Dwa szablony SMS do edycji:
+
+**Szablon 1: SMS z BLIK**
+- Toggle włącz/wyłącz
+- Textarea z szablonem SMS
+- Zmienne dostępne: `{firma}`, `{osoba_kontaktowa}`, `{usluga}`, `{cena}`, `{blik_phone}`
+- Podgląd zmiennych (chipy z nazwami)
+
+**Szablon 2: SMS z numerem konta**
+- Toggle włącz/wyłącz
+- Textarea z szablonem SMS  
+- Zmienne: `{firma}`, `{osoba_kontaktowa}`, `{usluga}`, `{cena}`, `{numer_konta}`, `{nazwa_banku}`
+- Podgląd zmiennych
+
+Szablony odczytują `blik_phone`, `bank_account_number`, `bank_name` z danych instancji (te pola pozostają w "Dane firmy").
+
+### Część 4: Tabela w bazie danych
+
+Nowa tabela `sms_payment_templates`:
+- `id` uuid PK
+- `instance_id` uuid NOT NULL
+- `template_type` text NOT NULL (`blik` | `bank_transfer`)
+- `enabled` boolean DEFAULT false
+- `sms_body` text DEFAULT ''
+- `created_at`, `updated_at` timestamps
+- UNIQUE constraint na (`instance_id`, `template_type`)
+- RLS: admin/super_admin ALL, employee SELECT
+
+### Podsumowanie pliku zmian:
+| Plik | Zmiana |
+|------|--------|
+| `DashboardOverview.tsx` | Redesign OrderCard w stylu pracownika + cena |
+| `SettingsView.tsx` | Nowa zakładka "Szablony SMS" |
+| `src/components/admin/settings/SmsPaymentTemplatesView.tsx` | Nowy komponent |
+| Migracja SQL | Tabela `sms_payment_templates` z RLS |
 
