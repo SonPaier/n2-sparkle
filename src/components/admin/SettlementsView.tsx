@@ -105,7 +105,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   };
 
   const SortIcon = ({ column }: { column: string }) => {
-    if (sortColumn !== column) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    if (sortColumn !== column) return null;
     return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
   };
 
@@ -411,7 +411,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                           <DropdownMenuContent align="start">
                             {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) =>
                       <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mr-2 ${config.color}`}>
+                                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.color}`}>
                                   {config.label}
                                 </span>
                               </DropdownMenuItem>
@@ -572,10 +572,9 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                             <DropdownMenuContent align="end">
                               {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) =>
                           <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
-                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mr-2 ${config.color}`}>
+                                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.color}`}>
                                     {config.label}
                                   </span>
-                                  {config.label}
                                 </DropdownMenuItem>
                           )}
                             </DropdownMenuContent>

@@ -87,13 +87,13 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-[60] bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 z-[115] bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed lg:sticky top-0 inset-y-0 left-0 z-[70] h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0",
+          "fixed lg:sticky top-0 inset-y-0 left-0 z-[120] h-screen bg-card border-r border-border/50 transition-all duration-300 flex-shrink-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
           sidebarCollapsed ? "lg:w-16" : "w-64"
         )}
