@@ -12,14 +12,14 @@ import {
   TableBody,
   TableRow,
   TableHead,
-  TableCell,
-} from '@/components/ui/table';
+  TableCell } from
+'@/components/ui/table';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  DropdownMenuTrigger } from
+'@/components/ui/dropdown-menu';
 import { PAYMENT_STATUS_CONFIG, type PaymentStatus } from '@/components/invoicing/invoicing.types';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { CreateInvoiceDrawer } from '@/components/invoicing/CreateInvoiceDrawer';
@@ -65,12 +65,12 @@ const formatCurrency = (value: number | null) => {
   return value.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
 };
 
-const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
+const STATUS_CONFIG: Record<string, {label: string;badgeClass: string;}> = {
   pending: { label: 'Do potw.', badgeClass: 'border-amber-500 text-amber-600' },
   confirmed: { label: 'Do wykonania', badgeClass: 'border-amber-500 text-amber-600' },
   in_progress: { label: 'W realizacji', badgeClass: 'bg-blue-600 hover:bg-blue-700 text-white' },
   completed: { label: 'Zakończony', badgeClass: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
-  cancelled: { label: 'Anulowany', badgeClass: 'bg-red-600 hover:bg-red-700 text-white' },
+  cancelled: { label: 'Anulowany', badgeClass: 'bg-red-600 hover:bg-red-700 text-white' }
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -98,53 +98,53 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     queryKey: ['settlements-columns', instanceId],
     enabled: !!instanceId,
     queryFn: async () => {
-      const { data } = await supabase
-        .from('calendar_columns')
-        .select('id, name')
-        .eq('instance_id', instanceId)
-        .eq('active', true)
-        .order('sort_order');
+      const { data } = await supabase.
+      from('calendar_columns').
+      select('id, name').
+      eq('instance_id', instanceId).
+      eq('active', true).
+      order('sort_order');
       return data || [];
-    },
+    }
   });
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['settlements', instanceId],
     enabled: !!instanceId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('calendar_items')
-        .select('id, title, item_date, customer_name, customer_id, customer_email, customer_phone, customer_address_id, created_at, status, payment_status, price, admin_notes, start_time, end_time, column_id, assigned_employee_ids, photo_urls, end_date, order_number')
-        .eq('instance_id', instanceId)
-        .order('item_date', { ascending: false });
+      const { data, error } = await supabase.
+      from('calendar_items').
+      select('id, title, item_date, customer_name, customer_id, customer_email, customer_phone, customer_address_id, created_at, status, payment_status, price, admin_notes, start_time, end_time, column_id, assigned_employee_ids, photo_urls, end_date, order_number').
+      eq('instance_id', instanceId).
+      order('item_date', { ascending: false });
       if (error) throw error;
       return (data || []) as CalendarItemRow[];
-    },
+    }
   });
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['settlements-invoices', instanceId],
     enabled: !!instanceId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('id, calendar_item_id, pdf_url, payment_to')
-        .eq('instance_id', instanceId);
+      const { data, error } = await supabase.
+      from('invoices').
+      select('id, calendar_item_id, pdf_url, payment_to').
+      eq('instance_id', instanceId);
       if (error) throw error;
       return (data || []) as InvoiceRow[];
-    },
+    }
   });
 
   const { data: smsTemplates = [] } = useQuery({
     queryKey: ['sms-payment-templates', instanceId],
     enabled: !!instanceId,
     queryFn: async () => {
-      const { data, error } = await (supabase.from('sms_payment_templates' as any) as any)
-        .select('template_type, enabled')
-        .eq('instance_id', instanceId);
+      const { data, error } = await (supabase.from('sms_payment_templates' as any) as any).
+      select('template_type, enabled').
+      eq('instance_id', instanceId);
       if (error) throw error;
-      return (data || []) as { template_type: string; enabled: boolean }[];
-    },
+      return (data || []) as {template_type: string;enabled: boolean;}[];
+    }
   });
 
   const blikTemplateEnabled = smsTemplates.some((t) => t.template_type === 'blik' && t.enabled);
@@ -163,9 +163,9 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     const q = searchQuery.toLowerCase();
     return items.filter(
       (o) =>
-        (o.customer_name || '').toLowerCase().includes(q) ||
-        (o.title || '').toLowerCase().includes(q) ||
-        o.item_date.includes(q)
+      (o.customer_name || '').toLowerCase().includes(q) ||
+      (o.title || '').toLowerCase().includes(q) ||
+      o.item_date.includes(q)
     );
   }, [items, searchQuery]);
 
@@ -181,10 +181,10 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   };
 
   const changeStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('calendar_items')
-      .update({ status: newStatus })
-      .eq('id', id);
+    const { error } = await supabase.
+    from('calendar_items').
+    update({ status: newStatus }).
+    eq('id', id);
     if (error) {
       toast.error('Błąd zmiany statusu');
       return;
@@ -194,10 +194,10 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   };
 
   const changePaymentStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('calendar_items')
-      .update({ payment_status: newStatus })
-      .eq('id', id);
+    const { error } = await supabase.
+    from('calendar_items').
+    update({ payment_status: newStatus }).
+    eq('id', id);
     if (error) {
       toast.error('Błąd zmiany statusu płatności');
       return;
@@ -214,7 +214,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke('sync-invoice-statuses', {
-        body: { instanceId },
+        body: { instanceId }
       });
       if (error) throw error;
       toast.success(`Zsynchronizowano ${data?.synced || 0} z ${data?.total || 0} faktur`);
@@ -263,7 +263,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       price: order.price,
       payment_status: order.payment_status,
       photo_urls: Array.isArray(order.photo_urls) ? order.photo_urls as string[] : [],
-      end_date: order.end_date,
+      end_date: order.end_date
     };
     setDetailsItem(calendarItem);
     setDetailsDrawerOpen(true);
@@ -284,15 +284,15 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
             placeholder="Szukaj klienta, tytuł lub datę..."
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9"
-          />
+            className="pl-9" />
+
         </div>
         <Button
           variant="outline"
           size="sm"
           onClick={handleSync}
-          disabled={syncing}
-        >
+          disabled={syncing}>
+
           <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
           Sprawdź statusy płatności
         </Button>
@@ -303,23 +303,23 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       </div>
 
       {/* Mobile Cards */}
-      {isMobile ? (
-        <div className="space-y-2">
-          {isLoading ? (
-            <p className="text-center text-muted-foreground py-8">Ładowanie...</p>
-          ) : filteredOrders.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Brak zleceń spełniających kryteria</p>
-          ) : (
-            paginatedOrders.map((order) => {
-              const statusConfig = getStatusConfig(order.status);
-              const invoice = invoicesByItemId[order.id];
+      {isMobile ?
+      <div className="space-y-2">
+          {isLoading ?
+        <p className="text-center text-muted-foreground py-8">Ładowanie...</p> :
+        filteredOrders.length === 0 ?
+        <p className="text-center text-muted-foreground py-8">Brak zleceń spełniających kryteria</p> :
 
-              return (
-                <div
-                  key={order.id}
-                  className="rounded-lg border border-border bg-card p-3 space-y-2 cursor-pointer active:bg-primary/5"
-                  onClick={() => openDetailsDrawer(order)}
-                >
+        paginatedOrders.map((order) => {
+          const statusConfig = getStatusConfig(order.status);
+          const invoice = invoicesByItemId[order.id];
+
+          return (
+            <div
+              key={order.id}
+              className="rounded-lg border border-border bg-card p-3 space-y-2 cursor-pointer active:bg-primary/5"
+              onClick={() => openDetailsDrawer(order)}>
+
                   {/* Top row: title + amount */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
@@ -341,48 +341,48 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         <DropdownMenuTrigger asChild>
                           <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
                             <Badge
-                              variant={['in_progress', 'completed', 'cancelled'].includes(order.status) ? 'default' : 'outline'}
-                              className={`${statusConfig.badgeClass} cursor-pointer text-[11px]`}
-                            >
+                          variant={['in_progress', 'completed', 'cancelled'].includes(order.status) ? 'default' : 'outline'}
+                          className={`${statusConfig.badgeClass} cursor-pointer text-[11px]`}>
+
                               {statusConfig.label}
                             </Badge>
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
-                          {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                            <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
+                          {Object.entries(STATUS_CONFIG).map(([key, config]) =>
+                      <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
                               <Badge
-                                variant={['in_progress', 'completed', 'cancelled'].includes(key) ? 'default' : 'outline'}
-                                className={`${config.badgeClass} mr-2`}
-                              >
+                          variant={['in_progress', 'completed', 'cancelled'].includes(key) ? 'default' : 'outline'}
+                          className={`${config.badgeClass} mr-2`}>
+
                                 {config.label}
                               </Badge>
                             </DropdownMenuItem>
-                          ))}
+                      )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      {order.status !== 'confirmed' && (
-                        <DropdownMenu>
+                      {order.status !== 'confirmed' &&
+                  <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
                               <InvoiceStatusBadge
-                                status={order.payment_status}
-                                paymentTo={invoice?.payment_to}
-                                className="cursor-pointer text-[11px]"
-                              />
+                          status={order.payment_status}
+                          paymentTo={invoice?.payment_to}
+                          className="cursor-pointer text-[11px]" />
+
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
-                            {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) => (
-                              <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
+                            {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) =>
+                      <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
                                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mr-2 ${config.color}`}>
                                   {config.label}
                                 </span>
                               </DropdownMenuItem>
-                            ))}
+                      )}
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      )}
+                  }
                     </div>
                     <div className="flex items-center gap-1">
                       <DropdownMenu>
@@ -393,35 +393,35 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuItem onSelect={() => openDetailsDrawer(order)}>Szczegóły</DropdownMenuItem>
-                          {invoice?.pdf_url && (
-                            <DropdownMenuItem onSelect={() => window.open(invoice.pdf_url!, '_blank')}>
+                          {invoice?.pdf_url &&
+                      <DropdownMenuItem onSelect={() => window.open(invoice.pdf_url!, '_blank')}>
                               <FileText className="w-4 h-4 mr-2" />
                               Pobierz FV
                             </DropdownMenuItem>
-                          )}
+                      }
                           <DropdownMenuItem onSelect={() => openInvoiceDrawer(order)}>Wystaw FV</DropdownMenuItem>
-                          {blikTemplateEnabled && (
-                            <DropdownMenuItem onSelect={() => openSmsDialog(order, 'blik')}>
+                          {blikTemplateEnabled &&
+                      <DropdownMenuItem onSelect={() => openSmsDialog(order, 'blik')}>
                               <MessageSquare className="w-4 h-4 mr-2" />
                               Wyślij SMS BLIK
                             </DropdownMenuItem>
-                          )}
-                          {bankTemplateEnabled && (
-                            <DropdownMenuItem onSelect={() => openSmsDialog(order, 'bank_transfer')}>
+                      }
+                          {bankTemplateEnabled &&
+                      <DropdownMenuItem onSelect={() => openSmsDialog(order, 'bank_transfer')}>
                               <MessageSquare className="w-4 h-4 mr-2" />
                               Wyślij SMS z nr konta
                             </DropdownMenuItem>
-                          )}
+                      }
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      ) : (
+                </div>);
+
+        })
+        }
+        </div> : (
+
       /* Desktop Table */
       <div className="rounded-lg border border-border bg-card overflow-x-auto">
         <Table className="table-fixed w-full min-w-[900px]">
@@ -443,27 +443,27 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow>
+            {isLoading ?
+            <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Ładowanie...
                 </TableCell>
-              </TableRow>
-            ) : filteredOrders.length === 0 ? (
-              <TableRow>
+              </TableRow> :
+            filteredOrders.length === 0 ?
+            <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Brak zleceń spełniających kryteria
                 </TableCell>
-              </TableRow>
-            ) : (
-              paginatedOrders.map((order) => {
-                const statusConfig = getStatusConfig(order.status);
-                const invoice = invoicesByItemId[order.id];
-                const paymentKey = (order.payment_status || 'not_invoiced') as PaymentStatus;
-                const paymentConfig = PAYMENT_STATUS_CONFIG[paymentKey] || PAYMENT_STATUS_CONFIG.not_invoiced;
+              </TableRow> :
 
-                return (
-                  <TableRow key={order.id} className="group cursor-pointer" onClick={() => openDetailsDrawer(order)}>
+            paginatedOrders.map((order) => {
+              const statusConfig = getStatusConfig(order.status);
+              const invoice = invoicesByItemId[order.id];
+              const paymentKey = (order.payment_status || 'not_invoiced') as PaymentStatus;
+              const paymentConfig = PAYMENT_STATUS_CONFIG[paymentKey] || PAYMENT_STATUS_CONFIG.not_invoiced;
+
+              return (
+                <TableRow key={order.id} className="group cursor-pointer" onClick={() => openDetailsDrawer(order)}>
                     <TableCell className="text-sm">
                       {formatOrderNumber(order)}
                     </TableCell>
@@ -474,9 +474,9 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                     <TableCell className="text-sm">
                       <div className="leading-tight">
                         <div>{format(parseISO(order.created_at), 'dd.MM.yyyy')}</div>
-                        {order.status === 'completed' && (
-                          <div>{format(parseISO(order.item_date), 'dd.MM.yyyy')}</div>
-                        )}
+                        {order.status === 'completed' &&
+                      <div>{format(parseISO(order.item_date), 'dd.MM.yyyy')}</div>
+                      }
                       </div>
                     </TableCell>
                     <TableCell>
@@ -484,56 +484,56 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         <DropdownMenuTrigger asChild>
                           <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
                             <Badge
-                              variant={['in_progress', 'completed', 'cancelled'].includes(order.status) ? 'default' : 'outline'}
-                              className={`${statusConfig.badgeClass} cursor-pointer`}
-                            >
+                            variant={['in_progress', 'completed', 'cancelled'].includes(order.status) ? 'default' : 'outline'}
+                            className={`${statusConfig.badgeClass} cursor-pointer`}>
+
                               {statusConfig.label}
                             </Badge>
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                            <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
+                          {Object.entries(STATUS_CONFIG).map(([key, config]) =>
+                        <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
                               <Badge
-                                variant={['in_progress', 'completed', 'cancelled'].includes(key) ? 'default' : 'outline'}
-                                className={`${config.badgeClass} mr-2`}
-                              >
+                            variant={['in_progress', 'completed', 'cancelled'].includes(key) ? 'default' : 'outline'}
+                            className={`${config.badgeClass} mr-2`}>
+
                                 {config.label}
                               </Badge>
                               Oznacz jako {config.label.toLowerCase()}
                             </DropdownMenuItem>
-                          ))}
+                        )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                     <TableCell>
-                      {order.status !== 'confirmed' ? (
-                        <div className="flex items-center gap-1.5">
+                      {order.status !== 'confirmed' ?
+                    <div className="flex items-center gap-1.5">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button className="focus:outline-none" onClick={(e) => e.stopPropagation()}>
                                 <InvoiceStatusBadge
-                                  status={order.payment_status}
-                                  paymentTo={invoice?.payment_to}
-                                  className="cursor-pointer"
-                                />
+                              status={order.payment_status}
+                              paymentTo={invoice?.payment_to}
+                              className="cursor-pointer" />
+
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) => (
-                                <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
+                              {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) =>
+                          <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
                                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium mr-2 ${config.color}`}>
                                     {config.label}
                                   </span>
                                   {config.label}
                                 </DropdownMenuItem>
-                              ))}
+                          )}
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
+                        </div> :
+
+                    <span className="text-muted-foreground text-xs">—</span>
+                    }
                     </TableCell>
                     <TableCell className="text-right text-sm tabular-nums">
                       {formatCurrency(order.price)}
@@ -542,111 +542,111 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={(e) => e.stopPropagation()}
-                          >
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => e.stopPropagation()}>
+
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuItem
-                            onSelect={() => openDetailsDrawer(order)}
-                          >
+                          onSelect={() => openDetailsDrawer(order)}>
+
                             Szczegóły
                           </DropdownMenuItem>
-                          {invoice?.pdf_url && (
-                            <DropdownMenuItem
-                              onSelect={() => window.open(invoice.pdf_url!, '_blank')}
-                            >
-                              <FileText className="w-4 h-4 mr-2" />
+                          {invoice?.pdf_url &&
+                        <DropdownMenuItem
+                          onSelect={() => window.open(invoice.pdf_url!, '_blank')}>
+
+                              
                               Pobierz FV
                             </DropdownMenuItem>
-                          )}
+                        }
                           <DropdownMenuItem
-                            onSelect={() => openInvoiceDrawer(order)}
-                          >
+                          onSelect={() => openInvoiceDrawer(order)}>
+
                             Wystaw FV
                           </DropdownMenuItem>
-                          {blikTemplateEnabled && (
-                            <DropdownMenuItem onSelect={() => openSmsDialog(order, 'blik')}>
+                          {blikTemplateEnabled &&
+                        <DropdownMenuItem onSelect={() => openSmsDialog(order, 'blik')}>
                               <MessageSquare className="w-4 h-4 mr-2" />
                               Wyślij SMS BLIK
                             </DropdownMenuItem>
-                          )}
-                          {bankTemplateEnabled && (
-                            <DropdownMenuItem onSelect={() => openSmsDialog(order, 'bank_transfer')}>
+                        }
+                          {bankTemplateEnabled &&
+                        <DropdownMenuItem onSelect={() => openSmsDialog(order, 'bank_transfer')}>
                               <MessageSquare className="w-4 h-4 mr-2" />
                               Wyślij SMS z nr konta
                             </DropdownMenuItem>
-                          )}
+                        }
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
+                  </TableRow>);
+
+            })
+            }
           </TableBody>
         </Table>
-      </div>
-      )}
+      </div>)
+      }
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
+      {totalPages > 1 &&
+      <div className="flex items-center justify-between pt-2">
           <p className="text-sm text-muted-foreground">
             Strona {currentPage} z {totalPages} ({filteredOrders.length} zleceń)
           </p>
           <div className="flex items-center gap-1">
             <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => p - 1)}
-            >
+            variant="outline"
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((p) => p - 1)}>
+
               <ChevronLeftIcon className="w-4 h-4" />
             </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={page === currentPage ? 'default' : 'outline'}
-                size="sm"
-                className="w-9"
-                onClick={() => setCurrentPage(page)}
-              >
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) =>
+          <Button
+            key={page}
+            variant={page === currentPage ? 'default' : 'outline'}
+            size="sm"
+            className="w-9"
+            onClick={() => setCurrentPage(page)}>
+
                 {page}
               </Button>
-            ))}
+          )}
             <Button
-              variant="outline"
-              size="sm"
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((p) => p + 1)}
-            >
+            variant="outline"
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((p) => p + 1)}>
+
               <ChevronRightIcon className="w-4 h-4" />
             </Button>
           </div>
         </div>
-      )}
+      }
 
       {/* Details Drawer */}
       <CalendarItemDetailsDrawer
         item={detailsItem}
         open={detailsDrawerOpen}
-        onClose={() => { setDetailsDrawerOpen(false); setDetailsItem(null); }}
+        onClose={() => {setDetailsDrawerOpen(false);setDetailsItem(null);}}
         columns={[]}
         instanceId={instanceId}
         onStatusChange={(itemId, newStatus) => {
           changeStatus(itemId, newStatus);
-        }}
-      />
+        }} />
+
 
       {/* Invoice Drawer */}
       <CreateInvoiceDrawer
         open={invoiceDrawerOpen}
-        onClose={() => { setInvoiceDrawerOpen(false); setInvoiceTarget(null); }}
+        onClose={() => {setInvoiceDrawerOpen(false);setInvoiceTarget(null);}}
         instanceId={instanceId}
         calendarItemId={invoiceTarget?.id}
         customerId={invoiceTarget?.customer_id}
@@ -655,22 +655,22 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
           queryClient.invalidateQueries({ queryKey: ['settlements-invoices', instanceId] });
-        }}
-      />
+        }} />
+
 
       {/* SMS Payment Dialog */}
-      {smsTarget && (
-        <SendPaymentSmsDialog
-          open={smsDialogOpen}
-          onClose={() => { setSmsDialogOpen(false); setSmsTarget(null); }}
-          templateType={smsTemplateType}
-          calendarItem={smsTarget}
-          instanceId={instanceId}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
-          }}
-        />
-      )}
+      {smsTarget &&
+      <SendPaymentSmsDialog
+        open={smsDialogOpen}
+        onClose={() => {setSmsDialogOpen(false);setSmsTarget(null);}}
+        templateType={smsTemplateType}
+        calendarItem={smsTarget}
+        instanceId={instanceId}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+        }} />
+
+      }
 
       {/* Add Order Dialog */}
       <AddCalendarItemDialog
@@ -681,10 +681,10 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         onSuccess={() => {
           setAddOrderOpen(false);
           queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
-        }}
-      />
-    </div>
-  );
+        }} />
+
+    </div>);
+
 };
 
 export default SettlementsView;
