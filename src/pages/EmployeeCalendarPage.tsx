@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar as CalendarIcon, ClipboardCheck, LayoutDashboard, LogOut, Menu, MoreHorizontal, X } from 'lucide-react';
+import { Calendar as CalendarIcon, ClipboardCheck, Clock, LayoutDashboard, LogOut, Menu, MoreHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,7 @@ import CalendarMapPanel from '@/components/admin/CalendarMapPanel';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import EmployeeDashboard from '@/components/employee/EmployeeDashboard';
+import EmployeeTimeTrackingView from '@/components/employee/EmployeeTimeTrackingView';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
@@ -22,7 +23,7 @@ import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
 
-type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly';
+type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly' | 'czas-pracy';
 
 const EmployeeCalendarPage = () => {
   const { configId } = useParams<{ configId: string }>();
@@ -335,6 +336,7 @@ const EmployeeCalendarPage = () => {
 
   const navItems = [
     { id: 'dashboard' as EmployeeView, label: 'Twój dzień', icon: LayoutDashboard },
+    { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
     { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
   ];
 
@@ -429,6 +431,8 @@ const EmployeeCalendarPage = () => {
                 isEmployee
               />
             </>
+          ) : currentView === 'czas-pracy' && instanceId ? (
+            <EmployeeTimeTrackingView instanceId={instanceId} />
           ) : currentView === 'protokoly' && instanceId ? (
             <ProtocolsView instanceId={instanceId} />
           ) : currentView === 'kalendarz' && instanceId ? (
@@ -569,6 +573,7 @@ const EmployeeCalendarPage = () => {
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 flex items-center justify-around h-14">
           {[
             { id: 'dashboard' as EmployeeView, label: 'Twój dzień', icon: LayoutDashboard },
+            { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
             { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
           ].map(({ id, label, icon: Icon }) => (
             <button
