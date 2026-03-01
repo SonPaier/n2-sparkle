@@ -490,7 +490,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
               <TableHead className="w-[8%] cursor-pointer select-none" onClick={() => handleSort('order_number')}>
                 <span className="flex items-center">Nr<SortIcon column="order_number" /></span>
               </TableHead>
-              <TableHead className="w-[20%] cursor-pointer select-none" onClick={() => handleSort('title')}>
+              <TableHead className="w-[19%] cursor-pointer select-none" onClick={() => handleSort('title')}>
                 <span className="flex items-center">Tytuł<SortIcon column="title" /></span>
               </TableHead>
               <TableHead className="w-[20%] cursor-pointer select-none" onClick={() => handleSort('customer_name')}>
@@ -514,7 +514,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
               <TableHead className="text-right w-[10%] cursor-pointer select-none" onClick={() => handleSort('price')}>
                 <span className="flex items-center justify-end">Kwota netto<SortIcon column="price" /></span>
               </TableHead>
-              <TableHead className="w-[4%]"></TableHead>
+              <TableHead className="w-[5%]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -542,8 +542,8 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                     <TableCell className="text-sm">
                       {formatOrderNumber(order)}
                     </TableCell>
-                    <TableCell className="truncate text-sm">
-                      {order.title || '—'}
+                    <TableCell className="text-sm">
+                      <div className="line-clamp-2">{order.title || '—'}</div>
                     </TableCell>
                     <TableCell className="font-medium">
                       <div>{order.customer_name || '—'}</div>
