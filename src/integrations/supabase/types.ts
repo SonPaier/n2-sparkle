@@ -1332,6 +1332,44 @@ export type Database = {
           },
         ]
       }
+      sms_payment_templates: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          instance_id: string
+          sms_body: string
+          template_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          instance_id: string
+          sms_body?: string
+          template_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          instance_id?: string
+          sms_body?: string
+          template_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_payment_templates_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       time_entries: {
         Row: {
           created_at: string
