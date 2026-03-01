@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText, RefreshCw, MessageSquare } from 'lucide-react';
+import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText, RefreshCw, MessageSquare, Plus } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { CreateInvoiceDrawer } from '@/components/invoicing/CreateInvoiceDrawer';
 import CalendarItemDetailsDrawer from './CalendarItemDetailsDrawer';
 import SendPaymentSmsDialog from './SendPaymentSmsDialog';
+import AddCalendarItemDialog from './AddCalendarItemDialog';
 import type { CalendarItem } from './AdminCalendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -91,6 +92,21 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   const [smsTarget, setSmsTarget] = useState<CalendarItemRow | null>(null);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const [addOrderOpen, setAddOrderOpen] = useState(false);
+
+  const { data: columns = [] } = useQuery({
+    queryKey: ['settlements-columns', instanceId],
+    enabled: !!instanceId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('calendar_columns')
+        .select('id, name')
+        .eq('instance_id', instanceId)
+        .eq('active', true)
+        .order('sort_order');
+      return data || [];
+    },
+  });
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['settlements', instanceId],
@@ -280,6 +296,10 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
           <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
           Sprawdź statusy płatności
         </Button>
+        <Button size="sm" onClick={() => setAddOrderOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Dodaj zlecenie
+        </Button>
       </div>
 
       {/* Mobile Cards */}
@@ -365,18 +385,6 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      {invoice?.pdf_url && (
-                        <a
-                          href={invoice.pdf_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          PDF
-                        </a>
-                      )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()}>
@@ -385,6 +393,12 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuItem onSelect={() => openDetailsDrawer(order)}>Szczegóły</DropdownMenuItem>
+                          {invoice?.pdf_url && (
+                            <DropdownMenuItem onSelect={() => window.open(invoice.pdf_url!, '_blank')}>
+                              <FileText className="w-4 h-4 mr-2" />
+                              Pobierz FV
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onSelect={() => openInvoiceDrawer(order)}>Wystaw FV</DropdownMenuItem>
                           {blikTemplateEnabled && (
                             <DropdownMenuItem onSelect={() => openSmsDialog(order, 'blik')}>
@@ -516,18 +530,6 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                               ))}
                             </DropdownMenuContent>
                           </DropdownMenu>
-                          {invoice?.pdf_url && (
-                            <a
-                              href={invoice.pdf_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                              PDF
-                            </a>
-                          )}
                         </div>
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
@@ -554,6 +556,14 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                           >
                             Szczegóły
                           </DropdownMenuItem>
+                          {invoice?.pdf_url && (
+                            <DropdownMenuItem
+                              onSelect={() => window.open(invoice.pdf_url!, '_blank')}
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              Pobierz FV
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onSelect={() => openInvoiceDrawer(order)}
                           >
@@ -661,6 +671,18 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
           }}
         />
       )}
+
+      {/* Add Order Dialog */}
+      <AddCalendarItemDialog
+        open={addOrderOpen}
+        onClose={() => setAddOrderOpen(false)}
+        instanceId={instanceId}
+        columns={columns}
+        onSuccess={() => {
+          setAddOrderOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+        }}
+      />
     </div>
   );
 };
