@@ -124,15 +124,15 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border border-border bg-card overflow-x-auto">
+      {/* Desktop Table */}
+      <div className="hidden md:block rounded-lg border border-border bg-card overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead>Klient</TableHead>
               <TableHead>Typ</TableHead>
               <TableHead>Data</TableHead>
-              <TableHead>Przygotował</TableHead>
+              <TableHead>Sporządził</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -153,13 +153,13 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
               protocols.map((p) => (
                 <TableRow key={p.id} className="group cursor-pointer" onClick={() => handleEdit(p)}>
                   <TableCell className="font-medium">{p.customer_name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm">
                     {protocolTypeLabels[p.protocol_type] || p.protocol_type}
                   </TableCell>
                   <TableCell className="text-sm">
                     {format(new Date(p.protocol_date), 'd MMM yyyy', { locale: pl })}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm">
                     {p.prepared_by || '—'}
                   </TableCell>
                   <TableCell>
@@ -190,6 +190,64 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          <p className="text-center text-muted-foreground py-8">Ładowanie...</p>
+        ) : protocols.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">
+            {searchQuery ? 'Brak wyników wyszukiwania' : 'Brak protokołów'}
+          </p>
+        ) : (
+          protocols.map((p) => (
+            <div
+              key={p.id}
+              className="rounded-lg border border-border bg-card p-4 cursor-pointer active:bg-muted/50"
+              onClick={() => handleEdit(p)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <p className="font-medium truncate">{p.customer_name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {protocolTypeLabels[p.protocol_type] || p.protocol_type}
+                  </p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={(e) => e.stopPropagation()}>
+                      <MoreHorizontal className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={() => handleEdit(p)}>
+                      <Edit className="w-4 h-4 mr-2" />Edytuj
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleCopyLink(p.public_token)}>
+                      <Link2 className="w-4 h-4 mr-2" />Kopiuj link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setEmailDialogProtocol(p)}>
+                      <Mail className="w-4 h-4 mr-2" />Wyślij emailem
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDeleteClick(p.id)} className="text-destructive">
+                      <Trash2 className="w-4 h-4 mr-2" />Usuń
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
+                <span>{format(new Date(p.protocol_date), 'd MMM yyyy', { locale: pl })}</span>
+                {p.prepared_by && (
+                  <>
+                    <span>·</span>
+                    <span>{p.prepared_by}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Create/Edit Form */}
