@@ -168,11 +168,6 @@ const SelectedServicesList = ({
                     {service.name}
                   </p>
                 </div>
-                {duration && (
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDuration(duration)}
-                  </span>
-                )}
                 <button
                   type="button"
                   onClick={() => onRemoveService(service.id)}
@@ -297,9 +292,6 @@ const SelectedServicesList = ({
         </Button>
 
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">
-            Czas: <span className="font-bold text-base text-foreground">{formatDuration(totalDuration)}</span>
-          </p>
           <p className="text-lg font-bold">
             {totalPrice.toFixed(0)} zł
           </p>

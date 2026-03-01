@@ -263,9 +263,15 @@ const AddCalendarItemDialog = ({
       const initDate = initialDate ? parseISO(initialDate) : new Date();
       setDateRange({ from: initDate, to: initDate });
       setReservationType('single');
-      setStartTime(initialTime || '08:00');
-      const startIdx = TIME_OPTIONS.indexOf(initialTime || '08:00');
-      setEndTime(TIME_OPTIONS[Math.min(startIdx + 2, TIME_OPTIONS.length - 1)] || '09:00');
+      const initStart = initialTime || '08:00';
+      setStartTime(initStart);
+      // Default to "Pół dnia" (4.5h)
+      setDurationPreset('half');
+      const [sh, sm] = initStart.split(':').map(Number);
+      const halfDayEnd = sh * 60 + sm + Math.round(WORK_DAY_MINUTES * 0.5);
+      const halfEndStr = `${String(Math.floor(halfDayEnd / 60)).padStart(2, '0')}:${String(halfDayEnd % 60).padStart(2, '0')}`;
+      const halfClosest = TIME_OPTIONS.find(t => t >= halfEndStr) || TIME_OPTIONS[TIME_OPTIONS.length - 1];
+      setEndTime(halfClosest);
       setAdminNotes('');
       setPrice('');
       setAssignedEmployeeIds([]);
