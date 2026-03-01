@@ -71,8 +71,6 @@ export function CreateInvoiceDrawer({
           <InvoiceForm
             kind={form.kind}
             onKindChange={form.setKind}
-            currency={form.currency}
-            onCurrencyChange={form.setCurrency}
             issueDate={form.issueDate}
             onIssueDateChange={form.setIssueDate}
             sellDate={form.sellDate}
@@ -89,6 +87,10 @@ export function CreateInvoiceDrawer({
             onAddPosition={form.addPosition}
             onRemovePosition={form.removePosition}
             onUpdatePosition={form.updatePosition}
+            priceMode={form.priceMode}
+            onPriceModeChange={form.setPriceMode}
+            totalNetto={form.totalNetto}
+            totalVat={form.totalVat}
             totalGross={form.totalGross}
             paymentTo={form.paymentTo}
             autoSendEmail={form.settings?.auto_send_email}
