@@ -384,7 +384,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                             </Badge>
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
+                        <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
                           {Object.entries(STATUS_CONFIG).map(([key, config]) =>
                       <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
                           <Badge
@@ -408,7 +408,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
 
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start">
+                          <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
                             {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) =>
                       <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
                                 <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.color}`}>
@@ -542,7 +542,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                             </Badge>
                           </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           {Object.entries(STATUS_CONFIG).map(([key, config]) =>
                         <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
                           <Badge
@@ -569,7 +569,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
 
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                               {Object.entries(PAYMENT_STATUS_CONFIG).map(([key, config]) =>
                           <DropdownMenuItem key={key} onClick={() => changePaymentStatus(order.id, key)}>
                                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${config.color}`}>
