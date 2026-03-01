@@ -1059,6 +1059,7 @@ export type Database = {
         Row: {
           calendar_item_id: string | null
           created_at: string
+          created_by_user_id: string | null
           customer_address_id: string | null
           customer_email: string | null
           customer_id: string | null
@@ -1081,6 +1082,7 @@ export type Database = {
         Insert: {
           calendar_item_id?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           customer_address_id?: string | null
           customer_email?: string | null
           customer_id?: string | null
@@ -1103,6 +1105,7 @@ export type Database = {
         Update: {
           calendar_item_id?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           customer_address_id?: string | null
           customer_email?: string | null
           customer_id?: string | null

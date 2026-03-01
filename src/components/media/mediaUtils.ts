@@ -31,7 +31,16 @@ export const compressVideo = (
   file: File,
   onProgress?: (pct: number) => void,
 ): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
+  // Skip compression for files under 50MB
+  const MAX_SIZE_NO_COMPRESS = 50 * 1024 * 1024;
+  if (file.size < MAX_SIZE_NO_COMPRESS) {
+    onProgress?.(100);
+    return Promise.resolve(file);
+  }
+
+  const TIMEOUT_MS = 10_000;
+
+  const compressionPromise = new Promise<Blob>((resolve, reject) => {
     const video = document.createElement('video');
     video.muted = true;
     video.playsInline = true;
@@ -40,13 +49,11 @@ export const compressVideo = (
     video.onloadedmetadata = () => {
       const duration = video.duration;
       if (!duration || duration === Infinity) {
-        // Can't re-encode, return original
         resolve(file);
         return;
       }
 
       const canvas = document.createElement('canvas');
-      // Scale down if > 720p
       let w = video.videoWidth;
       let h = video.videoHeight;
       const maxH = 720;
@@ -54,7 +61,6 @@ export const compressVideo = (
         w = Math.round(w * (maxH / h));
         h = maxH;
       }
-      // Ensure even dimensions for codec compatibility
       w = w % 2 === 0 ? w : w - 1;
       h = h % 2 === 0 ? h : h - 1;
       canvas.width = w;
@@ -62,7 +68,6 @@ export const compressVideo = (
       const ctx = canvas.getContext('2d')!;
 
       const stream = canvas.captureStream(24);
-      // Try to capture audio too
       try {
         const audioCtx = new AudioContext();
         const source = audioCtx.createMediaElementSource(video);
@@ -71,7 +76,7 @@ export const compressVideo = (
         source.connect(audioCtx.destination);
         dest.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
       } catch {
-        // no audio track or unsupported - continue without
+        // no audio track or unsupported
       }
 
       let mimeType = 'video/webm;codecs=vp8';
@@ -79,24 +84,22 @@ export const compressVideo = (
         mimeType = 'video/webm';
       }
       if (!MediaRecorder.isTypeSupported(mimeType)) {
-        // Fallback: return original
         resolve(file);
         return;
       }
 
       const recorder = new MediaRecorder(stream, {
         mimeType,
-        videoBitsPerSecond: 1_500_000, // ~1.5Mbps target
+        videoBitsPerSecond: 1_500_000,
       });
 
       const chunks: Blob[] = [];
       recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
       recorder.onstop = () => {
         const blob = new Blob(chunks, { type: mimeType });
-        // If re-encoded is larger than original, return original
         resolve(blob.size < file.size ? blob : file);
       };
-      recorder.onerror = () => resolve(file); // fallback
+      recorder.onerror = () => resolve(file);
 
       recorder.start();
       video.currentTime = 0;
@@ -118,9 +121,19 @@ export const compressVideo = (
       };
     };
 
-    video.onerror = () => resolve(file); // fallback
+    video.onerror = () => resolve(file);
     video.src = URL.createObjectURL(file);
   });
+
+  // Race against timeout — if compression hangs, return original file
+  const timeoutPromise = new Promise<Blob>((resolve) => {
+    setTimeout(() => {
+      onProgress?.(100);
+      resolve(file);
+    }, TIMEOUT_MS);
+  });
+
+  return Promise.race([compressionPromise, timeoutPromise]);
 };
 
 export type UploadProgressCallback = (pct: number) => void;

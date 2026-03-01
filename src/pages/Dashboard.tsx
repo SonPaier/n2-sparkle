@@ -84,6 +84,7 @@ const Dashboard = () => {
 
   // Protocol form state
   const [protocolFormOpen, setProtocolFormOpen] = useState(false);
+  const [protocolEditId, setProtocolEditId] = useState<string | null>(null);
   const [protocolPrefill, setProtocolPrefill] = useState<{
     customerId?: string | null;
     customerName?: string;
@@ -471,8 +472,15 @@ const Dashboard = () => {
             onStatusChange={handleStatusChange}
             onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
             onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
-            onAddProtocol={(item) => {
+            onAddProtocol={async (item) => {
               setDetailsOpen(false);
+              const { data: existing } = await supabase
+                .from('protocols')
+                .select('id')
+                .eq('calendar_item_id', item.id)
+                .eq('instance_id', instanceId!)
+                .maybeSingle();
+              setProtocolEditId(existing?.id || null);
               setProtocolPrefill({
                 customerId: item.customer_id,
                 customerName: item.customer_name || '',
@@ -567,10 +575,10 @@ const Dashboard = () => {
       {instanceId && (
         <CreateProtocolForm
           open={protocolFormOpen}
-          onClose={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
+          onClose={() => { setProtocolFormOpen(false); setProtocolPrefill({}); setProtocolEditId(null); }}
           instanceId={instanceId}
-          onSuccess={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
-          editingProtocolId={null}
+          onSuccess={() => { setProtocolFormOpen(false); setProtocolPrefill({}); setProtocolEditId(null); }}
+          editingProtocolId={protocolEditId}
           prefillCustomerId={protocolPrefill.customerId}
           prefillCustomerName={protocolPrefill.customerName}
           prefillCustomerPhone={protocolPrefill.customerPhone}
@@ -591,8 +599,15 @@ const Dashboard = () => {
         onStatusChange={handleStatusChange}
         onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
         onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
-        onAddProtocol={(item) => {
+        onAddProtocol={async (item) => {
           setDashboardDetailsOpen(false);
+          const { data: existing } = await supabase
+            .from('protocols')
+            .select('id')
+            .eq('calendar_item_id', item.id)
+            .eq('instance_id', instanceId!)
+            .maybeSingle();
+          setProtocolEditId(existing?.id || null);
           setProtocolPrefill({
             customerId: item.customer_id,
             customerName: item.customer_name || '',

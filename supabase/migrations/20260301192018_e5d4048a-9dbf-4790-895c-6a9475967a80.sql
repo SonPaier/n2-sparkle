@@ -1,0 +1,1 @@
+ALTER TABLE public.protocols ADD COLUMN created_by_user_id uuid;

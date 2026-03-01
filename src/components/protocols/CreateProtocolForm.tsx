@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Loader2, CalendarIcon, Pen } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
+import { Loader2, CalendarIcon, Pen, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -13,12 +12,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import CustomerSearchInput, { type SelectedCustomer } from '@/components/admin/CustomerSearchInput';
 import CustomerAddressSelect from '@/components/admin/CustomerAddressSelect';
 import { ProtocolPhotosUploader } from './ProtocolPhotosUploader';
 import SignatureDialog from './SignatureDialog';
+import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CreateProtocolFormProps {
   open: boolean;
@@ -36,7 +37,7 @@ interface CreateProtocolFormProps {
 
 const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId, prefillCalendarItemId }: CreateProtocolFormProps) => {
   const isMobile = useIsMobile();
-  const { fullName } = useAuth();
+  const { user } = useAuth();
   const isEditMode = !!editingProtocolId;
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
@@ -57,7 +58,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
   const [customerSignature, setCustomerSignature] = useState<string | null>(null);
   const [signatureOpen, setSignatureOpen] = useState(false);
 
-  // Load existing protocol for editing
+  // Load existing protocol for editing or reset form
   useEffect(() => {
     if (!open) return;
     if (isEditMode && editingProtocolId) {
@@ -95,10 +96,24 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
       setPhotoUrls([]);
       setNotes('');
       setProtocolDate(new Date());
-      setPreparedBy(fullName || '');
       setCustomerSignature(null);
+
+      // Auto-fill prepared_by from linked employee name
+      if (user?.id && instanceId) {
+        supabase
+          .from('employees')
+          .select('name')
+          .eq('instance_id', instanceId)
+          .eq('linked_user_id', user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            setPreparedBy(data?.name || '');
+          });
+      } else {
+        setPreparedBy('');
+      }
     }
-  }, [open, isEditMode, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId]);
+  }, [open, isEditMode, editingProtocolId, prefillCustomerId, prefillCustomerName, prefillCustomerPhone, prefillCustomerEmail, prefillCustomerAddressId, instanceId, user?.id]);
 
   const handleSelectCustomer = (customer: SelectedCustomer) => {
     setCustomerId(customer.id);
@@ -143,6 +158,9 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
       if (!isEditMode && prefillCalendarItemId) {
         payload.calendar_item_id = prefillCalendarItemId;
       }
+      if (!isEditMode && user?.id) {
+        payload.created_by_user_id = user.id;
+      }
 
       if (isEditMode) {
         const { error } = await supabase.from('protocols').update(payload).eq('id', editingProtocolId!);
@@ -164,155 +182,177 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
     }
   };
 
+  const formContent = (
+    <div className="flex flex-col h-full">
+      {/* Fixed header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+        <h2 className="text-lg font-semibold">{isEditMode ? 'Edytuj protokół' : 'Nowy protokół'}</h2>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="w-5 h-5" />
+        </Button>
+      </div>
+
+      {/* Scrollable content */}
+      {loadingData ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          {/* Protocol Type */}
+          <div className="space-y-2">
+            <Label>Typ protokołu</Label>
+            <Select value={protocolType} onValueChange={setProtocolType}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="completion">Protokół zakończenia prac</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Customer Search */}
+          <div className="space-y-2">
+            <Label>Klient *</Label>
+            <CustomerSearchInput
+              instanceId={instanceId}
+              selectedCustomer={customerId ? { id: customerId, name: customerName, phone: customerPhone, email: customerEmail || null, company: null } : null}
+              onSelect={handleSelectCustomer}
+              onClear={handleClearCustomer}
+            />
+          </div>
+
+          {/* Customer details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Imię i nazwisko *</Label>
+              <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); if (customerId) setCustomerId(null); }} placeholder="Jan Kowalski" />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefon</Label>
+              <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+48 ..." type="tel" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="jan@example.com" type="email" />
+            </div>
+            <div className="space-y-2">
+              <Label>NIP</Label>
+              <Input value={customerNip} onChange={(e) => setCustomerNip(e.target.value)} placeholder="123-456-78-90" />
+            </div>
+          </div>
+
+          {/* Customer Address */}
+          <CustomerAddressSelect
+            instanceId={instanceId}
+            customerId={customerId}
+            value={customerAddressId}
+            onChange={setCustomerAddressId}
+            label="Adres klienta"
+          />
+
+          {/* Photos */}
+          <div className="space-y-2">
+            <Label>Zdjęcia</Label>
+            <ProtocolPhotosUploader
+              photos={photoUrls}
+              onPhotosChange={setPhotoUrls}
+              protocolId={editingProtocolId}
+            />
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <Label>Uwagi</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Dodatkowe uwagi..." rows={3} />
+          </div>
+
+          {/* Date */}
+          <div className="space-y-2">
+            <Label>Data protokołu</Label>
+            <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(protocolDate, 'EEEE, d MMM yyyy', { locale: pl })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={protocolDate}
+                  onSelect={(date) => { if (date) { setProtocolDate(date); setDatePickerOpen(false); } }}
+                  initialFocus
+                  locale={pl}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Prepared By */}
+          <div className="space-y-2">
+            <Label>Sporządził</Label>
+            <Input value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} placeholder="Imię i nazwisko osoby sporządzającej" />
+          </div>
+
+          {/* Signature */}
+          <div className="space-y-2">
+            <Label>Podpis osoby upoważnionej do odbioru</Label>
+            <div className="border border-border rounded-md bg-white overflow-hidden relative">
+              {customerSignature ? (
+                <div className="relative">
+                  <img src={customerSignature} alt="Podpis" className="w-full" style={{ height: '160px', objectFit: 'contain' }} />
+                  <div className="absolute bottom-2 right-2 flex gap-1">
+                    <Button variant="secondary" size="sm" onClick={() => { setCustomerSignature(null); setSignatureOpen(true); }}>Podpisz ponownie</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setCustomerSignature(null)}>Usuń</Button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  className="flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors text-muted-foreground"
+                  style={{ height: '160px' }}
+                  onClick={() => setSignatureOpen(true)}
+                >
+                  <Pen className="w-8 h-8 mb-2" />
+                  <span className="text-sm">Kliknij aby złożyć podpis</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fixed bottom bar */}
+      <div className="flex border-t border-border shrink-0">
+        <Button variant="outline" className="flex-1 rounded-none h-12" onClick={onClose}>
+          Anuluj
+        </Button>
+        <Button className="flex-1 rounded-none h-12" onClick={handleSubmit} disabled={loading}>
+          {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+          {isEditMode ? 'Zapisz zmiany' : 'Utwórz protokół'}
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <>
-      <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side={isMobile ? 'bottom' : 'right'} className={isMobile ? 'h-[90vh] overflow-y-auto' : 'sm:max-w-lg overflow-y-auto'} hideOverlay>
-          <SheetHeader>
-            <SheetTitle>{isEditMode ? 'Edytuj protokół' : 'Nowy protokół'}</SheetTitle>
-          </SheetHeader>
-
-          {loadingData ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
-            <div className="space-y-4 py-4">
-              {/* Protocol Type */}
-              <div className="space-y-2">
-                <Label>Typ protokołu</Label>
-                <Select value={protocolType} onValueChange={setProtocolType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="completion">Protokół zakończenia prac</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Customer Search */}
-              <div className="space-y-2">
-                <Label>Klient *</Label>
-                <CustomerSearchInput
-                  instanceId={instanceId}
-                  selectedCustomer={customerId ? { id: customerId, name: customerName, phone: customerPhone, email: customerEmail || null, company: null } : null}
-                  onSelect={handleSelectCustomer}
-                  onClear={handleClearCustomer}
-                />
-              </div>
-
-              {/* Customer details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Imię i nazwisko *</Label>
-                  <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); if (customerId) setCustomerId(null); }} placeholder="Jan Kowalski" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Telefon</Label>
-                  <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+48 ..." type="tel" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="jan@example.com" type="email" />
-                </div>
-                <div className="space-y-2">
-                  <Label>NIP</Label>
-                  <Input value={customerNip} onChange={(e) => setCustomerNip(e.target.value)} placeholder="123-456-78-90" />
-                </div>
-              </div>
-
-              {/* Customer Address */}
-              <CustomerAddressSelect
-                instanceId={instanceId}
-                customerId={customerId}
-                value={customerAddressId}
-                onChange={setCustomerAddressId}
-                label="Adres klienta"
-              />
-
-              {/* Photos */}
-              <div className="space-y-2">
-                <Label>Zdjęcia</Label>
-                <ProtocolPhotosUploader
-                  photos={photoUrls}
-                  onPhotosChange={setPhotoUrls}
-                  protocolId={editingProtocolId}
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label>Uwagi</Label>
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Dodatkowe uwagi..." rows={3} />
-              </div>
-
-              {/* Date */}
-              <div className="space-y-2">
-                <Label>Data protokołu</Label>
-                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(protocolDate, 'EEEE, d MMM yyyy', { locale: pl })}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={protocolDate}
-                      onSelect={(date) => { if (date) { setProtocolDate(date); setDatePickerOpen(false); } }}
-                      initialFocus
-                      locale={pl}
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              {/* Prepared By */}
-              <div className="space-y-2">
-                <Label>Sporządził</Label>
-                <Input value={preparedBy} onChange={(e) => setPreparedBy(e.target.value)} placeholder="Imię i nazwisko osoby sporządzającej" />
-              </div>
-
-              {/* Signature - inline canvas */}
-              <div className="space-y-2">
-                <Label>Podpis osoby upoważnionej do odbioru</Label>
-                <div className="border border-border rounded-md bg-white overflow-hidden relative">
-                  {customerSignature ? (
-                    <div className="relative">
-                      <img src={customerSignature} alt="Podpis" className="w-full" style={{ height: '160px', objectFit: 'contain' }} />
-                      <div className="absolute bottom-2 right-2 flex gap-1">
-                        <Button variant="secondary" size="sm" onClick={() => { setCustomerSignature(null); setSignatureOpen(true); }}>Podpisz ponownie</Button>
-                        <Button variant="ghost" size="sm" onClick={() => setCustomerSignature(null)}>Usuń</Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      className="flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors text-muted-foreground"
-                      style={{ height: '160px' }}
-                      onClick={() => setSignatureOpen(true)}
-                    >
-                      <Pen className="w-8 h-8 mb-2" />
-                      <span className="text-sm">Kliknij aby złożyć podpis</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <SheetFooter className="gap-2">
-            <Button variant="outline" onClick={onClose}>Anuluj</Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {isEditMode ? 'Zapisz zmiany' : 'Utwórz protokół'}
-            </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+      {isMobile ? (
+        <Drawer open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+          <DrawerContent className="h-[95vh]" hideHandle>
+            {formContent}
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+          <SheetContent side="right" className="sm:max-w-lg p-0" hideOverlay hideCloseButton>
+            {formContent}
+          </SheetContent>
+        </Sheet>
+      )}
 
       <SignatureDialog
         open={signatureOpen}
