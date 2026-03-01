@@ -92,6 +92,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [addOrderOpen, setAddOrderOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
@@ -237,6 +238,10 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     setCurrentPage(1);
   };
 
+  const invalidateSettlements = () => {
+    queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+  };
+
   const changeStatus = async (id: string, newStatus: string) => {
     const { error } = await supabase.
     from('calendar_items').
@@ -246,8 +251,42 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       toast.error('Błąd zmiany statusu');
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+    invalidateSettlements();
     toast.success('Status zmieniony');
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    const { error } = await supabase.from('calendar_items').delete().eq('id', itemId);
+    if (error) { toast.error('Błąd usuwania'); return; }
+    invalidateSettlements();
+    toast.success('Zlecenie usunięte');
+  };
+
+  const handleEditItem = (calItem: CalendarItem) => {
+    setEditingItem({
+      id: calItem.id,
+      title: calItem.title,
+      customer_name: calItem.customer_name,
+      customer_phone: calItem.customer_phone,
+      customer_email: calItem.customer_email,
+      customer_id: calItem.customer_id,
+      customer_address_id: calItem.customer_address_id,
+      assigned_employee_ids: calItem.assigned_employee_ids,
+      item_date: calItem.item_date,
+      end_date: calItem.end_date,
+      start_time: calItem.start_time,
+      end_time: calItem.end_time,
+      column_id: calItem.column_id,
+      admin_notes: calItem.admin_notes,
+      price: calItem.price,
+    });
+    setDetailsDrawerOpen(false);
+    setDetailsItem(null);
+    setAddOrderOpen(true);
+  };
+
+  const getStatusConfig = (status: string) => {
+    return STATUS_CONFIG[status] || { label: status, badgeClass: 'border-muted text-muted-foreground' };
   };
 
   const changePaymentStatus = async (id: string, newStatus: string) => {
@@ -259,12 +298,8 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       toast.error('Błąd zmiany statusu płatności');
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+    invalidateSettlements();
     toast.success('Status płatności zmieniony');
-  };
-
-  const getStatusConfig = (status: string) => {
-    return STATUS_CONFIG[status] || { label: status, badgeClass: 'border-muted text-muted-foreground' };
   };
 
   const handleSync = async () => {
@@ -713,12 +748,15 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       <CalendarItemDetailsDrawer
         item={detailsItem}
         open={detailsDrawerOpen}
-        onClose={() => {setDetailsDrawerOpen(false);setDetailsItem(null);}}
-        columns={[]}
+        onClose={() => {setDetailsDrawerOpen(false);setDetailsItem(null);invalidateSettlements();}}
+        columns={columns}
         instanceId={instanceId}
-        onStatusChange={(itemId, newStatus) => {
-          changeStatus(itemId, newStatus);
-        }} />
+        onDelete={handleDeleteItem}
+        onEdit={handleEditItem}
+        onStatusChange={(itemId, newStatus) => changeStatus(itemId, newStatus)}
+        onStartWork={(itemId) => changeStatus(itemId, 'in_progress')}
+        onEndWork={(itemId) => changeStatus(itemId, 'completed')}
+      />
 
 
       {/* Invoice Drawer */}
@@ -753,12 +791,14 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       {/* Add Order Dialog */}
       <AddCalendarItemDialog
         open={addOrderOpen}
-        onClose={() => setAddOrderOpen(false)}
+        onClose={() => { setAddOrderOpen(false); setEditingItem(null); }}
         instanceId={instanceId}
         columns={columns}
+        editingItem={editingItem}
         onSuccess={() => {
           setAddOrderOpen(false);
-          queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+          setEditingItem(null);
+          invalidateSettlements();
         }} />
 
     </div>);
