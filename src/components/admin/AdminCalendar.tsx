@@ -588,7 +588,11 @@ const AdminCalendar = ({
         onClick={(e) => { e.stopPropagation(); onItemClick?.(item); }}
       >
         <div className="px-0.5 text-black space-y-[3px]">
-          {/* Line 1: Time + notes indicator */}
+          {/* Line 1: Title */}
+          <div className="flex items-center gap-1 text-[13px] md:text-[15px] min-w-0">
+            <span className="font-semibold truncate">{item.title}</span>
+          </div>
+          {/* Line 2: Time + notes indicator */}
           <div className="flex items-center justify-between gap-0.5">
             <span className="text-[13px] md:text-[15px] font-bold tabular-nums shrink-0 flex items-center gap-1 pb-0.5">
               {!hideHours && `${item.start_time.slice(0, 5)} - ${item.end_time.slice(0, 5)}`}
@@ -613,20 +617,11 @@ const AdminCalendar = ({
               )}
             </div>
           </div>
-          {/* Line 2: Title */}
-          <div className="flex items-center gap-1 text-[13px] md:text-[15px] min-w-0">
-            <span className="font-semibold truncate">{item.title}</span>
-          </div>
           {/* Line 3: Customer name */}
           {item.customer_name && (
             <div className="flex items-center gap-0.5 text-[11px] md:text-[12px] truncate opacity-80">
               <User className="w-2.5 h-2.5 shrink-0" />
               <span className="truncate">{item.customer_name}</span>
-              {!isMobile && item.customer_phone && (
-                <a href={`tel:${item.customer_phone}`} onClick={(e) => e.stopPropagation()} className="shrink-0 p-0.5 rounded hover:bg-white/20 transition-colors ml-auto" title={item.customer_phone}>
-                  <Phone className="w-3 h-3" />
-                </a>
-              )}
             </div>
           )}
           {/* Line 4: Address */}
