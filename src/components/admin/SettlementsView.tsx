@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText, RefreshCw } from 'lucide-react';
+import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText, RefreshCw, MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,7 @@ import { PAYMENT_STATUS_CONFIG, type PaymentStatus } from '@/components/invoicin
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { CreateInvoiceDrawer } from '@/components/invoicing/CreateInvoiceDrawer';
 import CalendarItemDetailsDrawer from './CalendarItemDetailsDrawer';
+import SendPaymentSmsDialog from './SendPaymentSmsDialog';
 import type { CalendarItem } from './AdminCalendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -85,6 +86,9 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [detailsItem, setDetailsItem] = useState<CalendarItem | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [smsTemplateType, setSmsTemplateType] = useState<'blik' | 'bank_transfer'>('blik');
+  const [smsTarget, setSmsTarget] = useState<CalendarItemRow | null>(null);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
 
@@ -114,6 +118,21 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       return (data || []) as InvoiceRow[];
     },
   });
+
+  const { data: smsTemplates = [] } = useQuery({
+    queryKey: ['sms-payment-templates', instanceId],
+    enabled: !!instanceId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from('sms_payment_templates' as any) as any)
+        .select('template_type, enabled')
+        .eq('instance_id', instanceId);
+      if (error) throw error;
+      return (data || []) as { template_type: string; enabled: boolean }[];
+    },
+  });
+
+  const blikTemplateEnabled = smsTemplates.some((t) => t.template_type === 'blik' && t.enabled);
+  const bankTemplateEnabled = smsTemplates.some((t) => t.template_type === 'bank_transfer' && t.enabled);
 
   const invoicesByItemId = useMemo(() => {
     const map: Record<string, InvoiceRow> = {};
@@ -194,6 +213,12 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
 
   const formatOrderNumber = (item: CalendarItemRow) => {
     return item.order_number || '—';
+  };
+
+  const openSmsDialog = (order: CalendarItemRow, type: 'blik' | 'bank_transfer') => {
+    setSmsTarget(order);
+    setSmsTemplateType(type);
+    setSmsDialogOpen(true);
   };
 
   const openInvoiceDrawer = (order: CalendarItemRow) => {
@@ -361,6 +386,18 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuItem onSelect={() => openDetailsDrawer(order)}>Szczegóły</DropdownMenuItem>
                           <DropdownMenuItem onSelect={() => openInvoiceDrawer(order)}>Wystaw FV</DropdownMenuItem>
+                          {blikTemplateEnabled && (
+                            <DropdownMenuItem onSelect={() => openSmsDialog(order, 'blik')}>
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Wyślij SMS BLIK
+                            </DropdownMenuItem>
+                          )}
+                          {bankTemplateEnabled && (
+                            <DropdownMenuItem onSelect={() => openSmsDialog(order, 'bank_transfer')}>
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Wyślij SMS z nr konta
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -522,6 +559,18 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                           >
                             Wystaw FV
                           </DropdownMenuItem>
+                          {blikTemplateEnabled && (
+                            <DropdownMenuItem onSelect={() => openSmsDialog(order, 'blik')}>
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Wyślij SMS BLIK
+                            </DropdownMenuItem>
+                          )}
+                          {bankTemplateEnabled && (
+                            <DropdownMenuItem onSelect={() => openSmsDialog(order, 'bank_transfer')}>
+                              <MessageSquare className="w-4 h-4 mr-2" />
+                              Wyślij SMS z nr konta
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -598,6 +647,20 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
           queryClient.invalidateQueries({ queryKey: ['settlements-invoices', instanceId] });
         }}
       />
+
+      {/* SMS Payment Dialog */}
+      {smsTarget && (
+        <SendPaymentSmsDialog
+          open={smsDialogOpen}
+          onClose={() => { setSmsDialogOpen(false); setSmsTarget(null); }}
+          templateType={smsTemplateType}
+          calendarItem={smsTarget}
+          instanceId={instanceId}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+          }}
+        />
+      )}
     </div>
   );
 };
