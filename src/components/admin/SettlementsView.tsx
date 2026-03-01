@@ -66,7 +66,6 @@ const formatCurrency = (value: number | null) => {
 };
 
 const STATUS_CONFIG: Record<string, {label: string;badgeClass: string;}> = {
-  pending: { label: 'Do potw.', badgeClass: 'border-amber-500 text-amber-600' },
   confirmed: { label: 'Do wykonania', badgeClass: 'border-amber-500 text-amber-600' },
   in_progress: { label: 'W realizacji', badgeClass: 'bg-blue-600 hover:bg-blue-700 text-white' },
   completed: { label: 'Zakończony', badgeClass: 'bg-emerald-600 hover:bg-emerald-700 text-white' },
@@ -351,9 +350,9 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         <DropdownMenuContent align="start">
                           {Object.entries(STATUS_CONFIG).map(([key, config]) =>
                       <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
-                              <Badge
+                          <Badge
                           variant={['in_progress', 'completed', 'cancelled'].includes(key) ? 'default' : 'outline'}
-                          className={`${config.badgeClass} mr-2`}>
+                          className={`${config.badgeClass}`}>
 
                                 {config.label}
                               </Badge>
@@ -494,13 +493,12 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         <DropdownMenuContent align="end">
                           {Object.entries(STATUS_CONFIG).map(([key, config]) =>
                         <DropdownMenuItem key={key} onClick={() => changeStatus(order.id, key)}>
-                              <Badge
+                          <Badge
                             variant={['in_progress', 'completed', 'cancelled'].includes(key) ? 'default' : 'outline'}
-                            className={`${config.badgeClass} mr-2`}>
+                            className={`${config.badgeClass}`}>
 
                                 {config.label}
                               </Badge>
-                              Oznacz jako {config.label.toLowerCase()}
                             </DropdownMenuItem>
                         )}
                         </DropdownMenuContent>
