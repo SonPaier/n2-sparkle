@@ -137,6 +137,27 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     }
   });
 
+  const addressIds = useMemo(() => {
+    return [...new Set(items.map(i => i.customer_address_id).filter(Boolean))] as string[];
+  }, [items]);
+
+  const { data: addressMap = {} } = useQuery({
+    queryKey: ['settlements-addresses', instanceId, addressIds],
+    enabled: addressIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('customer_addresses')
+        .select('id, name, street, city')
+        .in('id', addressIds);
+      const map: Record<string, string> = {};
+      (data || []).forEach((a: any) => {
+        const parts = [a.street, a.city].filter(Boolean);
+        map[a.id] = parts.length > 0 ? parts.join(', ') : a.name;
+      });
+      return map;
+    }
+  });
+
   const { data: invoices = [] } = useQuery({
     queryKey: ['settlements-invoices', instanceId],
     enabled: !!instanceId,
@@ -361,6 +382,9 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{order.title || '—'}</p>
                       <p className="text-xs text-muted-foreground">{order.customer_name || '—'}</p>
+                      {order.customer_address_id && addressMap[order.customer_address_id] && (
+                        <p className="text-xs text-muted-foreground/70 truncate">{addressMap[order.customer_address_id]}</p>
+                      )}
                     </div>
                     <span className="text-sm font-semibold tabular-nums whitespace-nowrap">
                       {formatCurrency(order.price)}
@@ -521,7 +545,12 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                     <TableCell className="max-w-[200px] truncate text-sm">
                       {order.title || '—'}
                     </TableCell>
-                    <TableCell className="font-medium">{order.customer_name || '—'}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>{order.customer_name || '—'}</div>
+                      {order.customer_address_id && addressMap[order.customer_address_id] && (
+                        <div className="text-xs text-muted-foreground truncate">{addressMap[order.customer_address_id]}</div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-sm">
                       <div className="leading-tight">
                         <div>{format(parseISO(order.created_at), 'dd.MM.yyyy')}</div>
