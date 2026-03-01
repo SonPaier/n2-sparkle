@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, History, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 interface SmsPaymentTemplatesViewProps {
   instanceId: string | null;
@@ -182,6 +183,97 @@ const SmsPaymentTemplatesView = ({ instanceId }: SmsPaymentTemplatesViewProps) =
         {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
         Zapisz szablony
       </Button>
+
+      {/* SMS History */}
+      <SmsHistorySection instanceId={instanceId} />
+    </div>
+  );
+};
+
+// SMS History sub-component
+const SmsHistorySection = ({ instanceId }: { instanceId: string | null }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+
+  const loadLogs = async () => {
+    if (!instanceId) return;
+    setLoadingLogs(true);
+    const { data, error } = await (supabase.from('sms_logs' as any) as any)
+      .select('*')
+      .eq('instance_id', instanceId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) {
+      console.error('Error fetching SMS logs:', error);
+    } else {
+      setLogs(data || []);
+    }
+    setLoadingLogs(false);
+  };
+
+  const handleToggle = () => {
+    const next = !expanded;
+    setExpanded(next);
+    if (next && logs.length === 0) loadLogs();
+  };
+
+  const typeLabel = (type: string) => {
+    switch (type) {
+      case 'payment_blik': return 'BLIK';
+      case 'payment_bank_transfer': return 'Przelew';
+      default: return type;
+    }
+  };
+
+  return (
+    <div className="bg-card rounded-lg border border-border shadow-sm">
+      <button
+        onClick={handleToggle}
+        className="w-full flex items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <History className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm font-semibold">Historia SMS płatności</span>
+        </div>
+        {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </button>
+      {expanded && (
+        <div className="px-4 pb-4 space-y-2">
+          {loadingLogs ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : logs.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Brak wysłanych SMS</p>
+          ) : (
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {logs.map((log: any) => (
+                <div key={log.id} className="border border-border rounded-md p-3 space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">{typeLabel(log.message_type)}</Badge>
+                      <span className="text-xs text-muted-foreground">{log.phone}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(log.created_at), 'dd.MM.yyyy HH:mm')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-foreground whitespace-pre-wrap line-clamp-3">{log.message}</p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={log.status === 'sent' || log.status === 'sent_native' ? 'default' : 'destructive'} className="text-[10px]">
+                      {log.status === 'sent' ? 'Wysłano' : log.status === 'sent_native' ? 'Natywny SMS' : log.status}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <Button variant="outline" size="sm" onClick={loadLogs} disabled={loadingLogs} className="w-full">
+            Odśwież
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1291,6 +1291,57 @@ export type Database = {
           },
         ]
       }
+      sms_logs: {
+        Row: {
+          calendar_item_id: string | null
+          created_at: string
+          id: string
+          instance_id: string
+          message: string
+          message_type: string
+          phone: string
+          sent_by: string | null
+          status: string
+        }
+        Insert: {
+          calendar_item_id?: string | null
+          created_at?: string
+          id?: string
+          instance_id: string
+          message: string
+          message_type: string
+          phone: string
+          sent_by?: string | null
+          status?: string
+        }
+        Update: {
+          calendar_item_id?: string | null
+          created_at?: string
+          id?: string
+          instance_id?: string
+          message?: string
+          message_type?: string
+          phone?: string
+          sent_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_logs_calendar_item_id_fkey"
+            columns: ["calendar_item_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sms_logs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sms_notification_templates: {
         Row: {
           created_at: string

@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { phone, message, instanceId, notificationId } = await req.json();
+    const { phone, message, instanceId, notificationId, calendarItemId, messageType, sentBy } = await req.json();
 
     if (!phone || !message) {
       return new Response(
@@ -107,6 +107,22 @@ Deno.serve(async (req) => {
           .update({ status: "failed" })
           .eq("id", notificationId);
       }
+    }
+
+    // Log to sms_logs if calendarItemId provided
+    if (calendarItemId && messageType) {
+      const logSupabase = createClient(supabaseUrl, supabaseServiceKey);
+      await logSupabase
+        .from("sms_logs")
+        .insert({
+          instance_id: instanceId,
+          calendar_item_id: calendarItemId,
+          phone: phone.replace(/\D/g, ""),
+          message: finalMessage,
+          message_type: messageType,
+          status: isSuccess ? "sent" : "failed",
+          sent_by: sentBy || null,
+        });
     }
 
     return new Response(

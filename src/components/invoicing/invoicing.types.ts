@@ -2,7 +2,7 @@
 
 export type InvoicingProvider = 'fakturownia' | 'ifirma';
 
-export type PaymentStatus = 'not_invoiced' | 'invoice_sent' | 'paid' | 'overdue' | 'collective' | 'non_payable';
+export type PaymentStatus = 'not_invoiced' | 'invoice_sent' | 'paid' | 'overdue' | 'collective' | 'non_payable' | 'sms_blik_sent' | 'sms_bank_sent';
 
 export type DocumentKind = 'vat' | 'proforma' | 'receipt';
 
@@ -92,4 +92,6 @@ export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { label: string; color
   overdue: { label: 'Przeterminowana', color: 'bg-red-600 text-white' },
   collective: { label: 'Zbiorczy', color: 'bg-blue-600 text-white' },
   non_payable: { label: 'Niepłatny', color: 'bg-gray-400 text-white' },
+  sms_blik_sent: { label: 'Wysłano SMS BLIK', color: 'bg-orange-500 text-white' },
+  sms_bank_sent: { label: 'Wysłano SMS konto', color: 'bg-purple-600 text-white' },
 };
