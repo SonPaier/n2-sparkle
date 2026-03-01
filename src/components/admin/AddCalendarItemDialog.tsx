@@ -118,6 +118,23 @@ const AddCalendarItemDialog = ({
   const [dateRangeOpen, setDateRangeOpen] = useState(false);
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('09:00');
+  const [durationPreset, setDurationPreset] = useState('');
+
+  const WORK_DAY_MINUTES = 9 * 60;
+  const handleDurationPreset = (preset: string) => {
+    setDurationPreset(preset);
+    const fractions: Record<string, number> = { full: 1, half: 0.5, third: 1/3, quarter: 0.25 };
+    const fraction = fractions[preset];
+    if (!fraction) return;
+    const minutes = Math.round(WORK_DAY_MINUTES * fraction);
+    const [h, m] = startTime.split(':').map(Number);
+    const endMin = h * 60 + m + minutes;
+    const endH = Math.floor(endMin / 60);
+    const endM = endMin % 60;
+    const newEnd = `${String(Math.min(endH, 23)).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    const closestOption = TIME_OPTIONS.find(t => t >= newEnd) || TIME_OPTIONS[TIME_OPTIONS.length - 1];
+    setEndTime(closestOption);
+  };
   const [adminNotes, setAdminNotes] = useState('');
   const [price, setPrice] = useState('');
 
@@ -753,10 +770,10 @@ const AddCalendarItemDialog = ({
             </div>
 
             {/* Time */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Od</Label>
-                <Select value={startTime} onValueChange={setStartTime}>
+                <Select value={startTime} onValueChange={(val) => { setStartTime(val); setDurationPreset(''); }}>
                   <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent className="z-[1200]">
                     {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -765,10 +782,22 @@ const AddCalendarItemDialog = ({
               </div>
               <div className="space-y-2">
                 <Label>Do</Label>
-                <Select value={endTime} onValueChange={setEndTime}>
+                <Select value={endTime} onValueChange={(val) => { setEndTime(val); setDurationPreset(''); }}>
                   <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
                   <SelectContent className="z-[1200]">
                     {TIME_OPTIONS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="invisible">Czas</Label>
+                <Select value={durationPreset} onValueChange={handleDurationPreset}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="Czas trwania" /></SelectTrigger>
+                  <SelectContent className="z-[1200]">
+                    <SelectItem value="full">Cały dzień</SelectItem>
+                    <SelectItem value="half">Pół dnia</SelectItem>
+                    <SelectItem value="third">1/3 dnia</SelectItem>
+                    <SelectItem value="quarter">1/4 dnia</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

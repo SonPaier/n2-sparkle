@@ -390,13 +390,15 @@ const Dashboard = () => {
   const renderContent = () => {
     if (currentView === 'dashboard' && instanceId) {
       return (
-        <DashboardOverview
-          instanceId={instanceId}
-          workingHours={workingHours}
-          onItemClick={handleDashboardItemClick}
-          onReminderClick={handleDashboardReminderClick}
-          onPaymentClick={handleDashboardPaymentClick}
-        />
+        <div className="max-w-[1000px] mx-auto">
+          <DashboardOverview
+            instanceId={instanceId}
+            workingHours={workingHours}
+            onItemClick={handleDashboardItemClick}
+            onReminderClick={handleDashboardReminderClick}
+            onPaymentClick={handleDashboardPaymentClick}
+          />
+        </div>
       );
     }
 
@@ -405,31 +407,31 @@ const Dashboard = () => {
     }
 
     if (currentView === 'uslugi' && instanceId) {
-      return <div className="max-w-[900px] mx-auto"><ServicesView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><ServicesView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'klienci' && instanceId) {
-      return <div className="max-w-[900px] mx-auto"><CustomersView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><CustomersView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'pracownicy' && instanceId) {
-      return <div className="max-w-[900px] mx-auto"><EmployeesView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><EmployeesView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'protokoly' && instanceId) {
-      return <div className="max-w-[900px] mx-auto"><ProtocolsView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><ProtocolsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'rozliczenia' && instanceId) {
-      return <div className="max-w-[900px] mx-auto"><SettlementsView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><SettlementsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'powiadomienia-sms') {
-      return <div className="max-w-[900px] mx-auto"><SmsNotificationsView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><SmsNotificationsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'przypomnienia' && instanceId) {
-      return <div className="max-w-[900px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'kalendarz' && instanceId) {
