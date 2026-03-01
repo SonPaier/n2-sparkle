@@ -261,7 +261,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+      <h1 className="text-xl font-semibold text-foreground mb-6">Mój dzień</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={dashboardItems.length} emptyText="Brak zleceń na najbliższe dni robocze">

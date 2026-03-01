@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { Plus, Search, MoreHorizontal, Trash2, Edit, Link2, Mail, Settings2 } from 'lucide-react';
+import { Plus, Search, MoreHorizontal, Trash2, Edit, Link2, Mail, Settings2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -49,6 +49,39 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  const sortedProtocols = useMemo(() => {
+    if (!sortColumn) return protocols;
+    return [...protocols].sort((a, b) => {
+      let valA: any, valB: any;
+      switch (sortColumn) {
+        case 'customer_name': valA = a.customer_name.toLowerCase(); valB = b.customer_name.toLowerCase(); break;
+        case 'protocol_type': valA = a.protocol_type; valB = b.protocol_type; break;
+        case 'protocol_date': valA = a.protocol_date; valB = b.protocol_date; break;
+        case 'prepared_by': valA = (a.prepared_by || '').toLowerCase(); valB = (b.prepared_by || '').toLowerCase(); break;
+        default: return 0;
+      }
+      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [protocols, sortColumn, sortDirection]);
 
   const fetchProtocols = useCallback(async () => {
     setLoading(true);
@@ -129,10 +162,18 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead>Klient</TableHead>
-              <TableHead>Typ</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead>Sporządził</TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('customer_name')}>
+                <span className="flex items-center">Klient<SortIcon column="customer_name" /></span>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('protocol_type')}>
+                <span className="flex items-center">Typ<SortIcon column="protocol_type" /></span>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('protocol_date')}>
+                <span className="flex items-center">Data<SortIcon column="protocol_date" /></span>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none" onClick={() => handleSort('prepared_by')}>
+                <span className="flex items-center">Sporządził<SortIcon column="prepared_by" /></span>
+              </TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -150,7 +191,7 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
                 </TableCell>
               </TableRow>
             ) : (
-              protocols.map((p) => (
+              sortedProtocols.map((p) => (
                 <TableRow key={p.id} className="group cursor-pointer" onClick={() => handleEdit(p)}>
                   <TableCell className="font-medium">{p.customer_name}</TableCell>
                   <TableCell className="text-sm">
@@ -201,7 +242,7 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
             {searchQuery ? 'Brak wyników wyszukiwania' : 'Brak protokołów'}
           </p>
         ) : (
-          protocols.map((p) => (
+          sortedProtocols.map((p) => (
             <div
               key={p.id}
               className="rounded-lg border border-border bg-card p-4 cursor-pointer active:bg-muted/50"
