@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
 import { Calendar as CalendarIcon, ClipboardCheck, Clock, LayoutDashboard, LogOut, Menu, MoreHorizontal, X } from 'lucide-react';
@@ -54,9 +54,11 @@ const EmployeeCalendarPage = () => {
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
+  const mainRef = useRef<HTMLElement>(null);
 
   // Protocol form state
   const [protocolFormOpen, setProtocolFormOpen] = useState(false);
+  const [protocolEditId, setProtocolEditId] = useState<string | null>(null);
   const [protocolPrefill, setProtocolPrefill] = useState<{
     customerId?: string | null;
     customerName?: string;
@@ -65,6 +67,11 @@ const EmployeeCalendarPage = () => {
     customerAddressId?: string | null;
     calendarItemId?: string;
   }>({});
+
+  // Scroll to top on view change
+  useEffect(() => {
+    mainRef.current?.scrollTo(0, 0);
+  }, [currentView]);
 
   // Fetch config
   useEffect(() => {
@@ -335,7 +342,7 @@ const EmployeeCalendarPage = () => {
   }
 
   const navItems = [
-    { id: 'dashboard' as EmployeeView, label: 'Twój dzień', icon: LayoutDashboard },
+    { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
     { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
     { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
   ];
@@ -392,7 +399,7 @@ const EmployeeCalendarPage = () => {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <main className="flex-1 overflow-auto p-4 lg:p-6 pb-20 lg:pb-6">
+        <main ref={mainRef} className="flex-1 overflow-auto p-4 lg:p-6 pb-20 lg:pb-6">
           {currentView === 'dashboard' && instanceId && config ? (
             <>
               <EmployeeDashboard
@@ -414,8 +421,16 @@ const EmployeeCalendarPage = () => {
                 onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                 hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
-                onAddProtocol={(item) => {
+                onAddProtocol={async (item) => {
                   setDetailsOpen(false);
+                  // Check if protocol already exists for this calendar item
+                  const { data: existing } = await supabase
+                    .from('protocols')
+                    .select('id')
+                    .eq('calendar_item_id', item.id)
+                    .eq('instance_id', instanceId!)
+                    .maybeSingle();
+                  setProtocolEditId(existing?.id || null);
                   setProtocolPrefill({
                     customerId: item.customer_id,
                     customerName: item.customer_name || '',
@@ -477,8 +492,15 @@ const EmployeeCalendarPage = () => {
                     onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
                     hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                     hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
-                    onAddProtocol={(item) => {
+                    onAddProtocol={async (item) => {
                       setDetailsOpen(false);
+                      const { data: existing } = await supabase
+                        .from('protocols')
+                        .select('id')
+                        .eq('calendar_item_id', item.id)
+                        .eq('instance_id', instanceId!)
+                        .maybeSingle();
+                      setProtocolEditId(existing?.id || null);
                       setProtocolPrefill({
                         customerId: item.customer_id,
                         customerName: item.customer_name || '',
@@ -501,21 +523,6 @@ const EmployeeCalendarPage = () => {
                     initialData={newBreakData}
                     onBreakAdded={() => fetchBreaks()}
                   />
-                  {instanceId && (
-                    <CreateProtocolForm
-                      open={protocolFormOpen}
-                      onClose={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
-                      instanceId={instanceId}
-                      onSuccess={() => { setProtocolFormOpen(false); setProtocolPrefill({}); }}
-                      editingProtocolId={null}
-                      prefillCustomerId={protocolPrefill.customerId}
-                      prefillCustomerName={protocolPrefill.customerName}
-                      prefillCustomerPhone={protocolPrefill.customerPhone}
-                      prefillCustomerEmail={protocolPrefill.customerEmail}
-                      prefillCustomerAddressId={protocolPrefill.customerAddressId}
-                      prefillCalendarItemId={protocolPrefill.calendarItemId}
-                    />
-                  )}
                 </>
               );
 
@@ -572,7 +579,7 @@ const EmployeeCalendarPage = () => {
         {/* Mobile bottom navigation bar */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 flex items-center justify-around h-14">
           {[
-            { id: 'dashboard' as EmployeeView, label: 'Twój dzień', icon: LayoutDashboard },
+            { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
             { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
             { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
           ].map(({ id, label, icon: Icon }) => (
@@ -600,6 +607,23 @@ const EmployeeCalendarPage = () => {
           </button>
         </nav>
       </div>
+
+      {/* Protocol form - rendered outside view blocks so it's always available */}
+      {instanceId && (
+        <CreateProtocolForm
+          open={protocolFormOpen}
+          onClose={() => { setProtocolFormOpen(false); setProtocolPrefill({}); setProtocolEditId(null); }}
+          instanceId={instanceId}
+          onSuccess={() => { setProtocolFormOpen(false); setProtocolPrefill({}); setProtocolEditId(null); }}
+          editingProtocolId={protocolEditId}
+          prefillCustomerId={protocolPrefill.customerId}
+          prefillCustomerName={protocolPrefill.customerName}
+          prefillCustomerPhone={protocolPrefill.customerPhone}
+          prefillCustomerEmail={protocolPrefill.customerEmail}
+          prefillCustomerAddressId={protocolPrefill.customerAddressId}
+          prefillCalendarItemId={protocolPrefill.calendarItemId}
+        />
+      )}
     </div>
   );
 };

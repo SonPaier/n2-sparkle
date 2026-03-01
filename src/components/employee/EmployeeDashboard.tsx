@@ -71,7 +71,16 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const businessDays = useMemo(() => getNextWorkingDays(3, workingHours ?? null), [workingHours]);
+  const [stableWorkingHours, setStableWorkingHours] = useState<WorkingHours>(workingHours ?? null);
+
+  // Guard: only update stableWorkingHours when we get real data (not undefined during refetch)
+  useEffect(() => {
+    if (workingHours !== undefined) {
+      setStableWorkingHours(workingHours ?? null);
+    }
+  }, [workingHours]);
+
+  const businessDays = useMemo(() => getNextWorkingDays(3, stableWorkingHours), [stableWorkingHours]);
   const dateStart = businessDays[0];
   const dateEnd = businessDays[businessDays.length - 1];
 
@@ -213,7 +222,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Twój dzień</h1>
+      <h1 className="text-2xl font-bold mb-6">Mój dzień</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Zlecenia */}
