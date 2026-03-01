@@ -72,9 +72,7 @@ export interface Invoice {
 export const VAT_RATES = [
   { value: 23, label: '23%' },
   { value: 8, label: '8%' },
-  { value: 5, label: '5%' },
   { value: 0, label: '0%' },
-  { value: -1, label: 'zw.' },
 ];
 
 export const DOCUMENT_KINDS: { value: DocumentKind; label: string }[] = [

@@ -4,13 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { DOCUMENT_KINDS, VAT_RATES, CURRENCIES, type InvoicePosition, type DocumentKind } from './invoicing.types';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { DOCUMENT_KINDS, VAT_RATES, type InvoicePosition, type DocumentKind } from './invoicing.types';
+
+type PriceMode = 'netto' | 'brutto';
 
 interface InvoiceFormProps {
   kind: DocumentKind;
   onKindChange: (v: DocumentKind) => void;
-  currency: string;
-  onCurrencyChange: (v: string) => void;
   issueDate: string;
   onIssueDateChange: (v: string) => void;
   sellDate: string;
@@ -27,6 +28,10 @@ interface InvoiceFormProps {
   onAddPosition: () => void;
   onRemovePosition: (idx: number) => void;
   onUpdatePosition: (idx: number, field: keyof InvoicePosition, value: any) => void;
+  priceMode: PriceMode;
+  onPriceModeChange: (v: PriceMode) => void;
+  totalNetto: number;
+  totalVat: number;
   totalGross: number;
   paymentTo: string;
   autoSendEmail?: boolean;
@@ -35,7 +40,6 @@ interface InvoiceFormProps {
 
 export function InvoiceForm({
   kind, onKindChange,
-  currency, onCurrencyChange,
   issueDate, onIssueDateChange,
   sellDate, onSellDateChange,
   paymentDays, onPaymentDaysChange,
@@ -43,10 +47,30 @@ export function InvoiceForm({
   buyerTaxNo, onBuyerTaxNoChange,
   buyerEmail, onBuyerEmailChange,
   positions, onAddPosition, onRemovePosition, onUpdatePosition,
-  totalGross, paymentTo,
+  priceMode, onPriceModeChange,
+  totalNetto, totalVat, totalGross,
+  paymentTo,
   autoSendEmail,
   settingsActive,
 }: InvoiceFormProps) {
+  const priceLabel = priceMode === 'netto' ? 'Cena netto' : 'Cena brutto';
+
+  const getPositionNetto = (pos: InvoicePosition) => {
+    if (priceMode === 'netto') {
+      return pos.unit_price_gross * pos.quantity;
+    }
+    const rate = pos.vat_rate / 100;
+    return (pos.unit_price_gross / (1 + rate)) * pos.quantity;
+  };
+
+  const getPositionBrutto = (pos: InvoicePosition) => {
+    if (priceMode === 'brutto') {
+      return pos.unit_price_gross * pos.quantity;
+    }
+    const rate = pos.vat_rate / 100;
+    return pos.unit_price_gross * (1 + rate) * pos.quantity;
+  };
+
   return (
     <div className="space-y-5">
       {settingsActive === false && (
@@ -56,33 +80,18 @@ export function InvoiceForm({
       )}
 
       {/* Document type & dates */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Typ dokumentu</Label>
-          <Select value={kind} onValueChange={(v) => onKindChange(v as DocumentKind)}>
-            <SelectTrigger className="bg-white h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {DOCUMENT_KINDS.map(d => (
-                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Waluta</Label>
-          <Select value={currency} onValueChange={onCurrencyChange}>
-            <SelectTrigger className="bg-white h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CURRENCIES.map(c => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="space-y-1.5">
+        <Label className="text-xs">Typ dokumentu</Label>
+        <Select value={kind} onValueChange={(v) => onKindChange(v as DocumentKind)}>
+          <SelectTrigger className="bg-white h-9">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DOCUMENT_KINDS.map(d => (
+              <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -116,6 +125,22 @@ export function InvoiceForm({
 
       <Separator />
 
+      {/* Price mode radio */}
+      <RadioGroup
+        value={priceMode}
+        onValueChange={(v) => onPriceModeChange(v as PriceMode)}
+        className="flex gap-4"
+      >
+        <div className="flex items-center gap-2">
+          <RadioGroupItem value="netto" id="price-netto" />
+          <Label htmlFor="price-netto" className="text-sm cursor-pointer">Kwoty netto</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <RadioGroupItem value="brutto" id="price-brutto" />
+          <Label htmlFor="price-brutto" className="text-sm cursor-pointer">Kwoty brutto</Label>
+        </div>
+      </RadioGroup>
+
       {/* Positions */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -124,71 +149,86 @@ export function InvoiceForm({
             <Plus className="w-4 h-4 mr-1" /> Dodaj
           </Button>
         </div>
-        {positions.map((pos, idx) => (
-          <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-white">
-            <div className="flex items-center gap-2">
-              <Input
-                value={pos.name}
-                onChange={(e) => onUpdatePosition(idx, 'name', e.target.value)}
-                placeholder="Nazwa usługi / produktu"
-                className="bg-white h-8 text-sm flex-1"
-              />
-              {positions.length > 1 && (
-                <button onClick={() => onRemovePosition(idx)} className="p-1 rounded hover:bg-muted">
-                  <Trash2 className="w-4 h-4 text-muted-foreground" />
-                </button>
-              )}
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">Ilość</Label>
+        {positions.map((pos, idx) => {
+          const posNetto = getPositionNetto(pos);
+          const posBrutto = getPositionBrutto(pos);
+
+          return (
+            <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-white">
+              <div className="flex items-center gap-2">
                 <Input
-                  type="number"
-                  min={1}
-                  value={pos.quantity}
-                  onChange={(e) => onUpdatePosition(idx, 'quantity', Number(e.target.value))}
-                  className="bg-white h-8 text-sm"
+                  value={pos.name}
+                  onChange={(e) => onUpdatePosition(idx, 'name', e.target.value)}
+                  placeholder="Nazwa usługi / produktu"
+                  className="bg-white h-8 text-sm flex-1"
                 />
+                {positions.length > 1 && (
+                  <button onClick={() => onRemovePosition(idx)} className="p-1 rounded hover:bg-muted">
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                )}
               </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">Cena brutto</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min={0}
-                  value={pos.unit_price_gross}
-                  onChange={(e) => onUpdatePosition(idx, 'unit_price_gross', Number(e.target.value))}
-                  className="bg-white h-8 text-sm"
-                />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Ilość</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={pos.quantity}
+                    onChange={(e) => onUpdatePosition(idx, 'quantity', Number(e.target.value))}
+                    className="bg-white h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">{priceLabel}</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    value={pos.unit_price_gross}
+                    onChange={(e) => onUpdatePosition(idx, 'unit_price_gross', Number(e.target.value))}
+                    className="bg-white h-8 text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">VAT</Label>
+                  <Select value={String(pos.vat_rate)} onValueChange={(v) => onUpdatePosition(idx, 'vat_rate', Number(v))}>
+                    <SelectTrigger className="bg-white h-8 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VAT_RATES.map(r => (
+                        <SelectItem key={r.value} value={String(r.value)}>{r.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-[10px] text-muted-foreground">VAT</Label>
-                <Select value={String(pos.vat_rate)} onValueChange={(v) => onUpdatePosition(idx, 'vat_rate', Number(v))}>
-                  <SelectTrigger className="bg-white h-8 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VAT_RATES.map(r => (
-                      <SelectItem key={r.value} value={String(r.value)}>{r.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="text-right text-xs text-muted-foreground space-x-3">
+                <span>netto: {posNetto.toFixed(2)}</span>
+                <span>brutto: {posBrutto.toFixed(2)}</span>
               </div>
             </div>
-            <div className="text-right text-xs text-muted-foreground">
-              = {(pos.unit_price_gross * pos.quantity).toFixed(2)} {currency}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <Separator />
 
       {/* Summary */}
       <div className="bg-white rounded-lg border border-border p-4 space-y-2">
+        <div className="flex justify-between text-xs text-foreground">
+          <span>Razem netto</span>
+          <span>{totalNetto.toFixed(2)} PLN</span>
+        </div>
+        <div className="flex justify-between text-xs text-foreground">
+          <span>VAT</span>
+          <span>{totalVat.toFixed(2)} PLN</span>
+        </div>
+        <Separator />
         <div className="flex justify-between text-sm">
-          <span className="text-foreground">Razem brutto</span>
-          <span className="text-lg font-bold text-foreground">{totalGross.toFixed(2)} {currency}</span>
+          <span className="font-semibold text-foreground">Razem brutto</span>
+          <span className="text-lg font-bold text-foreground">{totalGross.toFixed(2)} PLN</span>
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-foreground">Termin płatności</span>

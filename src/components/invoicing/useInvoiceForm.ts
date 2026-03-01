@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { useInvoicingSettings } from './useInvoicingSettings';
 import type { InvoicePosition, DocumentKind } from './invoicing.types';
 
+export type PriceMode = 'netto' | 'brutto';
+
 export interface UseInvoiceFormOptions {
   instanceId: string;
   calendarItemId?: string;
@@ -37,7 +39,7 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
   const [issueDate, setIssueDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [sellDate, setSellDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [paymentDays, setPaymentDays] = useState(14);
-  const [currency, setCurrency] = useState('PLN');
+  const [priceMode, setPriceMode] = useState<PriceMode>('netto');
   const [buyerName, setBuyerName] = useState('');
   const [buyerTaxNo, setBuyerTaxNo] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
@@ -51,7 +53,6 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     if (settings) {
       setKind(settings.default_document_kind as DocumentKind || 'vat');
       setPaymentDays(settings.default_payment_days || 14);
-      setCurrency(settings.default_currency || 'PLN');
     }
     setBuyerName(customerName || '');
     setBuyerEmail(customerEmail || '');
@@ -109,7 +110,23 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     }
   }, [issueDate, paymentDays]);
 
-  const totalGross = positions.reduce((sum, p) => sum + p.unit_price_gross * p.quantity, 0);
+  // Calculate totals based on price mode
+  const { totalNetto, totalVat, totalGross } = useMemo(() => {
+    let netto = 0;
+    let brutto = 0;
+    for (const p of positions) {
+      const lineTotal = p.unit_price_gross * p.quantity;
+      const rate = p.vat_rate / 100;
+      if (priceMode === 'netto') {
+        netto += lineTotal;
+        brutto += lineTotal * (1 + rate);
+      } else {
+        brutto += lineTotal;
+        netto += lineTotal / (1 + rate);
+      }
+    }
+    return { totalNetto: netto, totalVat: brutto - netto, totalGross: brutto };
+  }, [positions, priceMode]);
 
   const addPosition = () => {
     setPositions([...positions, { name: '', quantity: 1, unit_price_gross: 0, vat_rate: settings?.default_vat_rate ?? 23 }]);
@@ -146,8 +163,9 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
             buyer_name: buyerName,
             buyer_tax_no: buyerTaxNo,
             buyer_email: buyerEmail,
-            currency,
+            currency: 'PLN',
             positions,
+            priceMode,
             oid: calendarItemId,
           },
         },
@@ -177,12 +195,14 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     issueDate, setIssueDate,
     sellDate, setSellDate,
     paymentDays, setPaymentDays,
-    currency, setCurrency,
+    priceMode, setPriceMode,
     buyerName, setBuyerName,
     buyerTaxNo, setBuyerTaxNo,
     buyerEmail, setBuyerEmail,
     positions,
     paymentTo,
+    totalNetto,
+    totalVat,
     totalGross,
     addPosition,
     removePosition,
