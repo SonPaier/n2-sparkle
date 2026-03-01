@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format } from 'date-fns';
 import { Search, Phone, MessageSquare, Plus, Trash2, MapPin, ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizeSearchQuery } from '@/lib/textUtils';
 import { formatPhoneDisplay } from '@/lib/phoneUtils';
 import { Input } from '@/components/ui/input';
@@ -386,37 +387,8 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         </div>
       </div>
 
-      {/* Category filter chips */}
-      {customerCategories.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {customerCategories.map(cat => {
-            const isActive = selectedCategoryIds.includes(cat.id);
-            return (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setSelectedCategoryIds(prev =>
-                    isActive ? prev.filter(id => id !== cat.id) : [...prev, cat.id]
-                  );
-                }}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-muted text-muted-foreground border-border hover:border-primary/30'
-                }`}
-              >
-                {cat.name}
-                {(customerCounts[cat.id] || 0) > 0 && (
-                  <span className="ml-1 opacity-70">({customerCounts[cat.id]})</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      )}
-      
-      {/* Search */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      {/* Search + Category filter */}
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -426,6 +398,30 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
             className="pl-9"
           />
         </div>
+        {customerCategories.length > 0 && (
+          <Select
+            value={selectedCategoryIds.length === 1 ? selectedCategoryIds[0] : '__all__'}
+            onValueChange={(val) => {
+              if (val === '__all__') {
+                setSelectedCategoryIds([]);
+              } else {
+                setSelectedCategoryIds([val]);
+              }
+            }}
+          >
+            <SelectTrigger className="w-auto min-w-[160px]">
+              <SelectValue placeholder="Wszystkie" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Wszystkie ({customers.length})</SelectItem>
+              {customerCategories.map(cat => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name} ({customerCounts[cat.id] || 0})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {/* Customer list */}
