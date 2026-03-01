@@ -74,7 +74,7 @@ interface AddCalendarItemDialogProps {
 const generateTimeOptions = () => {
   const options: string[] = [];
   for (let hour = 6; hour <= 19; hour++) {
-    for (let minute = 0; minute < 60; minute += 15) {
+    for (let minute = 0; minute < 60; minute += 30) {
       if (hour === 19 && minute > 0) break;
       options.push(`${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`);
     }
@@ -265,7 +265,7 @@ const AddCalendarItemDialog = ({
       setReservationType('single');
       setStartTime(initialTime || '08:00');
       const startIdx = TIME_OPTIONS.indexOf(initialTime || '08:00');
-      setEndTime(TIME_OPTIONS[Math.min(startIdx + 4, TIME_OPTIONS.length - 1)] || '09:00');
+      setEndTime(TIME_OPTIONS[Math.min(startIdx + 2, TIME_OPTIONS.length - 1)] || '09:00');
       setAdminNotes('');
       setPrice('');
       setAssignedEmployeeIds([]);
