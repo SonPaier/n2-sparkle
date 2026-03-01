@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { User, Phone, Mail, Clock, Trash2, Pencil, Check, RotateCcw, X, FileText, DollarSign, MapPin, HardHat, MessageSquare, MoreVertical, ChevronDown, Plus, ClipboardCheck, Send, Loader2, Camera } from 'lucide-react';
+import EmptyState from '@/components/ui/empty-state';
 import CustomerEditDrawer from './CustomerEditDrawer';
 import type { Customer } from './CustomersView';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -999,21 +1000,9 @@ const CalendarItemDetailsDrawer = ({
             {/* Tab: Historia */}
             <TabsContent value="history" className="flex-1 overflow-y-auto px-6 py-4 m-0">
               {!customerAddressId ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <MapPin className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground mb-1">Brak adresu</p>
-                  <p className="text-xs text-muted-foreground">Przypisz adres serwisowy, aby zobaczyć historię lokalizacji.</p>
-                </div>
+                <EmptyState icon={MapPin} message="Przypisz adres serwisowy, aby zobaczyć historię lokalizacji." />
               ) : historyItems.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <Clock className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground mb-1">Brak historii</p>
-                  <p className="text-xs text-muted-foreground">Nie znaleziono innych zleceń dla tej lokalizacji.</p>
-                </div>
+                <EmptyState icon={Clock} message="Brak innych zleceń dla tej lokalizacji." />
               ) : (
                 <div className="space-y-2">
                   {historyItems.map((hi: any) => (
