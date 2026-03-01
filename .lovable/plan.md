@@ -1,71 +1,77 @@
 
 
-## Plan: Etap 1 — Dashboard admina w stylu pracownika + Szablony SMS w ustawieniach
+## Etap 2: Wysyłka SMS z listy zleceń, nowe statusy płatności, historia SMS
 
-### Część 1: Karty zleceń w admin Dashboard (`DashboardOverview.tsx`)
+### 1. Nowe statusy płatności
 
-**OrderCard** — przepisać w stylu EmployeeDashboard:
-- Tytuł 18px bold, pill dnia (Dziś/Jutro/nazwa dnia), adres jako klikalny link Google Maps z pinezką, klient, telefon klikalny + SMS ikona, chevron-right po prawej (40px)
-- Usunąć ikony Clock, User, MapPin, HardHat z wierszy
-- Hover `bg-primary/5`
-- **Dodatkowo vs pracownik**: admin widzi cenę (`item.price`) pod telefonem jeśli jest przypisana
-- Potrzebne dodatkowe dane: `address_street`, `address_city` — już pobierane w Dashboard.tsx i przekazywane do DashboardOverview, ale trzeba je dodać do selectu i address resolution w `DashboardOverview.tsx`
-- Import: `ChevronRight`, `MessageSquare` z lucide, `formatPhoneDisplay`, `normalizePhone` z phoneUtils, `Badge` z ui, `isToday`, `isTomorrow` z date-fns
+Rozszerzenie `PaymentStatus` w `invoicing.types.ts` o dwa nowe statusy:
+- `sms_blik_sent` — "Wysłano SMS BLIK" (pomarańczowy)
+- `sms_bank_sent` — "Wysłano SMS konto" (fioletowy)
 
-**Logika `getDayPill`** — ta sama co w EmployeeDashboard:
-```
-isToday → zielony "Dziś"
-isTomorrow → fioletowy "Jutro"  
-else → fioletowy, nazwa dnia
-```
+### 2. Tabela `sms_logs` w bazie danych
 
-**`buildDisplayAddress`** — `address_city, address_street` (bez nazwy adresu)
-**`buildGoogleMapsUrl`** — pełny adres jako destination
-
-**Fetch addresses** — rozszerzyć select o `street, city` (linia 160, już pobiera `name, street, city`)  
-Dodać `address_street`, `address_city` do `CalendarItemRow` interface i mapping
-
-### Część 2: Nowa zakładka "Szablony SMS" w Ustawieniach (`SettingsView.tsx`)
-
-- Dodać nową zakładkę `sms-templates` z ikoną `MessageSquare` między "Użytkownicy" a "Integracje"
-- Label: "Szablony SMS"
-- Nowy komponent `SmsPaymentTemplatesView` w `src/components/admin/settings/SmsPaymentTemplatesView.tsx`
-
-### Część 3: Komponent `SmsPaymentTemplatesView`
-
-Dwa szablony SMS do edycji:
-
-**Szablon 1: SMS z BLIK**
-- Toggle włącz/wyłącz
-- Textarea z szablonem SMS
-- Zmienne dostępne: `{firma}`, `{osoba_kontaktowa}`, `{usluga}`, `{cena}`, `{blik_phone}`
-- Podgląd zmiennych (chipy z nazwami)
-
-**Szablon 2: SMS z numerem konta**
-- Toggle włącz/wyłącz
-- Textarea z szablonem SMS  
-- Zmienne: `{firma}`, `{osoba_kontaktowa}`, `{usluga}`, `{cena}`, `{numer_konta}`, `{nazwa_banku}`
-- Podgląd zmiennych
-
-Szablony odczytują `blik_phone`, `bank_account_number`, `bank_name` z danych instancji (te pola pozostają w "Dane firmy").
-
-### Część 4: Tabela w bazie danych
-
-Nowa tabela `sms_payment_templates`:
+Nowa tabela do historii wysłanych SMS:
 - `id` uuid PK
 - `instance_id` uuid NOT NULL
-- `template_type` text NOT NULL (`blik` | `bank_transfer`)
-- `enabled` boolean DEFAULT false
-- `sms_body` text DEFAULT ''
-- `created_at`, `updated_at` timestamps
-- UNIQUE constraint na (`instance_id`, `template_type`)
-- RLS: admin/super_admin ALL, employee SELECT
+- `calendar_item_id` uuid (nullable, powiązanie ze zleceniem)
+- `phone` text NOT NULL
+- `message` text NOT NULL
+- `message_type` text NOT NULL (`payment_blik` | `payment_bank_transfer` | inne)
+- `status` text NOT NULL DEFAULT `sent`
+- `sent_by` uuid (user ID zalogowanego usera)
+- `created_at` timestamp
 
-### Podsumowanie pliku zmian:
+RLS: admin/super_admin ALL, employee SELECT.
+
+### 3. Nowe przyciski w menu dropdown zleceń (`SettlementsView.tsx`)
+
+W obu widokach (mobile karty + desktop tabela), w DropdownMenu "More" pod "Wystaw FV":
+- "Wyślij SMS BLIK" — widoczny tylko gdy szablon `blik` jest `enabled`
+- "Wyślij SMS z nr konta" — widoczny tylko gdy szablon `bank_transfer` jest `enabled`
+
+Wymaga pobrania szablonów `sms_payment_templates` dla instancji (jeden query w komponencie).
+
+### 4. Dialog wysyłki SMS — `SendPaymentSmsDialog.tsx`
+
+Nowy komponent:
+- Props: `open`, `onClose`, `templateType` (`blik` | `bank_transfer`), `calendarItem` (dane zlecenia), `instanceId`
+- Przy otwarciu: pobiera szablon SMS i dane instancji (firma, osoba kontaktowa, blik_phone, numer_konta, bank_name), podmienia zmienne `{firma}`, `{osoba_kontaktowa}`, `{usluga}`, `{cena}`, `{blik_phone}`, `{numer_konta}`, `{nazwa_banku}` i wstawia gotowy tekst do `Textarea` (rows=10)
+- Użytkownik może edytować treść
+- Przyciski: "Anuluj" / "Wyślij"
+- Na mobile: drawer (vaul), na desktop: dialog
+
+### 5. Logika wysyłki
+
+**Desktop (bramka SMS):**
+- Wywołanie edge function `send-sms` z parametrami: `phone`, `message`, `instanceId`
+- Dodatkowo: zapis do `sms_logs` z `message_type`, `calendar_item_id`, `sent_by` (user ID)
+- Po sukcesie: update `payment_status` zlecenia na `sms_blik_sent` lub `sms_bank_sent`
+
+**Mobile (natywny SMS):**
+- Otwarcie `sms:{phone}?body={encodedMessage}` — natywna aplikacja SMS
+- Zapis do `sms_logs` (zakładamy wysłane)
+- Update `payment_status`
+
+Detekcja mobile: istniejący hook `useIsMobile()`.
+
+### 6. Historia SMS w ustawieniach
+
+Nowa sekcja w zakładce "Szablony SMS" (`SmsPaymentTemplatesView.tsx`) lub osobna pod-sekcja:
+- Przycisk "Historia SMS" — rozwija listę ostatnich 50 logów z `sms_logs`
+- Wyświetla: data, telefon, typ, status, treść (jak w N2Wash — `<pre>` z JSON lub prostsza lista)
+
+### 7. Rozszerzenie edge function `send-sms`
+
+Dodanie zapisu do `sms_logs` bezpośrednio w edge function po wysłaniu — z parametrami `calendarItemId`, `messageType`, `sentBy` przesłanymi z frontendu.
+
+### Podsumowanie plików do zmiany:
+
 | Plik | Zmiana |
 |------|--------|
-| `DashboardOverview.tsx` | Redesign OrderCard w stylu pracownika + cena |
-| `SettingsView.tsx` | Nowa zakładka "Szablony SMS" |
-| `src/components/admin/settings/SmsPaymentTemplatesView.tsx` | Nowy komponent |
-| Migracja SQL | Tabela `sms_payment_templates` z RLS |
+| Migracja SQL | Tabela `sms_logs` + RLS |
+| `invoicing.types.ts` | Nowe statusy `sms_blik_sent`, `sms_bank_sent` |
+| `SettlementsView.tsx` | Query na szablony, nowe przyciski w menu, otwarcie dialogu |
+| `SendPaymentSmsDialog.tsx` | Nowy komponent — dialog/drawer z textarea |
+| `send-sms/index.ts` | Zapis do `sms_logs` |
+| `SmsPaymentTemplatesView.tsx` | Sekcja historii SMS |
 
