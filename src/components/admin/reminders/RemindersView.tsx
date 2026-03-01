@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, Plus, Settings2 } from 'lucide-react';
+import { Check, Plus, Settings2, Trash2 } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useReminders, useReminderTypes } from '@/hooks/useReminders';
 import type { Reminder } from '@/hooks/useReminders';
@@ -56,6 +57,7 @@ export default function RemindersView({ instanceId }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
   const [typesDialogOpen, setTypesDialogOpen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const todoReminders = useMemo(() => reminders.filter(r => r.status === 'todo'), [reminders]);
   const archiveReminders = useMemo(() => reminders.filter(r => r.status === 'done' || r.status === 'cancelled'), [reminders]);
@@ -157,13 +159,10 @@ export default function RemindersView({ instanceId }: Props) {
                 </div>
               </div>
 
-              {/* Right: deadline or status */}
-              <div className="text-right shrink-0">
+              {/* Right: deadline or status + delete */}
+              <div className="flex items-center gap-2 shrink-0">
                 {isArchive ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant={r.status === 'done' ? 'default' : 'secondary'} className="text-xs">
-                      {r.status === 'done' ? 'Wykonane' : 'Anulowane'}
-                    </Badge>
+                  <>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -172,14 +171,28 @@ export default function RemindersView({ instanceId }: Props) {
                     >
                       Przywróć
                     </Button>
-                  </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); setDeleteConfirmId(r.id); }}
+                      className="shrink-0 p-1 rounded hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 text-foreground" />
+                    </button>
+                  </>
                 ) : (
                   <>
-                    <div className={`text-sm font-semibold ${urgency.text}`}>{formatDeadline(r.deadline)}</div>
-                    <div className={`text-xs ${urgency.text}`}>{getDaysLabel(r.deadline)}</div>
-                    {urgency.label && (
-                      <Badge className={`text-[10px] mt-1 ${urgency.badge}`}>{urgency.label}</Badge>
-                    )}
+                    <div className="text-right">
+                      <div className={`text-sm font-semibold ${urgency.text}`}>{formatDeadline(r.deadline)}</div>
+                      <div className={`text-xs ${urgency.text}`}>{getDaysLabel(r.deadline)}</div>
+                      {urgency.label && (
+                        <Badge className={`text-[10px] mt-1 ${urgency.badge}`}>{urgency.label}</Badge>
+                      )}
+                    </div>
+                    <button
+                      onClick={e => { e.stopPropagation(); setDeleteConfirmId(r.id); }}
+                      className="shrink-0 p-1 rounded hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 text-foreground" />
+                    </button>
                   </>
                 )}
               </div>
@@ -206,6 +219,14 @@ export default function RemindersView({ instanceId }: Props) {
         onAdd={addType}
         onUpdate={updateType}
         onDelete={deleteType}
+      />
+
+      <ConfirmDialog
+        open={!!deleteConfirmId}
+        onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}
+        title="Usuń przypomnienie"
+        description="Czy na pewno chcesz usunąć to przypomnienie?"
+        onConfirm={() => { if (deleteConfirmId) { deleteReminder(deleteConfirmId); setDeleteConfirmId(null); } }}
       />
     </div>
   );
