@@ -483,8 +483,8 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         </div> : (
 
       /* Desktop Table */
-      <div className="rounded-lg border border-border bg-card overflow-x-auto">
-        <Table className="table-fixed w-full min-w-[900px]">
+      <div className="rounded-lg border border-border bg-card">
+        <Table className="table-fixed w-full">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="w-[100px] cursor-pointer select-none" onClick={() => handleSort('order_number')}>
