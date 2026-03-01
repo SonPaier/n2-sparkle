@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText, RefreshCw, MessageSquare, Plus } from 'lucide-react';
+import { Search, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, MoreHorizontal, FileText, RefreshCw, MessageSquare, Plus, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
@@ -92,6 +92,22 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const [addOrderOpen, setAddOrderOpen] = useState(false);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection(column === 'price' ? 'desc' : 'asc');
+    }
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortColumn !== column) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />;
+    return sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 ml-1" /> : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
 
   const { data: columns = [] } = useQuery({
     queryKey: ['settlements-columns', instanceId],
@@ -158,15 +174,36 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
   }, [invoices]);
 
   const filteredOrders = useMemo(() => {
-    if (!searchQuery.trim()) return items;
-    const q = searchQuery.toLowerCase();
-    return items.filter(
-      (o) =>
-      (o.customer_name || '').toLowerCase().includes(q) ||
-      (o.title || '').toLowerCase().includes(q) ||
-      o.item_date.includes(q)
-    );
-  }, [items, searchQuery]);
+    let result = items;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (o) =>
+        (o.customer_name || '').toLowerCase().includes(q) ||
+        (o.title || '').toLowerCase().includes(q) ||
+        o.item_date.includes(q)
+      );
+    }
+    if (sortColumn) {
+      result = [...result].sort((a, b) => {
+        let valA: any, valB: any;
+        switch (sortColumn) {
+          case 'order_number': valA = a.order_number || ''; valB = b.order_number || ''; break;
+          case 'title': valA = (a.title || '').toLowerCase(); valB = (b.title || '').toLowerCase(); break;
+          case 'customer_name': valA = (a.customer_name || '').toLowerCase(); valB = (b.customer_name || '').toLowerCase(); break;
+          case 'created_at': valA = a.created_at; valB = b.created_at; break;
+          case 'status': valA = a.status; valB = b.status; break;
+          case 'payment_status': valA = a.payment_status || ''; valB = b.payment_status || ''; break;
+          case 'price': valA = a.price ?? 0; valB = b.price ?? 0; break;
+          default: return 0;
+        }
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return result;
+  }, [items, searchQuery, sortColumn, sortDirection]);
 
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
   const paginatedOrders = useMemo(() => {
@@ -273,19 +310,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h2 className="text-xl font-semibold text-foreground">Zlecenia</h2>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Szukaj klienta, tytuł lub datę..."
-            value={searchQuery}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9" />
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -298,6 +323,18 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
             <Plus className="w-4 h-4 mr-2" />
             Dodaj zlecenie
           </Button>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Szukaj klienta, tytuł lub datę..."
+            value={searchQuery}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9" />
         </div>
       </div>
 
@@ -426,18 +463,33 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         <Table className="table-fixed w-full min-w-[900px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
-              <TableHead className="w-[100px]">Nr</TableHead>
-              <TableHead className="w-[200px] max-w-[200px]">Tytuł</TableHead>
-              <TableHead className="w-[200px]">Klient</TableHead>
-              <TableHead className="w-[130px]">
-                <div className="leading-tight">
-                  <div>Data utw.</div>
-                  <div>Data zakoń.</div>
-                </div>
+              <TableHead className="w-[100px] cursor-pointer select-none" onClick={() => handleSort('order_number')}>
+                <span className="flex items-center">Nr<SortIcon column="order_number" /></span>
               </TableHead>
-              <TableHead className="w-[120px]">Status</TableHead>
-              <TableHead className="w-[160px]">Status płatności</TableHead>
-              <TableHead className="text-right w-[120px]">Kwota netto</TableHead>
+              <TableHead className="w-[200px] max-w-[200px] cursor-pointer select-none" onClick={() => handleSort('title')}>
+                <span className="flex items-center">Tytuł<SortIcon column="title" /></span>
+              </TableHead>
+              <TableHead className="w-[200px] cursor-pointer select-none" onClick={() => handleSort('customer_name')}>
+                <span className="flex items-center">Klient<SortIcon column="customer_name" /></span>
+              </TableHead>
+              <TableHead className="w-[130px] cursor-pointer select-none" onClick={() => handleSort('created_at')}>
+                <span className="flex items-center">
+                  <div className="leading-tight">
+                    <div>Data utw.</div>
+                    <div>Data zakoń.</div>
+                  </div>
+                  <SortIcon column="created_at" />
+                </span>
+              </TableHead>
+              <TableHead className="w-[120px] cursor-pointer select-none" onClick={() => handleSort('status')}>
+                <span className="flex items-center">Status<SortIcon column="status" /></span>
+              </TableHead>
+              <TableHead className="w-[160px] cursor-pointer select-none" onClick={() => handleSort('payment_status')}>
+                <span className="flex items-center">Status płatności<SortIcon column="payment_status" /></span>
+              </TableHead>
+              <TableHead className="text-right w-[120px] cursor-pointer select-none" onClick={() => handleSort('price')}>
+                <span className="flex items-center justify-end">Kwota netto<SortIcon column="price" /></span>
+              </TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>

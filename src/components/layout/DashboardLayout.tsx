@@ -16,7 +16,7 @@ import {
 type ViewType = 'dashboard' | 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'przypomnienia' | 'powiadomienia-sms' | 'ustawienia';
 
 const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
-  { id: 'dashboard', label: 'Twój dzień', icon: LayoutDashboard },
+  { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
   { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
   { id: 'klienci', label: 'Klienci', icon: Users },
@@ -30,7 +30,7 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
 
 // Bottom bar items for mobile
 const bottomBarItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
-  { id: 'dashboard', label: 'Twój dzień', icon: LayoutDashboard },
+  { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
   { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
   { id: 'klienci', label: 'Klienci', icon: Users },

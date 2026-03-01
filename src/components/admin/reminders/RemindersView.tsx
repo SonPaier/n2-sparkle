@@ -71,7 +71,7 @@ export default function RemindersView({ instanceId }: Props) {
     <div className="max-w-4xl mx-auto space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-foreground">Przypomnienia</h1>
+        <h1 className="text-xl font-semibold text-foreground">Przypomnienia</h1>
         <div className="flex gap-1.5">
           <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setTypesDialogOpen(true)}>
             <Settings2 className="w-4 h-4" />

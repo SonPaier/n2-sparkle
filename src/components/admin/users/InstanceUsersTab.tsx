@@ -138,7 +138,7 @@ const InstanceUsersTab = ({ instanceId }: InstanceUsersTabProps) => {
   return (
     <div className="space-y-4 max-w-3xl">
       <div className="space-y-3">
-        <h2 className="text-xl font-bold">Użytkownicy</h2>
+        <h2 className="text-xl font-semibold text-foreground">Użytkownicy</h2>
         <Button onClick={() => setAddDialogOpen(true)} className="gap-2 w-full sm:w-auto">
           <UserPlus className="w-4 h-4" />
           Dodaj użytkownika

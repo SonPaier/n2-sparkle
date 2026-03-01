@@ -490,7 +490,7 @@ const ServicesView = ({ instanceId }: ServicesViewProps) => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Usługi</h2>
+          <h2 className="text-xl font-semibold text-foreground">Usługi</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Zarządzaj usługami i cennikiem. Kategorie są opcjonalne.
           </p>

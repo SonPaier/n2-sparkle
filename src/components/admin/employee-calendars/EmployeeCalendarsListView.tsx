@@ -124,7 +124,7 @@ const EmployeeCalendarsListView = ({ instanceId }: EmployeeCalendarsListViewProp
     <div className="space-y-6 max-w-3xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold">Kalendarze pracowników</h2>
+          <h2 className="text-xl font-semibold text-foreground">Kalendarze pracowników</h2>
           <p className="text-muted-foreground text-sm mt-1">
             Zarządzaj widokami kalendarza dla pracowników
           </p>
