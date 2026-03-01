@@ -90,7 +90,7 @@ const WorkerTimeDialog = ({ open, onOpenChange, employee, instanceId, showEditBu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`sm:max-w-2xl ${isMobile ? "h-[100dvh] max-h-[100dvh] rounded-none" : "max-h-[90vh]"} overflow-hidden flex flex-col`}>
+      <DialogContent className={`sm:max-w-2xl ${isMobile ? "h-[100dvh] max-h-[100dvh] rounded-none" : "max-h-[90vh]"} overflow-hidden flex flex-col z-[1300]`}>
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="sr-only">Czas pracy</DialogTitle>
         </DialogHeader>
