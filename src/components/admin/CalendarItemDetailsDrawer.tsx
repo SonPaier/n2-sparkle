@@ -424,9 +424,15 @@ const CalendarItemDetailsDrawer = ({
 
   if (!item) return null;
 
-  const shortDate = item.item_date
-    ? format(new Date(item.item_date), 'EE, d MMM yyyy', { locale: pl })
-    : '';
+  const shortDate = (() => {
+    if (!item.item_date) return '';
+    const startStr = format(new Date(item.item_date), 'EE, d MMM yyyy', { locale: pl });
+    if (item.end_date && item.end_date !== item.item_date) {
+      const endStr = format(new Date(item.end_date), 'd MMM yyyy', { locale: pl });
+      return `${startStr} – ${endStr}`;
+    }
+    return startStr;
+  })();
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -467,7 +473,6 @@ const CalendarItemDetailsDrawer = ({
       item.assigned_employees = item.assigned_employees.filter(e => e.id !== empId);
     }
     item.assigned_employee_ids = newIds;
-    onStatusChange?.(item.id, item.status);
   };
 
   const handleEmployeesConfirmed = async (ids: string[]) => {
@@ -476,7 +481,6 @@ const CalendarItemDetailsDrawer = ({
       .update({ assigned_employee_ids: ids.length > 0 ? ids : null })
       .eq('id', item.id);
     if (error) { toast.error('Błąd przypisania pracowników'); return; }
-    onStatusChange?.(item.id, item.status);
   };
 
   // Footer
@@ -682,7 +686,7 @@ const CalendarItemDetailsDrawer = ({
             </div>
             {/* Line 2: date + time */}
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[14px] text-muted-foreground capitalize">{shortDate}</span>
+              <span className="text-[14px] text-foreground capitalize">{shortDate}</span>
               {!hideHours && (
                 <>
                   <span className="text-muted-foreground">·</span>
@@ -764,12 +768,14 @@ const CalendarItemDetailsDrawer = ({
               )}
 
               {/* Location */}
-              {addressLabel && (
+              {(addressLabel || addressStreet) && (
                 <div className="space-y-0.5">
                   <span className="text-sm font-medium">Lokalizacja</span>
+                  {addressLabel && (
                   <div>
                     <span className="font-medium text-[15px]">{addressLabel}</span>
                   </div>
+                  )}
                   {addressStreet && (
                     <div>
                       {addressCoords ? (
@@ -993,9 +999,21 @@ const CalendarItemDetailsDrawer = ({
             {/* Tab: Historia */}
             <TabsContent value="history" className="flex-1 overflow-y-auto px-6 py-4 m-0">
               {!customerAddressId ? (
-                <p className="text-sm text-muted-foreground">Brak przypisanego adresu serwisowego.</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <MapPin className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground mb-1">Brak adresu</p>
+                  <p className="text-xs text-muted-foreground">Przypisz adres serwisowy, aby zobaczyć historię lokalizacji.</p>
+                </div>
               ) : historyItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Brak innych zleceń dla tej lokalizacji.</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <Clock className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground mb-1">Brak historii</p>
+                  <p className="text-xs text-muted-foreground">Nie znaleziono innych zleceń dla tej lokalizacji.</p>
+                </div>
               ) : (
                 <div className="space-y-2">
                   {historyItems.map((hi: any) => (
