@@ -477,10 +477,10 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={e => handleSms(customer.phone, e)}>
+                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-primary/5" onClick={e => handleSms(customer.phone, e)}>
                     <MessageSquare className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={e => handleCall(customer.phone, e)}>
+                  <Button variant="ghost" size="icon" className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-primary/5" onClick={e => handleCall(customer.phone, e)}>
                     <Phone className="w-4 h-4" />
                   </Button>
                   <Button variant="ghost" size="icon" className="w-8 h-8 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={e => handleDeleteClick(customer, e)}>

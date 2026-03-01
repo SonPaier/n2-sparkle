@@ -220,7 +220,7 @@ const SelectedServicesList = ({
                       setEditingQtyId(service.id);
                       setEditingQtyValue(qty.toString());
                     }}
-                    className="px-1.5 py-0.5 rounded text-sm font-semibold min-w-[28px] hover:bg-muted transition-colors"
+                    className="px-1.5 py-0.5 rounded text-sm font-semibold min-w-[28px] hover:bg-primary/5 transition-colors"
                   >
                     {qty}
                   </button>
@@ -269,7 +269,7 @@ const SelectedServicesList = ({
                       setEditingPriceValue(displayedPrice.toString());
                     }}
                     className={cn(
-                      "px-1.5 py-0.5 rounded text-sm font-semibold min-w-[40px] hover:bg-muted transition-colors",
+                      "px-1.5 py-0.5 rounded text-sm font-semibold min-w-[40px] hover:bg-primary/5 transition-colors",
                       hasCustomPrice && "text-primary"
                     )}
                   >

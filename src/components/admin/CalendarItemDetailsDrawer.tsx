@@ -680,7 +680,7 @@ const CalendarItemDetailsDrawer = ({
               <h3 className="text-[17px] font-bold truncate pr-2">{item.title}</h3>
               <button
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
+                className="p-2 rounded-full hover:bg-primary/5 transition-colors shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -754,12 +754,12 @@ const CalendarItemDetailsDrawer = ({
                         <span className="font-medium text-[15px]">{item.customer_name}</span>
                       )}
                       {item.customer_phone && (
-                        <a href={`tel:${item.customer_phone}`} className="p-1 rounded hover:bg-muted">
+                        <a href={`tel:${item.customer_phone}`} className="p-1 rounded hover:bg-primary/5">
                           <Phone className="w-[17px] h-[17px] text-primary" />
                         </a>
                       )}
                       {item.customer_phone && (
-                        <a href={`sms:${item.customer_phone}`} className="p-1 rounded hover:bg-muted">
+                        <a href={`sms:${item.customer_phone}`} className="p-1 rounded hover:bg-primary/5">
                           <MessageSquare className="w-[17px] h-[17px] text-primary" />
                         </a>
                       )}
@@ -835,7 +835,7 @@ const CalendarItemDetailsDrawer = ({
                       {instanceId && (
                         <button
                           onClick={() => setEmployeeDrawerOpen(true)}
-                          className="inline-flex items-center gap-1 border border-dashed border-border rounded-full px-3 py-1 text-xs text-muted-foreground hover:bg-muted transition-colors"
+                          className="inline-flex items-center gap-1 border border-dashed border-border rounded-full px-3 py-1 text-xs text-muted-foreground hover:bg-primary/5 transition-colors"
                         >
                           <Plus className="w-3 h-3" />
                           Dodaj
@@ -864,7 +864,7 @@ const CalendarItemDetailsDrawer = ({
                 ) : (
                   <p
                     onClick={() => setEditingNotes(true)}
-                    className={`text-[15px] whitespace-pre-wrap cursor-pointer hover:bg-muted/50 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
+                    className={`text-[15px] whitespace-pre-wrap cursor-pointer hover:bg-primary/5 rounded p-1 -m-1 min-h-[2rem] ${notesValue ? 'text-foreground' : 'text-muted-foreground'}`}
                   >
                     {notesValue || 'Kliknij, aby dodać notatkę...'}
                   </p>

@@ -245,7 +245,7 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
           sortedProtocols.map((p) => (
             <div
               key={p.id}
-              className="rounded-lg border border-border bg-card p-4 cursor-pointer active:bg-muted/50"
+              className="rounded-lg border border-border bg-card p-4 cursor-pointer active:bg-primary/5"
               onClick={() => handleEdit(p)}
             >
               <div className="flex items-start justify-between">

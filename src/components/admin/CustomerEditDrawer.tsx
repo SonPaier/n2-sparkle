@@ -490,19 +490,19 @@ const CustomerEditDrawer = ({
                 </div>
                 {!isAddMode && !isEditing && (
                   <div className="flex items-center gap-1 ml-2">
-                    <Button variant="ghost" size="icon" onClick={() => setNewOrderOpen(true)} className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted">
+                    <Button variant="ghost" size="icon" onClick={() => setNewOrderOpen(true)} className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-primary/5">
                       <CalendarPlus className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={handleSms} className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted">
+                    <Button variant="ghost" size="icon" onClick={handleSms} className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-primary/5">
                       <MessageSquare className="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={handleCall} className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-muted">
+                    <Button variant="ghost" size="icon" onClick={handleCall} className="w-8 h-8 text-muted-foreground hover:text-foreground hover:bg-primary/5">
                       <Phone className="w-4 h-4" />
                     </Button>
                   </div>
                 )}
               </SheetTitle>
-              <button type="button" onClick={handleClose} className="p-2 rounded-full hover:bg-muted transition-colors">
+              <button type="button" onClick={handleClose} className="p-2 rounded-full hover:bg-primary/5 transition-colors">
                 <X className="w-6 h-6" />
               </button>
             </div>

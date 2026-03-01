@@ -344,7 +344,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                   onClick={() => { setActiveTab(tab.key); setMobileMenuOpen(false); }}
                   className={cn(
                     "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-left w-full",
-                    activeTab === tab.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    activeTab === tab.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
                   )}
                 >
                   {tab.icon}
@@ -363,7 +363,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors text-left w-full",
-                  activeTab === tab.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  activeTab === tab.key ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-primary/5"
                 )}
               >
                 {tab.icon}

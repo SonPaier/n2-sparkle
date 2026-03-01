@@ -311,7 +311,7 @@ const CustomerAddressSelect = ({
                   key={addr.id}
                   type="button"
                   className={`w-full p-4 text-left transition-colors flex flex-col border-b border-border last:border-0 ${
-                    i === selectedIndex ? 'bg-accent' : 'hover:bg-muted/30'
+                    i === selectedIndex ? 'bg-accent' : 'hover:bg-primary/5'
                   }`}
                   onClick={() => handleSelectGlobalAddress(addr)}
                   onMouseEnter={() => setSelectedIndex(i)}

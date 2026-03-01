@@ -32,7 +32,7 @@ export const MediaUploadProgress = ({ progress, error, onRetry, onCancel }: Medi
       </div>
       <span className="text-xs font-medium text-muted-foreground shrink-0">{progress}%</span>
       {onCancel && (
-        <button onClick={onCancel} className="p-1 rounded-full hover:bg-muted transition-colors shrink-0" title="Anuluj">
+        <button onClick={onCancel} className="p-1 rounded-full hover:bg-primary/5 transition-colors shrink-0" title="Anuluj">
           <X className="w-4 h-4 text-muted-foreground" />
         </button>
       )}

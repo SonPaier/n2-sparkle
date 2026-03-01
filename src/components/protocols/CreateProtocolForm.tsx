@@ -192,7 +192,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
           </h3>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-muted transition-colors shrink-0"
+            className="p-2 rounded-full hover:bg-primary/5 transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -319,7 +319,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
                 </div>
               ) : (
                 <div
-                  className="flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors text-muted-foreground"
+                  className="flex flex-col items-center justify-center cursor-pointer hover:bg-primary/5 transition-colors text-muted-foreground"
                   style={{ height: '160px' }}
                   onClick={() => setSignatureOpen(true)}
                 >

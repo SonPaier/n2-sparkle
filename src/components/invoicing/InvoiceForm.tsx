@@ -163,7 +163,7 @@ export function InvoiceForm({
                   className="bg-white h-8 text-sm flex-1"
                 />
                 {positions.length > 1 && (
-                  <button onClick={() => onRemovePosition(idx)} className="p-1 rounded hover:bg-muted">
+                  <button onClick={() => onRemovePosition(idx)} className="p-1 rounded hover:bg-primary/5">
                     <Trash2 className="w-4 h-4 text-muted-foreground" />
                   </button>
                 )}
