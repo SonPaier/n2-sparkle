@@ -1,77 +1,55 @@
 
 
-## Etap 2: Wysyłka SMS z listy zleceń, nowe statusy płatności, historia SMS
+## Plan
 
-### 1. Nowe statusy płatności
+### 1. Scroll to top on view change (EmployeeCalendarPage)
+Add a `useEffect` in `EmployeeCalendarPage.tsx` that scrolls the main content container to the top whenever `currentView` changes. Use a ref on the `<main>` element.
 
-Rozszerzenie `PaymentStatus` w `invoicing.types.ts` o dwa nowe statusy:
-- `sms_blik_sent` — "Wysłano SMS BLIK" (pomarańczowy)
-- `sms_bank_sent` — "Wysłano SMS konto" (fioletowy)
+### 2. Add `created_by_user_id` to protocols table
+- Database migration: add `created_by_user_id uuid` column to `protocols` table.
+- In `CreateProtocolForm.tsx`, pass the current user's ID when creating a protocol. Also, resolve the employee name from the `employees` table (via `linked_user_id`) and auto-fill `prepared_by` with the employee's name.
 
-### 2. Tabela `sms_logs` w bazie danych
+### 3. Fix video upload stuck at 0%
+The `compressVideo` function uses `MediaRecorder` + `captureStream` which often hangs on mobile (autoplay restrictions, unsupported codecs). Fix by adding a timeout to `compressVideo` -- if it doesn't resolve within 10 seconds, fall back to uploading the original file. Also skip compression entirely for files under 50MB to simplify.
 
-Nowa tabela do historii wysłanych SMS:
-- `id` uuid PK
-- `instance_id` uuid NOT NULL
-- `calendar_item_id` uuid (nullable, powiązanie ze zleceniem)
-- `phone` text NOT NULL
-- `message` text NOT NULL
-- `message_type` text NOT NULL (`payment_blik` | `payment_bank_transfer` | inne)
-- `status` text NOT NULL DEFAULT `sent`
-- `sent_by` uuid (user ID zalogowanego usera)
-- `created_at` timestamp
+### 4. Fix "Protokół" button closing drawer without opening protocol form (employee dashboard view)
+The `CreateProtocolForm` component is only rendered inside the `kalendarz` view branch but `onAddProtocol` is also used from the `dashboard` view. Move the `CreateProtocolForm` rendering outside the view-specific blocks so it's always available. Also needs to be done for the protocol form open/close state.
 
-RLS: admin/super_admin ALL, employee SELECT.
+### 5. Fix protocol form layout -- fixed header and fixed bottom bar
+Update `CreateProtocolForm.tsx` to use a flex column layout with:
+- Fixed header (sticky top with title + close button)
+- Scrollable content area (flex-1 overflow-y-auto)
+- Fixed bottom bar with action buttons at 50% width each
+Model this after `CalendarItemDetailsDrawer`'s layout pattern.
 
-### 3. Nowe przyciski w menu dropdown zleceń (`SettlementsView.tsx`)
+### 6. If protocol already exists for calendar item, open existing protocol
+In the `onAddProtocol` handler (in `EmployeeCalendarPage.tsx` and `Dashboard.tsx`), before opening the create form, query the `protocols` table for an existing protocol linked to the `calendar_item_id`. If found, open it in edit mode instead of create mode.
 
-W obu widokach (mobile karty + desktop tabela), w DropdownMenu "More" pod "Wystaw FV":
-- "Wyślij SMS BLIK" — widoczny tylko gdy szablon `blik` jest `enabled`
-- "Wyślij SMS z nr konta" — widoczny tylko gdy szablon `bank_transfer` jest `enabled`
+### 7. Fix intermittent data disappearing on employee dashboard
+The `EmployeeDashboard` component recalculates `businessDays` from `workingHours`. When navigating away and back, if `workingHours` is briefly `undefined` during re-fetch, the component may render with empty dates. Add a guard to preserve the previous data while loading, or use `useMemo` with stable defaults.
 
-Wymaga pobrania szablonów `sms_payment_templates` dla instancji (jeden query w komponencie).
+### 8. Rename "Twój dzień" to "Mój dzień" in employee view
+Update the nav items in `EmployeeCalendarPage.tsx` (lines 338, 575) and the heading in `EmployeeDashboard.tsx` (line 216).
 
-### 4. Dialog wysyłki SMS — `SendPaymentSmsDialog.tsx`
+### Technical details
 
-Nowy komponent:
-- Props: `open`, `onClose`, `templateType` (`blik` | `bank_transfer`), `calendarItem` (dane zlecenia), `instanceId`
-- Przy otwarciu: pobiera szablon SMS i dane instancji (firma, osoba kontaktowa, blik_phone, numer_konta, bank_name), podmienia zmienne `{firma}`, `{osoba_kontaktowa}`, `{usluga}`, `{cena}`, `{blik_phone}`, `{numer_konta}`, `{nazwa_banku}` i wstawia gotowy tekst do `Textarea` (rows=10)
-- Użytkownik może edytować treść
-- Przyciski: "Anuluj" / "Wyślij"
-- Na mobile: drawer (vaul), na desktop: dialog
+**Database migration:**
+```sql
+ALTER TABLE protocols ADD COLUMN created_by_user_id uuid;
+```
 
-### 5. Logika wysyłki
+**Video compression timeout** in `mediaUtils.ts`:
+Wrap the `compressVideo` promise with a `Promise.race` against a 10-second timeout that resolves with the original file.
 
-**Desktop (bramka SMS):**
-- Wywołanie edge function `send-sms` z parametrami: `phone`, `message`, `instanceId`
-- Dodatkowo: zapis do `sms_logs` z `message_type`, `calendar_item_id`, `sent_by` (user ID)
-- Po sukcesie: update `payment_status` zlecenia na `sms_blik_sent` lub `sms_bank_sent`
+**Protocol existence check** -- query `protocols` table by `calendar_item_id` before deciding create vs edit mode. Store found protocol ID in state for passing to `CreateProtocolForm` as `editingProtocolId`.
 
-**Mobile (natywny SMS):**
-- Otwarcie `sms:{phone}?body={encodedMessage}` — natywna aplikacja SMS
-- Zapis do `sms_logs` (zakładamy wysłane)
-- Update `payment_status`
+**Scroll reset** -- `useEffect(() => { mainRef.current?.scrollTo(0, 0); }, [currentView])`.
 
-Detekcja mobile: istniejący hook `useIsMobile()`.
-
-### 6. Historia SMS w ustawieniach
-
-Nowa sekcja w zakładce "Szablony SMS" (`SmsPaymentTemplatesView.tsx`) lub osobna pod-sekcja:
-- Przycisk "Historia SMS" — rozwija listę ostatnich 50 logów z `sms_logs`
-- Wyświetla: data, telefon, typ, status, treść (jak w N2Wash — `<pre>` z JSON lub prostsza lista)
-
-### 7. Rozszerzenie edge function `send-sms`
-
-Dodanie zapisu do `sms_logs` bezpośrednio w edge function po wysłaniu — z parametrami `calendarItemId`, `messageType`, `sentBy` przesłanymi z frontendu.
-
-### Podsumowanie plików do zmiany:
-
-| Plik | Zmiana |
-|------|--------|
-| Migracja SQL | Tabela `sms_logs` + RLS |
-| `invoicing.types.ts` | Nowe statusy `sms_blik_sent`, `sms_bank_sent` |
-| `SettlementsView.tsx` | Query na szablony, nowe przyciski w menu, otwarcie dialogu |
-| `SendPaymentSmsDialog.tsx` | Nowy komponent — dialog/drawer z textarea |
-| `send-sms/index.ts` | Zapis do `sms_logs` |
-| `SmsPaymentTemplatesView.tsx` | Sekcja historii SMS |
+**Files to modify:**
+- `src/pages/EmployeeCalendarPage.tsx` -- scroll fix, protocol form placement, existing protocol check, rename label
+- `src/components/employee/EmployeeDashboard.tsx` -- rename heading, fix data flash
+- `src/components/media/mediaUtils.ts` -- video compression timeout
+- `src/components/protocols/CreateProtocolForm.tsx` -- fixed header/footer layout, auto-fill employee name, save `created_by_user_id`
+- `src/pages/Dashboard.tsx` -- existing protocol check
+- Database migration for `created_by_user_id`
 
