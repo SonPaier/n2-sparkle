@@ -427,11 +427,11 @@ const Dashboard = () => {
     }
 
     if (currentView === 'powiadomienia-sms') {
-      return <SmsNotificationsView instanceId={instanceId} />;
+      return <div className="max-w-[1000px] mx-auto"><SmsNotificationsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'przypomnienia' && instanceId) {
-      return <RemindersView instanceId={instanceId} />;
+      return <div className="max-w-[1000px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'kalendarz' && instanceId) {
