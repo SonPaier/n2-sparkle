@@ -277,7 +277,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -285,21 +285,21 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9" />
-
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSync}
-          disabled={syncing}>
-
-          <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-          Sprawdź statusy płatności
-        </Button>
-        <Button size="sm" onClick={() => setAddOrderOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Dodaj zlecenie
-        </Button>
+        <div className="flex items-center gap-2 ml-auto">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={syncing}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            Sprawdź statusy płatności
+          </Button>
+          <Button size="sm" onClick={() => setAddOrderOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Dodaj zlecenie
+          </Button>
+        </div>
       </div>
 
       {/* Mobile Cards */}
