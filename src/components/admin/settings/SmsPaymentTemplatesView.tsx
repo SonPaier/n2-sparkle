@@ -20,20 +20,22 @@ interface TemplateData {
 }
 
 const DEFAULT_BLIK_BODY = `Witam,
-poniżej przesyłam numer telefonu BLIK i kwotę za usługę.
+poniżej przesyłam numer telefonu do BLIK.
 {blik_phone}
+
+{usluga}
 {cena} PLN
 {firma}
-{usluga}
 Pozdrawiam, {osoba_kontaktowa}`;
 
 const DEFAULT_BANK_BODY = `Witam,
-poniżej przesyłam numer konta i kwotę za usługę.
+poniżej przesyłam numer konta.
 {numer_konta}
 {nazwa_banku}
+
+{usluga}
 {cena} PLN
 {firma}
-{usluga}
 Pozdrawiam, {osoba_kontaktowa}`;
 
 const BLIK_VARIABLES = [
