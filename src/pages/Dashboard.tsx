@@ -405,31 +405,31 @@ const Dashboard = () => {
     }
 
     if (currentView === 'uslugi' && instanceId) {
-      return <div className="max-w-4xl mx-auto"><ServicesView instanceId={instanceId} /></div>;
+      return <div className="max-w-[900px] mx-auto"><ServicesView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'klienci' && instanceId) {
-      return <CustomersView instanceId={instanceId} />;
+      return <div className="max-w-[900px] mx-auto"><CustomersView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'pracownicy' && instanceId) {
-      return <EmployeesView instanceId={instanceId} />;
+      return <div className="max-w-[900px] mx-auto"><EmployeesView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'protokoly' && instanceId) {
-      return <div className="max-w-4xl mx-auto"><ProtocolsView instanceId={instanceId} /></div>;
+      return <div className="max-w-[900px] mx-auto"><ProtocolsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'rozliczenia' && instanceId) {
-      return <SettlementsView instanceId={instanceId} />;
+      return <div className="max-w-[900px] mx-auto"><SettlementsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'powiadomienia-sms') {
-      return <SmsNotificationsView instanceId={instanceId} />;
+      return <div className="max-w-[900px] mx-auto"><SmsNotificationsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'przypomnienia' && instanceId) {
-      return <RemindersView instanceId={instanceId} />;
+      return <div className="max-w-[900px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'kalendarz' && instanceId) {
