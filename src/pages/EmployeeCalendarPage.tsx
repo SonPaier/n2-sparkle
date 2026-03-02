@@ -428,6 +428,7 @@ const EmployeeCalendarPage = () => {
                 onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                 onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
                 onEdit={allowedActions.edit_item ? handleEditItem : undefined}
+                canEditServices={!!allowedActions.edit_services}
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                 hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
                 onAddProtocol={async (item) => {
@@ -514,17 +515,6 @@ const EmployeeCalendarPage = () => {
                     hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
                   />
 
-                  <AddCalendarItemDialog
-                    open={addItemOpen}
-                    onClose={() => { setAddItemOpen(false); setEditingItem(null); }}
-                    instanceId={instanceId}
-                    columns={calendarColumns}
-                    onSuccess={() => { fetchItems(); setEditingItem(null); }}
-                    editingItem={editingItem}
-                    initialDate={newItemData.date}
-                    initialTime={newItemData.time}
-                    initialColumnId={newItemData.columnId}
-                  />
 
                   <CalendarItemDetailsDrawer
                     item={selectedItem}
@@ -534,6 +524,8 @@ const EmployeeCalendarPage = () => {
                     onStatusChange={handleStatusChange}
                     onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                     onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+                    onEdit={allowedActions.edit_item ? handleEditItem : undefined}
+                    canEditServices={!!allowedActions.edit_services}
                     hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                     hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
                     onAddProtocol={async (item) => {
@@ -651,6 +643,21 @@ const EmployeeCalendarPage = () => {
           </button>
         </nav>
       </div>
+
+      {/* Add/Edit order dialog - global so it works also from "Mój dzień" */}
+      {instanceId && (
+        <AddCalendarItemDialog
+          open={addItemOpen}
+          onClose={() => { setAddItemOpen(false); setEditingItem(null); }}
+          instanceId={instanceId}
+          columns={calendarColumns}
+          onSuccess={() => { fetchItems(); setEditingItem(null); }}
+          editingItem={editingItem}
+          initialDate={newItemData.date}
+          initialTime={newItemData.time}
+          initialColumnId={newItemData.columnId}
+        />
+      )}
 
       {/* Protocol form - rendered outside view blocks so it's always available */}
       {instanceId && (
