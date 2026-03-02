@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { format, addDays, isAfter, isBefore, startOfDay, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { X, Users } from 'lucide-react';
@@ -52,7 +53,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
     });
   }, [items, dateFilter, columnFilter]);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200]">
       {/* Map background — 100% */}
       <div className="absolute inset-0">
@@ -154,7 +155,8 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
       >
         <X className="w-5 h-5 text-foreground" />
       </Button>
-    </div>
+    </div>,
+    document.body
   );
 };
 
