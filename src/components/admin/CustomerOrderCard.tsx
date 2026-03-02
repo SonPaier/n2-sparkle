@@ -12,6 +12,9 @@ interface CustomerOrderCardProps {
   onClick?: () => void;
   hidePrices?: boolean;
   assignedEmployeeNames?: string[];
+  customerName?: string | null;
+  addressCity?: string | null;
+  addressStreet?: string | null;
 }
 
 const statusConfig: Record<string, { label: string; className: string }> = {
@@ -32,6 +35,9 @@ const CustomerOrderCard = ({
   onClick,
   hidePrices,
   assignedEmployeeNames,
+  customerName,
+  addressCity,
+  addressStreet,
 }: CustomerOrderCardProps) => {
   const statusInfo = statusConfig[status] || { label: status, className: 'bg-muted text-muted-foreground' };
 
@@ -49,24 +55,36 @@ const CustomerOrderCard = ({
     } catch {}
   }
 
+  const addressParts = [addressCity, addressStreet].filter(Boolean).join(', ');
+
   return (
     <div
-      className="bg-white border rounded-lg p-3 space-y-2 cursor-pointer hover:border-primary/30 transition-colors"
+      className="bg-white border rounded-lg p-3 space-y-1.5 cursor-pointer hover:border-primary/30 transition-colors"
       onClick={onClick}
     >
-      {/* Line 1: date, title, price */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-xs text-muted-foreground">{dateDisplay}</div>
-          {title && <div className="text-sm font-semibold truncate">{title}</div>}
-        </div>
-        {!hidePrices && price != null && (
-          <span className="text-sm font-semibold shrink-0">{price.toFixed(2)} zł</span>
-        )}
-      </div>
+      {/* Title — max 2 lines */}
+      {title && <div className="text-sm font-semibold line-clamp-2">{title}</div>}
 
-      {/* Line 2: status badge + employee pills */}
-      <div className="flex items-center gap-1.5 flex-wrap">
+      {/* Date — black font, full range */}
+      <div className="text-xs font-medium text-foreground">{dateDisplay}</div>
+
+      {/* Customer name */}
+      {customerName && (
+        <div className="text-xs text-muted-foreground truncate">{customerName}</div>
+      )}
+
+      {/* Service address */}
+      {addressParts && (
+        <div className="text-xs text-muted-foreground truncate">{addressParts}</div>
+      )}
+
+      {/* Price */}
+      {!hidePrices && price != null && (
+        <div className="text-sm font-semibold">{price.toFixed(2)} zł</div>
+      )}
+
+      {/* Status badge + employee pills */}
+      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
         <Badge variant="outline" className={statusInfo.className}>
           {statusInfo.label}
         </Badge>
