@@ -55,8 +55,8 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
 
   return createPortal(
     <div className="fixed inset-0 z-[200]">
-      {/* Map background — 100% */}
-      <div className="absolute inset-0">
+      {/* Map background — 100%, z-0 so panels stay on top */}
+      <div className="absolute inset-0 z-0">
         <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} hqLocation={hqLocation} showNearby={showNearby} instanceId={instanceId} />
       </div>
 
