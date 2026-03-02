@@ -18,7 +18,7 @@ import { LightTabsList, LightTabsTrigger } from '@/components/ui/light-tabs';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { useEmployees } from '@/hooks/useEmployees';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import EmployeeSelectionDrawer from './EmployeeSelectionDrawer';
 import { MediaUploader } from '@/components/media/MediaUploader';
 import type { MediaItem } from '@/components/media/mediaTypes';
@@ -27,6 +27,7 @@ import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { useInvoicingSettings } from '@/components/invoicing/useInvoicingSettings';
 import { useInvoices } from '@/components/invoicing/useInvoices';
 import CustomerOrderCard from './CustomerOrderCard';
+import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
 import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
 
 interface SmsNotificationInfo {
@@ -60,6 +61,7 @@ interface CalendarItemDetailsDrawerProps {
   hideHours?: boolean;
   forceSideRight?: boolean;
   isEmployee?: boolean;
+  canEditServices?: boolean;
 }
 
 const statusLabels: Record<string, string> = {
@@ -79,8 +81,21 @@ const statusColors: Record<string, string> = {
 };
 
 // Receipt-style services summary
-const ServicesSummary = ({ itemId, instanceId }: { itemId: string; instanceId: string }) => {
-  const { data: servicesData } = useQuery({
+const ServicesSummary = ({
+  itemId,
+  instanceId,
+  hidePrices = false,
+  allowEdit = false,
+}: {
+  itemId: string;
+  instanceId: string;
+  hidePrices?: boolean;
+  allowEdit?: boolean;
+}) => {
+  const queryClient = useQueryClient();
+  const [serviceDrawerOpen, setServiceDrawerOpen] = useState(false);
+
+  const { data: servicesData = [] } = useQuery({
     queryKey: ['calendar-item-services-summary', itemId],
     queryFn: async () => {
       const { data: itemServices } = await supabase
@@ -100,10 +115,10 @@ const ServicesSummary = ({ itemId, instanceId }: { itemId: string; instanceId: s
         const price = is.custom_price ?? svc?.price ?? 0;
         const qty = (is as any).quantity ?? 1;
         return {
-          short_name: svc?.short_name || null,
+          service_id: is.service_id,
           name: svc?.name || '',
-          unit: svc?.unit || 'szt.',
           quantity: qty,
+          unit: svc?.unit || 'szt.',
           price,
           total: price * qty,
         };
@@ -113,31 +128,102 @@ const ServicesSummary = ({ itemId, instanceId }: { itemId: string; instanceId: s
     staleTime: 0,
   });
 
-  if (!servicesData?.length) return null;
+  const handleServicesConfirmed = async (
+    serviceIds: string[],
+    _totalDuration: number,
+    _services: ServiceWithCategory[],
+  ) => {
+    try {
+      const { data: existingRows } = await supabase
+        .from('calendar_item_services')
+        .select('service_id, custom_price, quantity')
+        .eq('calendar_item_id', itemId);
+
+      const existingMap = new Map((existingRows || []).map((row: any) => [row.service_id, row]));
+
+      await supabase
+        .from('calendar_item_services')
+        .delete()
+        .eq('calendar_item_id', itemId);
+
+      if (serviceIds.length > 0) {
+        const rowsToInsert = serviceIds.map(serviceId => {
+          const existing = existingMap.get(serviceId);
+          return {
+            calendar_item_id: itemId,
+            instance_id: instanceId,
+            service_id: serviceId,
+            custom_price: existing?.custom_price ?? null,
+            quantity: existing?.quantity ?? 1,
+          };
+        });
+
+        const { error: insertError } = await (supabase
+          .from('calendar_item_services') as any)
+          .insert(rowsToInsert);
+
+        if (insertError) throw insertError;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['calendar-item-services-summary', itemId] });
+      toast.success('Zaktualizowano usługi i produkty');
+    } catch (error) {
+      console.error('Error updating services in details drawer:', error);
+      toast.error('Nie udało się zapisać usług');
+    }
+  };
+
+  if (!servicesData.length && !allowEdit) return null;
 
   const grandTotal = servicesData.reduce((sum, s) => sum + s.total, 0);
+  const selectedServiceIds = servicesData.map(s => s.service_id);
 
   return (
     <div className="space-y-1">
       <span className="text-sm font-medium">Usługi i produkty</span>
-    <div className="space-y-0.5">
+      <div className="space-y-0.5">
         {servicesData.map((s, i) => (
           <div key={i} className="flex items-center text-sm gap-2">
-            <span className="truncate flex-1">
-              {s.short_name ? (
-                <><span className="font-bold text-primary">{s.short_name}</span>{' '}<span className="text-[15px]">{s.name}</span></>
-              ) : s.name}
-            </span>
+            <span className="truncate flex-1">{s.name}</span>
             <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.quantity} {s.unit}</span>
-            <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.price} zł</span>
-            <span className="font-semibold whitespace-nowrap w-20 text-right">{s.total.toFixed(0)} zł</span>
+            {!hidePrices && (
+              <>
+                <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.price} zł</span>
+                <span className="font-semibold whitespace-nowrap w-20 text-right">{s.total.toFixed(0)} zł</span>
+              </>
+            )}
           </div>
         ))}
-        <div className="border-t border-border pt-1.5 mt-1.5 flex items-center justify-between">
-          <span className="text-sm font-bold">Razem netto</span>
-          <span className="text-base font-bold">{grandTotal.toFixed(0)} zł</span>
-        </div>
+        {!hidePrices && servicesData.length > 0 && (
+          <div className="border-t border-border pt-1.5 mt-1.5 flex items-center justify-between">
+            <span className="text-sm font-bold">Razem netto</span>
+            <span className="text-base font-bold">{grandTotal.toFixed(0)} zł</span>
+          </div>
+        )}
       </div>
+
+      {allowEdit && (
+        <div className="pt-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="rounded-full"
+            onClick={() => setServiceDrawerOpen(true)}
+          >
+            Dodaj
+          </Button>
+        </div>
+      )}
+
+      <ServiceSelectionDrawer
+        open={serviceDrawerOpen}
+        onClose={() => setServiceDrawerOpen(false)}
+        instanceId={instanceId}
+        selectedServiceIds={selectedServiceIds}
+        hidePricesAndDuration={hidePrices}
+        onConfirm={handleServicesConfirmed}
+      />
     </div>
   );
 };
@@ -158,6 +244,7 @@ const CalendarItemDetailsDrawer = ({
   hideHours,
   forceSideRight,
   isEmployee,
+  canEditServices = false,
 }: CalendarItemDetailsDrawerProps) => {
   const isMobile = useIsMobile();
   const sheetSide = forceSideRight ? 'right' : (isMobile ? 'bottom' : 'right');
@@ -552,7 +639,7 @@ const CalendarItemDetailsDrawer = ({
       <div className="flex-shrink-0 border-t border-border px-4 py-3 flex items-center gap-1.5">
         {!isEmployee && item.status !== 'completed' && moreMenu}
         {protocolBtn}
-        {!isEmployee && editBtn}
+        {editBtn}
 
         {isEmployee ? (
           <>
@@ -876,9 +963,14 @@ const CalendarItemDetailsDrawer = ({
                 )}
               </div>
 
-              {/* Services & Products Receipt */}
-              {!hidePrices && instanceId && (
-                <ServicesSummary itemId={item.id} instanceId={instanceId} />
+              {/* Services & Products */}
+              {instanceId && (!hidePrices || canEditServices) && (
+                <ServicesSummary
+                  itemId={item.id}
+                  instanceId={instanceId}
+                  hidePrices={!!hidePrices}
+                  allowEdit={!!canEditServices}
+                />
               )}
 
 
