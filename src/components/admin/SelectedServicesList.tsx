@@ -165,7 +165,7 @@ const SelectedServicesList = ({
                     {service.short_name && (
                       <span className="text-primary font-bold mr-1.5">{service.short_name}</span>
                     )}
-                    {service.name}
+                    <span className={service.short_name ? "text-[15px]" : ""}>{service.name}</span>
                   </p>
                 </div>
                 <button

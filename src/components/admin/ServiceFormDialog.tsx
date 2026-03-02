@@ -152,8 +152,7 @@ const ServiceFormContent = ({
   const location = useLocation();
   const [smsTemplates, setSmsTemplates] = useState<SmsTemplateOption[]>([]);
 
-  const hasAdvancedValues = !!(
-    service?.duration_minutes || 
+   const hasAdvancedValues = !!(
     service?.is_popular ||
     service?.notification_template_id
   );
@@ -457,26 +456,8 @@ const ServiceFormContent = ({
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-4 pt-2">
-            {/* Duration */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <Label className="text-sm">Czas trwania</Label>
-                <FieldInfo tooltip="Czas trwania usługi w minutach" />
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={formData.duration_minutes ?? ''}
-                  onChange={(e) => {
-                    const numValue = e.target.value === '' ? null : parseInt(e.target.value);
-                    setFormData(prev => ({ ...prev, duration_minutes: numValue }));
-                  }}
-                  className="w-24"
-                  min="0"
-                />
-                <span className="text-sm text-muted-foreground">min</span>
-              </div>
-            </div>
+
+
 
 
             {/* Is Popular */}
