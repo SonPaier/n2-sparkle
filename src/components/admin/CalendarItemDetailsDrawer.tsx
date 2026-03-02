@@ -100,7 +100,8 @@ const ServicesSummary = ({ itemId, instanceId }: { itemId: string; instanceId: s
         const price = is.custom_price ?? svc?.price ?? 0;
         const qty = (is as any).quantity ?? 1;
         return {
-          name: svc?.short_name ? `${svc.short_name} ${svc.name}` : svc?.name || '',
+          short_name: svc?.short_name || null,
+          name: svc?.name || '',
           unit: svc?.unit || 'szt.',
           quantity: qty,
           price,
@@ -109,7 +110,7 @@ const ServicesSummary = ({ itemId, instanceId }: { itemId: string; instanceId: s
       });
     },
     enabled: !!itemId,
-    staleTime: 30_000,
+    staleTime: 0,
   });
 
   if (!servicesData?.length) return null;
@@ -122,7 +123,11 @@ const ServicesSummary = ({ itemId, instanceId }: { itemId: string; instanceId: s
     <div className="space-y-0.5">
         {servicesData.map((s, i) => (
           <div key={i} className="flex items-center text-sm gap-2">
-            <span className="truncate flex-1">{s.name}</span>
+            <span className="truncate flex-1">
+              {s.short_name ? (
+                <><span className="font-bold text-primary">{s.short_name}</span>{' '}<span className="text-[15px]">{s.name}</span></>
+              ) : s.name}
+            </span>
             <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.quantity} {s.unit}</span>
             <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.price} zł</span>
             <span className="font-semibold whitespace-nowrap w-20 text-right">{s.total.toFixed(0)} zł</span>

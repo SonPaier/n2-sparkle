@@ -389,16 +389,6 @@ const AddCalendarItemDialog = ({
       }
     }
 
-    // Update end time based on total duration
-    if (totalDuration > 0) {
-      const [h, m] = startTime.split(':').map(Number);
-      const totalMinutes = h * 60 + m + totalDuration;
-      const endH = Math.floor(totalMinutes / 60);
-      const endM = totalMinutes % 60;
-      const newEnd = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
-      const closestOption = TIME_OPTIONS.find(t => t >= newEnd) || TIME_OPTIONS[TIME_OPTIONS.length - 1];
-      setEndTime(closestOption);
-    }
 
     // Check for immediate SMS templates
     const fetchImmediateTemplates = async () => {
