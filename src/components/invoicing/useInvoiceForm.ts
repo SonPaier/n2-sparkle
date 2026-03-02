@@ -57,6 +57,7 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     setBuyerName(customerName || '');
     setBuyerEmail(customerEmail || '');
     setBuyerTaxNo(customerNip || '');
+    setAutoSendEmail(settings?.auto_send_email ?? false);
     if (initialPositions?.length) {
       setPositions(initialPositions);
     }
@@ -143,9 +144,20 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     setPositions(updated);
   };
 
+  const [autoSendEmail, setAutoSendEmail] = useState(false);
+
   const handleSubmit = async () => {
     if (!buyerName.trim()) { toast.error('Podaj nazwę nabywcy'); return; }
     if (positions.some(p => !p.name.trim())) { toast.error('Uzupełnij nazwy pozycji'); return; }
+
+    // Always convert positions to brutto for the API
+    const grossPositions = positions.map(p => {
+      if (priceMode === 'netto') {
+        const rate = p.vat_rate / 100;
+        return { ...p, unit_price_gross: p.unit_price_gross * (1 + rate) };
+      }
+      return p;
+    });
 
     setSubmitting(true);
     try {
@@ -155,6 +167,7 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
           instanceId,
           calendarItemId,
           customerId,
+          autoSendEmail,
           invoiceData: {
             kind,
             issue_date: issueDate,
@@ -164,8 +177,7 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
             buyer_tax_no: buyerTaxNo,
             buyer_email: buyerEmail,
             currency: 'PLN',
-            positions,
-            priceMode,
+            positions: grossPositions,
             oid: calendarItemId,
           },
         },
@@ -204,6 +216,7 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     totalNetto,
     totalVat,
     totalGross,
+    autoSendEmail, setAutoSendEmail,
     addPosition,
     removePosition,
     updatePosition,

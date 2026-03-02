@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
     const config = settings.provider_config as any;
 
     if (action === "create_invoice") {
-      const { invoiceData, calendarItemId, customerId } = params;
+      const { invoiceData, calendarItemId, customerId, autoSendEmail } = params;
 
       let result: any;
 
@@ -307,8 +307,8 @@ Deno.serve(async (req) => {
           .eq("id", calendarItemId);
       }
 
-      // Auto send email if configured
-      if (settings.auto_send_email && provider === "fakturownia" && result.external_invoice_id) {
+      // Auto send email if requested
+      if (autoSendEmail && provider === "fakturownia" && result.external_invoice_id) {
         try {
           await fakturowniaSendEmail(config, result.external_invoice_id);
           await supabase
