@@ -22,7 +22,7 @@ import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/co
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
+
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import type { CalendarItemRow } from '@/components/employee/EmployeeDashboard';
 type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly' | 'czas-pracy';
@@ -569,46 +569,19 @@ const EmployeeCalendarPage = () => {
                 </>
               );
 
-              const mapPanel = mapOpen ? (
-                <CalendarMapPanel
-                  items={calendarItems}
-                  columns={calendarColumns}
-                  onItemClick={handleItemClick}
-                  onClose={() => setMapOpen(false)}
-                  hqLocation={hqLocation}
-                  instanceId={instanceId || ''}
-                />
-              ) : null;
-
-              if (isMobile && mapOpen) {
-                return (
-                  <div className="flex-1 min-h-[600px] h-full relative">
-                    {calendarContent}
-                    <Drawer open={mapOpen} onOpenChange={setMapOpen}>
-                      <DrawerContent className="h-[90vh]">
-                        {mapPanel}
-                      </DrawerContent>
-                    </Drawer>
-                  </div>
-                );
-              }
-
-              if (mapOpen) {
-                return (
-                  <div className="flex flex-1 min-h-[600px] h-full">
-                    <div className="w-1/2 min-w-0 relative">
-                      {calendarContent}
-                    </div>
-                    <div className="w-1/2 min-w-0">
-                      {mapPanel}
-                    </div>
-                  </div>
-                );
-              }
-
               return (
                 <div className="flex-1 min-h-[600px] h-full relative">
                   {calendarContent}
+                  {mapOpen && (
+                    <CalendarMapPanel
+                      items={calendarItems}
+                      columns={calendarColumns}
+                      onItemClick={handleItemClick}
+                      onClose={() => setMapOpen(false)}
+                      hqLocation={hqLocation}
+                      instanceId={instanceId || ''}
+                    />
+                  )}
                 </div>
               );
             })()
