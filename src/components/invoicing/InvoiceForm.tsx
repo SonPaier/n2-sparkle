@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DOCUMENT_KINDS, VAT_RATES, type InvoicePosition, type DocumentKind } from './invoicing.types';
 
 type PriceMode = 'netto' | 'brutto';
@@ -34,7 +35,8 @@ interface InvoiceFormProps {
   totalVat: number;
   totalGross: number;
   paymentTo: string;
-  autoSendEmail?: boolean;
+  autoSendEmail: boolean;
+  onAutoSendEmailChange: (v: boolean) => void;
   settingsActive?: boolean;
 }
 
@@ -51,25 +53,10 @@ export function InvoiceForm({
   totalNetto, totalVat, totalGross,
   paymentTo,
   autoSendEmail,
+  onAutoSendEmailChange,
   settingsActive,
 }: InvoiceFormProps) {
   const priceLabel = priceMode === 'netto' ? 'Cena netto' : 'Cena brutto';
-
-  const getPositionNetto = (pos: InvoicePosition) => {
-    if (priceMode === 'netto') {
-      return pos.unit_price_gross * pos.quantity;
-    }
-    const rate = pos.vat_rate / 100;
-    return (pos.unit_price_gross / (1 + rate)) * pos.quantity;
-  };
-
-  const getPositionBrutto = (pos: InvoicePosition) => {
-    if (priceMode === 'brutto') {
-      return pos.unit_price_gross * pos.quantity;
-    }
-    const rate = pos.vat_rate / 100;
-    return pos.unit_price_gross * (1 + rate) * pos.quantity;
-  };
 
   return (
     <div className="space-y-5">
@@ -149,11 +136,7 @@ export function InvoiceForm({
             <Plus className="w-4 h-4 mr-1" /> Dodaj
           </Button>
         </div>
-        {positions.map((pos, idx) => {
-          const posNetto = getPositionNetto(pos);
-          const posBrutto = getPositionBrutto(pos);
-
-          return (
+        {positions.map((pos, idx) => (
             <div key={idx} className="space-y-2 p-3 rounded-lg border border-border bg-white">
               <div className="flex items-center gap-2">
                 <Input
@@ -204,13 +187,8 @@ export function InvoiceForm({
                   </Select>
                 </div>
               </div>
-              <div className="text-right text-xs text-muted-foreground space-x-3">
-                <span>netto: {posNetto.toFixed(2)}</span>
-                <span>brutto: {posBrutto.toFixed(2)}</span>
-              </div>
             </div>
-          );
-        })}
+          ))}
       </div>
 
       <Separator />
@@ -234,11 +212,16 @@ export function InvoiceForm({
           <span className="text-foreground">Termin płatności</span>
           <span className="text-foreground">{paymentTo}</span>
         </div>
-        {autoSendEmail && (
-          <p className="text-xs text-muted-foreground">
-            ✉ Faktura zostanie automatycznie wysłana na email nabywcy
-          </p>
-        )}
+        <div className="flex items-center gap-2 pt-1">
+          <Checkbox
+            id="auto-send-email"
+            checked={autoSendEmail}
+            onCheckedChange={(v) => onAutoSendEmailChange(!!v)}
+          />
+          <Label htmlFor="auto-send-email" className="text-xs text-muted-foreground cursor-pointer">
+            ✉ Wyślij automatycznie na email nabywcy
+          </Label>
+        </div>
       </div>
     </div>
   );
