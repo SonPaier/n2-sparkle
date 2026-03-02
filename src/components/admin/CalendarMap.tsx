@@ -130,7 +130,9 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation, showNearby = fal
       center: [52.0, 19.0],
       zoom: 7,
       scrollWheelZoom: true,
+      zoomControl: false,
     });
+    L.control.zoom({ position: 'bottomright' }).addTo(mapRef.current);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
       maxZoom: 19,
