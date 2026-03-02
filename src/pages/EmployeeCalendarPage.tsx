@@ -620,7 +620,7 @@ const EmployeeCalendarPage = () => {
         </main>
 
         {/* Mobile bottom navigation bar */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 flex items-center justify-around h-14">
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border/50 flex items-center justify-around h-14 pb-2.5">
           {[
             { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
             { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
@@ -631,7 +631,7 @@ const EmployeeCalendarPage = () => {
               onClick={() => setCurrentView(id)}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors",
-                currentView === id ? "text-primary" : "text-muted-foreground"
+                currentView === id ? "text-primary font-semibold" : "text-foreground"
               )}
             >
               <Icon className="w-5 h-5" />
@@ -642,7 +642,7 @@ const EmployeeCalendarPage = () => {
             onClick={() => setSidebarOpen(true)}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors",
-              sidebarOpen ? "text-primary" : "text-muted-foreground"
+              sidebarOpen ? "text-primary font-semibold" : "text-foreground"
             )}
           >
             <MoreHorizontal className="w-5 h-5" />
