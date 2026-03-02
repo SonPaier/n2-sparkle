@@ -55,6 +55,7 @@ const ACTION_LABELS: Record<string, string> = {
   delete_item: 'Usuwanie zleceń',
   change_time: 'Zmiana czasu',
   change_column: 'Zmiana kolumny',
+  edit_services: 'Edycja usług w zleceniu',
 };
 
 const defaultVisibleFields = {
@@ -72,6 +73,7 @@ const defaultAllowedActions = {
   delete_item: true,
   change_time: true,
   change_column: true,
+  edit_services: true,
 };
 
 const AddEditEmployeeCalendarDrawer = ({

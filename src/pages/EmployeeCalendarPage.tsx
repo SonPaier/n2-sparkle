@@ -12,6 +12,7 @@ import AddCalendarItemDialog from '@/components/admin/AddCalendarItemDialog';
 import CalendarItemDetailsDrawer from '@/components/admin/CalendarItemDetailsDrawer';
 import AddBreakDialog from '@/components/admin/AddBreakDialog';
 import CalendarMapPanel from '@/components/admin/CalendarMapPanel';
+import CalendarMap from '@/components/admin/CalendarMap';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import EmployeeDashboard from '@/components/employee/EmployeeDashboard';
@@ -22,7 +23,8 @@ import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDial
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Drawer, DrawerContent } from '@/components/ui/drawer';
-
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import type { CalendarItemRow } from '@/components/employee/EmployeeDashboard';
 type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly' | 'czas-pracy';
 
 const EmployeeCalendarPage = () => {
@@ -51,6 +53,8 @@ const EmployeeCalendarPage = () => {
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [mapOpen, setMapOpen] = useState(false);
+  const [dashboardMapOpen, setDashboardMapOpen] = useState(false);
+  const [dashboardMapItems, setDashboardMapItems] = useState<CalendarItemRow[]>([]);
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
@@ -313,7 +317,7 @@ const EmployeeCalendarPage = () => {
     setSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
     const { error } = await supabase.from('calendar_items').update({ status: newStatus }).eq('id', itemId);
     if (error) { toast.error('Błąd zmiany statusu'); fetchItems(); }
-    else toast.success('Status zmieniony');
+    // no toast on status change per design
   };
 
   const handleEditItem = (item: CalendarItem) => {
@@ -410,6 +414,10 @@ const EmployeeCalendarPage = () => {
                 onItemClick={(item) => handleItemClick(item)}
                 linkedEmployeeId={linkedEmployeeId}
                 workingHours={workingHours}
+                onOpenMap={(items) => {
+                  setDashboardMapItems(items);
+                  setDashboardMapOpen(true);
+                }}
               />
               <CalendarItemDetailsDrawer
                 item={selectedItem}
@@ -445,11 +453,46 @@ const EmployeeCalendarPage = () => {
                 forceSideRight
                 isEmployee
               />
+              <Sheet open={dashboardMapOpen} onOpenChange={setDashboardMapOpen}>
+                <SheetContent side="right" className="w-full sm:max-w-2xl p-0" hideCloseButton>
+                  <SheetTitle className="sr-only">Mapa zleceń</SheetTitle>
+                  <SheetDescription className="sr-only">Mapa</SheetDescription>
+                  <div className="flex flex-col h-full">
+                    <div className="px-4 py-3 border-b flex items-center justify-between">
+                      <h3 className="font-bold text-lg">Mapa zleceń</h3>
+                      <Button variant="ghost" size="icon" onClick={() => setDashboardMapOpen(false)}>
+                        <X className="w-5 h-5" />
+                      </Button>
+                    </div>
+                    <div className="flex-1">
+                      <CalendarMap
+                        items={dashboardMapItems.map(di => ({
+                          id: di.id, title: di.title, item_date: di.item_date,
+                          start_time: di.start_time, end_time: di.end_time,
+                          column_id: di.column_id, status: di.status,
+                          customer_name: di.customer_name, customer_phone: di.customer_phone,
+                          customer_email: di.customer_email, customer_id: di.customer_id,
+                          customer_address_id: di.customer_address_id,
+                          assigned_employee_ids: di.assigned_employee_ids,
+                          admin_notes: di.admin_notes, price: di.price,
+                          address_lat: di.address_lat, address_lng: di.address_lng,
+                          address_city: di.address_city, address_street: di.address_street,
+                          address_name: di.address_name,
+                        } as any))}
+                        columns={calendarColumns}
+                        onItemClick={(item) => { setDashboardMapOpen(false); handleItemClick(item); }}
+                        hqLocation={hqLocation}
+                        instanceId={instanceId || ''}
+                      />
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
             </>
           ) : currentView === 'czas-pracy' && instanceId ? (
             <EmployeeTimeTrackingView instanceId={instanceId} />
           ) : currentView === 'protokoly' && instanceId ? (
-            <ProtocolsView instanceId={instanceId} />
+            <ProtocolsView instanceId={instanceId} filterByUserId={user?.id} />
           ) : currentView === 'kalendarz' && instanceId ? (
             (() => {
               const calendarContent = (

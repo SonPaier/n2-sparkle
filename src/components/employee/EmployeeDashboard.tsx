@@ -2,16 +2,24 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
-import { Calendar, Bell, ChevronRight, MessageSquare } from 'lucide-react';
+import { Calendar, Bell, ChevronRight, MessageSquare, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { formatPhoneDisplay, normalizePhone } from '@/lib/phoneUtils';
 
 type WorkingHours = Record<string, { open: string; close: string } | null> | null;
+
+const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  confirmed: { label: 'Do wykonania', cls: 'bg-amber-100 text-amber-800 border-amber-300' },
+  in_progress: { label: 'W trakcie', cls: 'bg-blue-100 text-blue-800 border-blue-300' },
+  completed: { label: 'Zakończone', cls: 'bg-emerald-100 text-emerald-800 border-emerald-300' },
+  cancelled: { label: 'Anulowane', cls: 'bg-red-100 text-red-800 border-red-300' },
+};
 
 interface EmployeeDashboardProps {
   instanceId: string;
@@ -21,9 +29,10 @@ interface EmployeeDashboardProps {
   onItemClick?: (item: any) => void;
   linkedEmployeeId?: string | null;
   workingHours?: WorkingHours;
+  onOpenMap?: (items: CalendarItemRow[]) => void;
 }
 
-interface CalendarItemRow {
+export interface CalendarItemRow {
   id: string;
   title: string;
   customer_name: string | null;
@@ -43,6 +52,8 @@ interface CalendarItemRow {
   address_name?: string | null;
   address_street?: string | null;
   address_city?: string | null;
+  address_lat?: number | null;
+  address_lng?: number | null;
   employee_names?: string[];
 }
 
@@ -66,7 +77,7 @@ const getDayPill = (itemDate: string) => {
   return { label: dayName.charAt(0).toUpperCase() + dayName.slice(1), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
-const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours }: EmployeeDashboardProps) => {
+const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours, onOpenMap }: EmployeeDashboardProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,16 +128,22 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
     const calItems = (itemsRes.data as CalendarItemRow[]) || [];
     const remItems = (remindersRes.data as ReminderRow[]) || [];
 
-    // Fetch addresses
+    // Fetch addresses (including lat, lng for map)
     const addressIds = [...new Set(calItems.filter(i => i.customer_address_id).map(i => i.customer_address_id!))];
     if (addressIds.length > 0) {
-      const { data: addresses } = await supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds);
+      const { data: addresses } = await supabase.from('customer_addresses').select('id, name, street, city, lat, lng').in('id', addressIds);
       if (addresses) {
         const addrMap = new Map(addresses.map(a => [a.id, a]));
         calItems.forEach(i => {
           if (i.customer_address_id) {
             const addr = addrMap.get(i.customer_address_id);
-            if (addr) { i.address_name = addr.name; i.address_street = addr.street; i.address_city = addr.city; }
+            if (addr) {
+              i.address_name = addr.name;
+              i.address_street = addr.street;
+              i.address_city = addr.city;
+              i.address_lat = addr.lat;
+              i.address_lng = addr.lng;
+            }
           }
         });
       }
@@ -222,7 +239,15 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Mój dzień</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Mój dzień</h1>
+        {onOpenMap && (
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onOpenMap(items)}>
+            <MapPin className="w-4 h-4" />
+            Mapa
+          </Button>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Zlecenia */}
@@ -239,6 +264,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
               <div>
                 {items.map((item, idx) => {
                   const pill = getDayPill(item.item_date);
+                  const statusCfg = STATUS_CONFIG[item.status] || { label: item.status, cls: 'bg-muted text-muted-foreground' };
                   const addr = buildDisplayAddress(item);
                   const mapsUrl = buildGoogleMapsUrl(item);
                   const phone = item.customer_phone;
@@ -253,8 +279,9 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
                       <div className="flex items-center gap-2">
                         <div className="flex-1 min-w-0 space-y-1.5">
                           <div className="text-lg font-bold leading-tight">{item.title}</div>
-                          <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+                            <Badge className={`text-[11px] px-2 py-0.5 ${statusCfg.cls}`}>{statusCfg.label}</Badge>
                           </div>
                           {addr && mapsUrl ? (
                             <a
@@ -305,17 +332,15 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
           </CardContent>
         </Card>
 
-        {/* Przypomnienia */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Bell className="w-5 h-5 text-primary" />
-              <h3 className="font-semibold">Przypomnienia</h3>
-              <span className="text-sm text-muted-foreground">({reminders.length})</span>
-            </div>
-            {reminders.length === 0 ? (
-              <p className="text-sm text-muted-foreground/60 italic py-3">Brak przypomnień</p>
-            ) : (
+        {/* Przypomnienia - hide entire section when count = 0 */}
+        {reminders.length > 0 && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Bell className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Przypomnienia</h3>
+                <span className="text-sm text-muted-foreground">({reminders.length})</span>
+              </div>
               <div>
                 {reminders.map((r, idx) => {
                   const deadlineDate = new Date(r.deadline + 'T00:00:00');
@@ -362,9 +387,9 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
                   );
                 })}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
