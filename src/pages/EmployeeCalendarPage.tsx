@@ -427,7 +427,6 @@ const EmployeeCalendarPage = () => {
                 onStatusChange={handleStatusChange}
                 onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                 onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
-                onEdit={allowedActions.edit_item ? handleEditItem : undefined}
                 canEditServices={!!allowedActions.edit_services}
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                 hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
@@ -524,7 +523,7 @@ const EmployeeCalendarPage = () => {
                     onStatusChange={handleStatusChange}
                     onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
                     onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
-                    onEdit={allowedActions.edit_item ? handleEditItem : undefined}
+                    
                     canEditServices={!!allowedActions.edit_services}
                     hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                     hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
