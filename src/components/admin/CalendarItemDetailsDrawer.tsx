@@ -584,7 +584,7 @@ const CalendarItemDetailsDrawer = ({
       </Button>
     );
 
-    const editBtn = onEdit && (
+    const editBtn = !isEmployee && onEdit && (
       <Button variant="outline" className="bg-white flex-1" onClick={() => onEdit(item)}>
         <Pencil className="w-4 h-4 mr-1" />
         Edytuj
@@ -964,7 +964,7 @@ const CalendarItemDetailsDrawer = ({
               </div>
 
               {/* Services & Products */}
-              {instanceId && (!hidePrices || canEditServices) && (
+              {instanceId && (
                 <ServicesSummary
                   itemId={item.id}
                   instanceId={instanceId}
