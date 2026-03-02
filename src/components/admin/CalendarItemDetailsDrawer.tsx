@@ -1104,6 +1104,8 @@ const CalendarItemDetailsDrawer = ({
         instanceId={instanceId}
         hidePrices={hidePrices}
         hideHours={hideHours}
+        forceSideRight
+        isEmployee={isEmployee}
       />
     </>
   );

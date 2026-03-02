@@ -33,13 +33,14 @@ interface Protocol {
 
 interface ProtocolsViewProps {
   instanceId: string;
+  filterByUserId?: string;
 }
 
 const protocolTypeLabels: Record<string, string> = {
   completion: 'Zakończenie prac',
 };
 
-const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
+const ProtocolsView = ({ instanceId, filterByUserId }: ProtocolsViewProps) => {
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +92,10 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
       .eq('instance_id', instanceId)
       .order('created_at', { ascending: false });
 
+    if (filterByUserId) {
+      query = query.eq('created_by_user_id', filterByUserId);
+    }
+
     if (searchQuery.trim()) {
       query = query.or(`customer_name.ilike.%${searchQuery}%,customer_phone.ilike.%${searchQuery}%`);
     }
@@ -99,7 +104,7 @@ const ProtocolsView = ({ instanceId }: ProtocolsViewProps) => {
     if (error) { console.error(error); toast.error('Błąd ładowania protokołów'); }
     setProtocols(data || []);
     setLoading(false);
-  }, [instanceId, searchQuery]);
+  }, [instanceId, searchQuery, filterByUserId]);
 
   useEffect(() => { fetchProtocols(); }, [fetchProtocols]);
 

@@ -53,6 +53,7 @@ export const MediaUploader = ({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const anyFileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const images = items.filter((i) => i.type === 'image');
@@ -157,6 +158,46 @@ export const MediaUploader = ({
     await doUpload(file, storageBucket, fileName, file.type, 'file', file.name);
   };
 
+  const handleAnyFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (anyFileInputRef.current) anyFileInputRef.current.value = '';
+
+    if (file.type.startsWith('image/')) {
+      try {
+        setUploading(true);
+        setUploadProgress(0);
+        setUploadLabel('Kompresja zdjęcia...');
+        setUploadError(null);
+        const compressed = await compressImage(file);
+        const fileName = generateFileName(filePrefix, 'jpg');
+        await doUpload(compressed, imageBucket, fileName, 'image/jpeg', 'image', file.name);
+      } catch {
+        setUploading(false);
+      }
+    } else if (file.type.startsWith('video/')) {
+      try {
+        setUploading(true);
+        setUploadProgress(0);
+        setUploadLabel('Kompresja video...');
+        setUploadError(null);
+        const compressed = await compressVideo(file, (pct) => {
+          setUploadLabel(`Kompresja video... ${pct}%`);
+        });
+        const ext = file.name.split('.').pop() || 'webm';
+        const fileName = generateFileName(filePrefix, compressed === file ? ext : 'webm');
+        const ct = compressed === file ? file.type : 'video/webm';
+        await doUpload(compressed, storageBucket, fileName, ct, 'video', file.name);
+      } catch {
+        setUploading(false);
+      }
+    } else {
+      const ext = file.name.split('.').pop() || 'bin';
+      const fileName = generateFileName(filePrefix, ext);
+      await doUpload(file, storageBucket, fileName, file.type, 'file', file.name);
+    }
+  };
+
   const handleAudioRecorded = async (blob: Blob, name?: string) => {
     setShowAudioRecorder(false);
     const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
@@ -218,6 +259,7 @@ export const MediaUploader = ({
         <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
         <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={handleVideoSelect} className="hidden" />
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileSelect} className="hidden" />
+        <input ref={anyFileInputRef} type="file" accept="*" onChange={handleAnyFileSelect} className="hidden" />
 
         <EmptyState icon={FolderOpen} message="To zlecenie nie ma dodanych plików" />
 
@@ -243,6 +285,9 @@ export const MediaUploader = ({
                 <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="gap-2">
                   <FileText className="h-4 w-4" /> Dokument (PDF/DOC)
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => anyFileInputRef.current?.click()} className="gap-2">
+                  <FolderOpen className="h-4 w-4" /> Plik z dysku
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -257,6 +302,7 @@ export const MediaUploader = ({
       <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
       <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={handleVideoSelect} className="hidden" />
       <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileSelect} className="hidden" />
+      <input ref={anyFileInputRef} type="file" accept="*" onChange={handleAnyFileSelect} className="hidden" />
 
       {/* Add button */}
       {!disabled && items.length < maxItems && (
@@ -279,6 +325,9 @@ export const MediaUploader = ({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => fileInputRef.current?.click()} className="gap-2">
               <FileText className="h-4 w-4" /> Dokument (PDF/DOC)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => anyFileInputRef.current?.click()} className="gap-2">
+              <FolderOpen className="h-4 w-4" /> Plik z dysku
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

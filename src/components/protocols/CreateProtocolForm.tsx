@@ -234,10 +234,12 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
               <Label>Imię i nazwisko *</Label>
               <Input value={customerName} onChange={(e) => { setCustomerName(e.target.value); if (customerId) setCustomerId(null); }} placeholder="Jan Kowalski" />
             </div>
-            <div className="space-y-2">
-              <Label>Telefon</Label>
-              <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+48 ..." type="tel" />
-            </div>
+            {!isEditMode && (
+              <div className="space-y-2">
+                <Label>Telefon</Label>
+                <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+48 ..." type="tel" />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -286,7 +288,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
                   {format(protocolDate, 'EEEE, d MMM yyyy', { locale: pl })}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-auto p-0 bg-white" align="start">
                 <Calendar
                   mode="single"
                   selected={protocolDate}
@@ -347,19 +349,11 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
 
   return (
     <>
-      {isMobile ? (
-        <Drawer open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-          <DrawerContent className="h-[95vh]" hideHandle>
-            {formContent}
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-          <SheetContent side="right" className="sm:max-w-lg p-0" hideOverlay hideCloseButton>
-            {formContent}
-          </SheetContent>
-        </Sheet>
-      )}
+      <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+        <SheetContent side="right" className="w-full sm:max-w-lg p-0" hideOverlay hideCloseButton>
+          {formContent}
+        </SheetContent>
+      </Sheet>
 
       <SignatureDialog
         open={signatureOpen}
