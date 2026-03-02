@@ -198,14 +198,14 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
       {/* Mobile bottom bar */}
       {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border/50 flex items-center justify-around h-16 px-2">
+        <div className="fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border/50 flex items-center justify-around h-16 px-2 pb-2.5">
           {bottomBarItems.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => handleNavClick(id)}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer transition-colors",
-                currentView === id ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                currentView === id ? "text-primary font-semibold" : "text-foreground hover:text-foreground"
               )}
             >
               <Icon className="w-5 h-5" />
@@ -214,7 +214,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
           ))}
           <button
             onClick={() => setSidebarOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+            className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer text-foreground hover:text-foreground transition-colors"
           >
             <Menu className="w-5 h-5" />
             <span className="text-[10px] font-medium">Więcej</span>

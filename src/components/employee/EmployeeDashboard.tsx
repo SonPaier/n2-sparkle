@@ -242,7 +242,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Mój dzień</h1>
         {onOpenMap && (
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onOpenMap(items)}>
+          <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onOpenMap(items)}>
             <MapPin className="w-4 h-4" />
             Mapa
           </Button>
