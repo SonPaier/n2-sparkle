@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, ChevronDown, Info, Trash2, Plus } from 'lucide-react';
+import { Loader2, ChevronDown, Info, Trash2, Plus, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import {
   Sheet,
   SheetContent,
+  SheetTitle,
 } from '@/components/ui/sheet';
 import {
   Drawer,
@@ -130,6 +131,7 @@ const ServiceFormContent = ({
   isMobile = false,
   onDelete,
   existingServices = [],
+  onRegisterSave,
 }: {
   service?: ServiceData | null;
   categories: ServiceCategory[];
@@ -141,6 +143,7 @@ const ServiceFormContent = ({
   isMobile?: boolean;
   onDelete?: () => void;
   existingServices?: ExistingService[];
+  onRegisterSave?: (saveFn: () => void, saving: boolean) => void;
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -300,41 +303,47 @@ const ServiceFormContent = ({
     }
   };
 
+  useEffect(() => {
+    onRegisterSave?.(handleSave, saving);
+  });
+
   const priceLabel = formData.prices_are_net ? 'Cena netto' : 'Cena brutto';
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-6 pb-24">
-        {/* Row 1: Name, Short Name, Category */}
+      <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+        {/* Row 1: Full Name */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5">
+            <Label className="text-sm leading-5">Pełna nazwa usługi *</Label>
+            <FieldInfo tooltip="Nazwa wyświetlana klientom w ofercie i cenniku" />
+          </div>
+          <Input
+            ref={nameInputRef}
+            value={formData.name}
+            onChange={(e) => {
+              setFormData(prev => ({ ...prev, name: e.target.value }));
+              if (nameError && e.target.value.trim()) setNameError(false);
+            }}
+            className={cn("bg-white", nameError && "border-destructive focus-visible:ring-destructive")}
+          />
+          {nameError && (
+            <p className="text-sm text-destructive">
+              {existingServices.some(s => s.id !== service?.id && s.name.toLowerCase().trim() === formData.name.toLowerCase().trim())
+                ? 'Nazwa jest już używana'
+                : 'Nazwa usługi jest wymagana'}
+            </p>
+          )}
+        </div>
+
+        {/* Row 2: Short Name + Category */}
         <div className={cn(
           "grid gap-4",
-          isMobile ? "grid-cols-1" : "grid-cols-[3fr_1.5fr_1.5fr]"
+          isMobile ? "grid-cols-1" : "grid-cols-2"
         )}>
           <div className="space-y-2">
             <div className="flex items-center gap-1.5">
-              <Label className="text-sm leading-5">Pełna nazwa usługi *</Label>
-              <FieldInfo tooltip="Nazwa wyświetlana klientom w ofercie i cenniku" />
-            </div>
-            <Input
-              ref={nameInputRef}
-              value={formData.name}
-              onChange={(e) => {
-                setFormData(prev => ({ ...prev, name: e.target.value }));
-                if (nameError && e.target.value.trim()) setNameError(false);
-              }}
-              className={cn(nameError && "border-destructive focus-visible:ring-destructive")}
-            />
-            {nameError && (
-              <p className="text-sm text-destructive">
-                {existingServices.some(s => s.id !== service?.id && s.name.toLowerCase().trim() === formData.name.toLowerCase().trim())
-                  ? 'Nazwa jest już używana'
-                  : 'Nazwa usługi jest wymagana'}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-1.5">
-              <Label className="text-sm leading-5">Twoja nazwa lub skrót</Label>
+              <Label className="text-sm leading-5">Nazwa skrócona</Label>
               <FieldInfo tooltip="Wewnętrzna nazwa robocza widoczna tylko dla Ciebie" />
             </div>
             <Input
@@ -344,7 +353,7 @@ const ServiceFormContent = ({
                 if (shortNameError) setShortNameError(false);
               }}
               maxLength={10}
-              className={cn(shortNameError && "border-destructive focus-visible:ring-destructive")}
+              className={cn("bg-white", shortNameError && "border-destructive focus-visible:ring-destructive")}
             />
             {shortNameError && (
               <p className="text-sm text-destructive">Skrót jest już używany</p>
@@ -359,7 +368,7 @@ const ServiceFormContent = ({
               value={formData.category_id || 'none'}
               onValueChange={(v) => setFormData(prev => ({ ...prev, category_id: v === 'none' ? '' : v }))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="bg-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -408,7 +417,7 @@ const ServiceFormContent = ({
               }}
               step="0.01"
               min="0"
-              className="w-40"
+              className="w-40 bg-white"
             />
             <Select
               value={formData.unit}
@@ -436,7 +445,7 @@ const ServiceFormContent = ({
             ref={textareaRef}
             value={formData.description}
             onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            className="min-h-[144px] resize-none overflow-hidden"
+            className="min-h-[144px] resize-none overflow-hidden bg-white"
             style={{ height: 'auto' }}
           />
         </div>
@@ -526,30 +535,7 @@ const ServiceFormContent = ({
         </Collapsible>
       </div>
 
-      {/* Fixed Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 flex items-center z-50">
-        {service?.id && onDelete && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onDelete}
-            className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            Usuń
-          </Button>
-        )}
-        <div className="flex-1" />
-        <div className="flex gap-3">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Anuluj
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-            Zapisz
-          </Button>
-        </div>
-      </div>
+      {/* Footer - rendered by parent */}
     </div>
   );
 };
@@ -567,10 +553,38 @@ export const ServiceFormDialog = ({
   existingServices = [],
 }: ServiceFormDialogProps) => {
   const isMobile = useIsMobile();
+  const saveRef = useRef<{ save: () => void; saving: boolean }>({ save: () => {}, saving: false });
 
   const title = service?.id ? 'Edytuj usługę' : 'Dodaj usługę';
 
   const handleClose = () => onOpenChange(false);
+
+  const handleRegisterSave = (saveFn: () => void, saving: boolean) => {
+    saveRef.current = { save: saveFn, saving };
+  };
+
+  const footerContent = (
+    <div className="px-6 py-4 border-t border-border shrink-0 flex gap-2">
+      {service?.id && onDelete && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onDelete}
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-2 mr-auto"
+        >
+          <Trash2 className="w-4 h-4" />
+          Usuń
+        </Button>
+      )}
+      <Button variant="outline" onClick={handleClose} className="flex-1">
+        Anuluj
+      </Button>
+      <Button onClick={() => saveRef.current.save()} disabled={saveRef.current.saving} className="flex-1">
+        {saveRef.current.saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+        Zapisz
+      </Button>
+    </div>
+  );
 
   if (isMobile) {
     return (
@@ -580,7 +594,7 @@ export const ServiceFormDialog = ({
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription />
           </DrawerHeader>
-          <div className="px-4 pb-4 overflow-y-auto flex-1">
+          <div className="px-4 flex-1 overflow-y-auto">
             <ServiceFormContent
               service={service}
               categories={categories}
@@ -592,8 +606,10 @@ export const ServiceFormDialog = ({
               isMobile={true}
               onDelete={onDelete}
               existingServices={existingServices}
+              onRegisterSave={handleRegisterSave}
             />
           </div>
+          {footerContent}
         </DrawerContent>
       </Drawer>
     );
@@ -601,10 +617,24 @@ export const ServiceFormDialog = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[700px] sm:max-w-[700px] flex flex-col p-0 gap-0 bg-card" hideCloseButton hideOverlay>
-        <div className="px-6 py-4 border-b border-border shrink-0 bg-card flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{title}</h2>
+      <SheetContent
+        side="right"
+        hideCloseButton
+        hideOverlay
+        className="flex flex-col p-0 gap-0 z-[1000] sm:max-w-lg bg-white"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
+          <div className="flex items-center justify-between">
+            <SheetTitle className="text-lg font-semibold">{title}</SheetTitle>
+            <button onClick={handleClose} className="p-2 rounded-full hover:bg-primary/5 transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
+
+        {/* Content */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
           <ServiceFormContent
             service={service}
@@ -617,8 +647,12 @@ export const ServiceFormDialog = ({
             isMobile={false}
             onDelete={onDelete}
             existingServices={existingServices}
+            onRegisterSave={handleRegisterSave}
           />
         </div>
+
+        {/* Footer */}
+        {footerContent}
       </SheetContent>
     </Sheet>
   );
