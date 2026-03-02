@@ -255,7 +255,15 @@ const EmployeeCalendarPage = () => {
     return () => { supabase.removeChannel(channel); };
   }, [instanceId, currentView, fetchItems, fetchBreaks]);
 
-  const allowedActions = config?.allowed_actions || {};
+  const allowedActions = {
+    add_item: true,
+    edit_item: true,
+    delete_item: true,
+    change_time: true,
+    change_column: true,
+    edit_services: true,
+    ...(config?.allowed_actions || {}),
+  };
 
   const handleItemClick = (item: CalendarItem) => {
     setSelectedItem(item);
