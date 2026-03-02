@@ -382,27 +382,6 @@ const ServiceSelectionDrawer = ({
             <p className="text-sm text-muted-foreground">Brak pasujących usług</p>
           )}
 
-          {/* Selected Services Chips */}
-          {!hideSelectedSection && selectedServices.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-xs text-muted-foreground font-medium">
-                Zaznaczone ({selectedServices.length})
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {selectedServices.map(service => (
-                  <button
-                    key={service.id}
-                    type="button"
-                    onClick={() => removeService(service.id)}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors min-h-[36px]"
-                  >
-                    <span>{getChipLabel(service)}</span>
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Content */}
