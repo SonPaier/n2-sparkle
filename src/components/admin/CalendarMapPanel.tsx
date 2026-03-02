@@ -55,14 +55,14 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
 
   return createPortal(
     <div className="fixed inset-0 z-[200]">
-      {/* Map background — 100%, z-0 so panels stay on top */}
+      {/* Map background — z-0 so panels stay on top */}
       <div className="absolute inset-0 z-0">
         <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} hqLocation={hqLocation} showNearby={showNearby} instanceId={instanceId} />
       </div>
 
       {/* Left order list panel — desktop only */}
       {!isMobile && (
-        <div className="absolute left-0 top-0 w-[250px] h-full bg-card border-r border-border z-10">
+        <div className="absolute left-0 top-0 w-[300px] h-full bg-card border-r border-border z-10">
           <div className="px-3 py-2.5 border-b border-border">
             <h3 className="font-semibold text-sm">
               Zlecenia ({filteredItems.length})
@@ -84,6 +84,9 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
                   price={item.price ?? undefined}
                   onClick={() => onItemClick(item)}
                   assignedEmployeeNames={item.assigned_employees?.map(e => e.name)}
+                  customerName={item.customer_name}
+                  addressCity={item.address_city}
+                  addressStreet={item.address_street}
                 />
               ))}
             </div>
@@ -92,7 +95,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
       )}
 
       {/* Floating filters */}
-      <div className={`absolute top-4 ${isMobile ? 'left-4' : 'left-[266px]'} flex items-center gap-2 z-20`}>
+      <div className={`absolute ${isMobile ? 'top-4 left-4 right-14 flex flex-wrap gap-2' : 'top-4 left-[316px] flex items-center gap-2'} z-20`}>
         <div className="flex rounded-lg overflow-hidden shadow-sm">
           {(['today', 'week', 'month'] as DateFilter[]).map(f => (
             <Button
@@ -146,12 +149,12 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
         </Button>
       </div>
 
-      {/* Close button — top right, black on gray circle */}
+      {/* Close button — white bg, purple hover */}
       <Button
         variant="ghost"
         size="icon"
         onClick={onClose}
-        className="absolute top-4 right-4 z-20 h-10 w-10 rounded-full bg-muted hover:bg-muted/80"
+        className="absolute top-4 right-4 z-20 h-10 w-10 rounded-full bg-white hover:bg-accent shadow-sm"
       >
         <X className="w-5 h-5 text-foreground" />
       </Button>
