@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { X, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -65,24 +65,17 @@ const ActiveFiltersBar = ({ filters, onFiltersChange, categoryNames }: { filters
   if (!hasFilters) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 px-3 py-2 border-b border-border bg-muted/30">
+    <div className="flex flex-wrap gap-1.5">
       {filters.customer && (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white/90 text-foreground shadow-sm">
           Klient: {filters.customer.name}
-          <button
-            type="button"
-            onClick={() => onFiltersChange({ ...filters, customer: null })}
-            className="hover:text-primary/70"
-          >
+          <button type="button" onClick={() => onFiltersChange({ ...filters, customer: null })} className="hover:text-primary">
             <X className="w-3 h-3" />
           </button>
         </span>
       )}
       {filters.serviceNames.map((name, idx) => (
-        <span
-          key={filters.serviceIds[idx]}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
-        >
+        <span key={filters.serviceIds[idx]} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white/90 text-foreground shadow-sm">
           {name}
           <button
             type="button"
@@ -91,35 +84,24 @@ const ActiveFiltersBar = ({ filters, onFiltersChange, categoryNames }: { filters
               const newNames = filters.serviceNames.filter((_, i) => i !== idx);
               onFiltersChange({ ...filters, serviceIds: newIds, serviceNames: newNames });
             }}
-            className="hover:text-primary/70"
+            className="hover:text-primary"
           >
             <X className="w-3 h-3" />
           </button>
         </span>
       ))}
       {filters.categoryIds.map(catId => (
-        <span
-          key={catId}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
-        >
+        <span key={catId} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white/90 text-foreground shadow-sm">
           {categoryNames?.[catId] || catId}
-          <button
-            type="button"
-            onClick={() => onFiltersChange({ ...filters, categoryIds: filters.categoryIds.filter(id => id !== catId) })}
-            className="hover:text-primary/70"
-          >
+          <button type="button" onClick={() => onFiltersChange({ ...filters, categoryIds: filters.categoryIds.filter(id => id !== catId) })} className="hover:text-primary">
             <X className="w-3 h-3" />
           </button>
         </span>
       ))}
       {filters.orderStatus !== 'all' && (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-white/90 text-foreground shadow-sm">
           {filters.orderStatus === 'with_orders' ? 'Ze zleceniami' : 'Bez zleceń'}
-          <button
-            type="button"
-            onClick={() => onFiltersChange({ ...filters, orderStatus: 'all' })}
-            className="hover:text-primary/70"
-          >
+          <button type="button" onClick={() => onFiltersChange({ ...filters, orderStatus: 'all' })} className="hover:text-primary">
             <X className="w-3 h-3" />
           </button>
         </span>
@@ -134,6 +116,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const prevAddressKeyRef = useRef<string>('');
 
   const initMap = useCallback(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -141,6 +124,7 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
       center: [52.0, 19.0],
       zoom: 7,
       scrollWheelZoom: true,
+      zoomControl: false,
     });
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -159,11 +143,9 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
     const timer = setTimeout(() => {
       initMap();
       updateMarkers(true);
-    }, 350);
+    }, 150);
     return () => clearTimeout(timer);
   }, [open]);
-
-  const prevAddressKeyRef = useRef<string>('');
 
   const updateMarkers = useCallback((shouldFitBounds = false) => {
     const map = mapRef.current;
@@ -207,7 +189,6 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
 
   useEffect(() => {
     if (open && mapRef.current) {
-      // Only fitBounds when the actual set of addresses changes (filters applied)
       const newKey = addresses.map(a => a.addressId).sort().join(',');
       const shouldFit = newKey !== prevAddressKeyRef.current;
       prevAddressKeyRef.current = newKey;
@@ -236,94 +217,94 @@ const CustomersMapDrawer = ({ open, onClose, addresses, onCustomerClick, instanc
     onFiltersChange({ customer, serviceIds, serviceNames, categoryIds, orderStatus });
   };
 
-  return (
-    <Drawer
-      open={open}
-      onOpenChange={v => { if (!v) onClose(); }}
-      direction={isMobile ? 'bottom' : 'right'}
-      modal={false}
-      dismissible={false}
-    >
-      <DrawerContent
-        hideHandle
-        className={`z-[80] ${
-          isMobile
-            ? 'h-[100dvh] rounded-none bg-white'
-            : 'ml-auto h-full w-full max-w-none rounded-none bg-white'
-        }`}
-      >
-        {isMobile ? (
-          // Mobile layout
-          <div className="flex flex-col h-full">
-             <div className="flex items-center justify-between p-3 border-b border-border bg-white">
-              <h2 className="text-lg font-semibold">Mapa klientów</h2>
-              <div className="flex items-center gap-1">
-                <Button variant="outline" size="sm" onClick={() => setMobileFiltersOpen(true)}>
-                  <Filter className="w-4 h-4 mr-1" />
-                  Filtry
-                  {(filters.customer || filters.serviceIds.length > 0 || filters.categoryIds.length > 0 || filters.orderStatus !== 'all') && (
-                    <span className="ml-1 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                      {(filters.customer ? 1 : 0) + filters.serviceIds.length + filters.categoryIds.length + (filters.orderStatus !== 'all' ? 1 : 0)}
-                    </span>
-                  )}
-                </Button>
-                <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} categoryNames={categoryNames} />
-            <div ref={containerRef} className="flex-1 w-full" style={{ minHeight: '300px' }} />
+  const activeFilterCount = (filters.customer ? 1 : 0) + filters.serviceIds.length + filters.categoryIds.length + (filters.orderStatus !== 'all' ? 1 : 0);
 
-            <CustomerMapFiltersDrawer
-              open={mobileFiltersOpen}
-              onClose={() => setMobileFiltersOpen(false)}
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[200]">
+      {/* Map background */}
+      <div ref={containerRef} className="absolute inset-0 z-0" />
+
+      {/* Desktop: sidebar filters */}
+      {!isMobile && (
+        <div className="absolute left-0 top-0 w-[280px] h-full bg-card border-r border-border z-10 flex flex-col">
+          <div className="px-3 py-2.5 border-b border-border">
+            <h3 className="font-semibold text-sm">Filtry</h3>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <CustomerMapFilters
               instanceId={instanceId}
               selectedCustomer={filters.customer}
+              onCustomerSelect={(c) => onFiltersChange({ ...filters, customer: c })}
+              onCustomerClear={() => onFiltersChange({ ...filters, customer: null })}
               selectedServiceIds={filters.serviceIds}
+              onServicesConfirm={handleServicesConfirm}
               selectedServiceNames={filters.serviceNames}
+              onRemoveService={handleRemoveService}
               selectedCategoryIds={filters.categoryIds}
-              selectedOrderStatus={filters.orderStatus}
-              onApply={handleMobileFiltersApply}
+              onCategoryIdsChange={(ids) => onFiltersChange({ ...filters, categoryIds: ids })}
+              orderStatus={filters.orderStatus}
+              onOrderStatusChange={(status) => onFiltersChange({ ...filters, orderStatus: status })}
             />
           </div>
-        ) : (
-          // Desktop layout: full-width header, then sidebar + map
-          <div className="flex flex-col h-full">
-            {/* Full-width header */}
-            <div className="flex items-center justify-between p-3 border-b border-border bg-white">
-              <h2 className="text-lg font-semibold text-foreground">Mapa klientów</h2>
-              <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 rounded-full">
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} categoryNames={categoryNames} />
-            {/* Sidebar + map */}
-            <div className="flex flex-row flex-1 min-h-0">
-              <div className="min-w-[250px] w-[20%] border-r border-border flex flex-col bg-white">
-                <div className="flex-1 overflow-y-auto">
-                  <CustomerMapFilters
-                    instanceId={instanceId}
-                    selectedCustomer={filters.customer}
-                    onCustomerSelect={(c) => onFiltersChange({ ...filters, customer: c })}
-                    onCustomerClear={() => onFiltersChange({ ...filters, customer: null })}
-                    selectedServiceIds={filters.serviceIds}
-                    onServicesConfirm={handleServicesConfirm}
-                    selectedServiceNames={filters.serviceNames}
-                    onRemoveService={handleRemoveService}
-                    selectedCategoryIds={filters.categoryIds}
-                    onCategoryIdsChange={(ids) => onFiltersChange({ ...filters, categoryIds: ids })}
-                    orderStatus={filters.orderStatus}
-                    onOrderStatusChange={(status) => onFiltersChange({ ...filters, orderStatus: status })}
-                  />
-                </div>
-              </div>
-              <div ref={containerRef} className="flex-1 w-full" />
-            </div>
-          </div>
-        )}
-      </DrawerContent>
-    </Drawer>
+        </div>
+      )}
+
+      {/* Floating filter chips (desktop) */}
+      {!isMobile && (
+        <div className="absolute top-4 left-[296px] z-20">
+          <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} categoryNames={categoryNames} />
+        </div>
+      )}
+
+      {/* Mobile: floating filters button + chips */}
+      {isMobile && (
+        <div className="absolute top-4 left-4 right-14 z-20 flex flex-wrap gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMobileFiltersOpen(true)}
+            className="h-9 gap-1 text-xs bg-white text-foreground hover:bg-white/90 shadow-sm"
+          >
+            <Filter className="w-3.5 h-3.5" />
+            Filtry
+            {activeFilterCount > 0 && (
+              <span className="ml-0.5 w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+          <ActiveFiltersBar filters={filters} onFiltersChange={onFiltersChange} categoryNames={categoryNames} />
+        </div>
+      )}
+
+      {/* Close button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onClose}
+        className="absolute top-4 right-4 z-20 h-10 w-10 rounded-full bg-white hover:bg-accent shadow-sm"
+      >
+        <X className="w-5 h-5 text-foreground" />
+      </Button>
+
+      {/* Mobile filters drawer */}
+      {isMobile && (
+        <CustomerMapFiltersDrawer
+          open={mobileFiltersOpen}
+          onClose={() => setMobileFiltersOpen(false)}
+          instanceId={instanceId}
+          selectedCustomer={filters.customer}
+          selectedServiceIds={filters.serviceIds}
+          selectedServiceNames={filters.serviceNames}
+          selectedCategoryIds={filters.categoryIds}
+          selectedOrderStatus={filters.orderStatus}
+          onApply={handleMobileFiltersApply}
+        />
+      )}
+    </div>,
+    document.body
   );
 };
 
