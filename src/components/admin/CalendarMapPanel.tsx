@@ -1,13 +1,14 @@
 import { useState, useMemo } from 'react';
 import { format, addDays, isAfter, isBefore, startOfDay, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { X, CalendarIcon, Users } from 'lucide-react';
+import { X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import CalendarMap from './CalendarMap';
+import CustomerOrderCard from './CustomerOrderCard';
 import type { CalendarItem, CalendarColumn } from './AdminCalendar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type DateFilter = 'today' | 'week' | 'month';
 
@@ -21,11 +22,10 @@ interface CalendarMapPanelProps {
 }
 
 const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, instanceId }: CalendarMapPanelProps) => {
-  const [dateFilter, setDateFilter] = useState<DateFilter>('week');
-  const [customDate, setCustomDate] = useState<Date | undefined>(undefined);
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today');
   const [columnFilter, setColumnFilter] = useState<string>('all');
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [showNearby, setShowNearby] = useState(false);
+  const isMobile = useIsMobile();
 
   const filteredItems = useMemo(() => {
     const today = startOfDay(new Date());
@@ -35,10 +35,6 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
       if (isBefore(itemDate, today)) return false;
       if (columnFilter !== 'all' && item.column_id !== columnFilter) return false;
       if (item.status === 'cancelled') return false;
-
-      if (customDate) {
-        return isSameDay(itemDate, customDate);
-      }
 
       if (dateFilter === 'today') {
         return isSameDay(itemDate, today);
@@ -54,64 +50,71 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
 
       return true;
     });
-  }, [items, dateFilter, customDate, columnFilter]);
-
-  const handleDateFilterChange = (filter: DateFilter) => {
-    setDateFilter(filter);
-    setCustomDate(undefined);
-  };
-
-  const handleCustomDate = (date: Date | undefined) => {
-    setCustomDate(date);
-    setDatePickerOpen(false);
-  };
+  }, [items, dateFilter, columnFilter]);
 
   return (
-    <div className="flex flex-col h-full bg-background border-l border-border">
-      {/* Filters - matching calendar header height (py-2 lg:py-3 + gap-2 px-[16px]) */}
-      <div className="flex flex-wrap items-center gap-2 py-2 lg:py-3 px-[16px] bg-background sticky top-0 z-50">
-        <div className="flex border border-border rounded-lg overflow-hidden">
+    <div className="fixed inset-0 z-[200]">
+      {/* Map background — 100% */}
+      <div className="absolute inset-0">
+        <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} hqLocation={hqLocation} showNearby={showNearby} instanceId={instanceId} />
+      </div>
+
+      {/* Left order list panel — desktop only */}
+      {!isMobile && (
+        <div className="absolute left-0 top-0 w-[250px] h-full bg-card border-r border-border z-10">
+          <div className="px-3 py-2.5 border-b border-border">
+            <h3 className="font-semibold text-sm">
+              Zlecenia ({filteredItems.length})
+            </h3>
+          </div>
+          <ScrollArea className="h-[calc(100%-41px)]">
+            <div className="p-2 space-y-2">
+              {filteredItems.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-8">Brak zleceń</p>
+              )}
+              {filteredItems.map(item => (
+                <CustomerOrderCard
+                  key={item.id}
+                  itemDate={item.item_date}
+                  endDate={item.end_date}
+                  title={item.title}
+                  status={item.status}
+                  services={[]}
+                  price={item.price ?? undefined}
+                  onClick={() => onItemClick(item)}
+                  assignedEmployeeNames={item.assigned_employees?.map(e => e.name)}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+
+      {/* Floating filters */}
+      <div className={`absolute top-4 ${isMobile ? 'left-4' : 'left-[266px]'} flex items-center gap-2 z-20`}>
+        <div className="flex rounded-lg overflow-hidden shadow-sm">
           {(['today', 'week', 'month'] as DateFilter[]).map(f => (
             <Button
               key={f}
-              variant={dateFilter === f && !customDate ? 'secondary' : 'ghost'}
+              variant="ghost"
               size="sm"
-              onClick={() => handleDateFilterChange(f)}
-              className="rounded-none border-0 px-2.5 h-9 text-xs"
+              onClick={() => setDateFilter(f)}
+              className={`rounded-none border-0 px-2.5 h-9 text-xs shadow-none ${
+                dateFilter === f
+                  ? 'bg-secondary text-secondary-foreground'
+                  : 'bg-white text-foreground hover:bg-white/90'
+              }`}
             >
               {f === 'today' ? 'Dziś' : f === 'week' ? 'Tydzień' : 'Miesiąc'}
             </Button>
           ))}
         </div>
 
-        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant={customDate ? 'secondary' : 'outline'}
-              size="sm"
-              className="h-9 gap-1 text-xs"
-            >
-              <CalendarIcon className="w-3.5 h-3.5" />
-              {customDate ? format(customDate, 'd MMM', { locale: pl }) : 'Data'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 z-[1000]" align="start">
-            <Calendar
-              mode="single"
-              selected={customDate}
-              onSelect={handleCustomDate}
-              locale={pl}
-              initialFocus
-              className="pointer-events-auto"
-            />
-          </PopoverContent>
-        </Popover>
-
         <Select value={columnFilter} onValueChange={setColumnFilter}>
-          <SelectTrigger className="h-9 w-[130px] text-xs">
+          <SelectTrigger className="h-9 w-[130px] text-xs bg-white border-0 shadow-sm">
             <SelectValue placeholder="Kolumna" />
           </SelectTrigger>
-          <SelectContent className="z-[1000]">
+          <SelectContent className="z-[1300]">
             <SelectItem value="all">Wszystkie</SelectItem>
             {columns.map(col => (
               <SelectItem key={col.id} value={col.id}>
@@ -127,25 +130,30 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
         </Select>
 
         <Button
-          variant={showNearby ? 'secondary' : 'outline'}
+          variant="ghost"
           size="sm"
           onClick={() => setShowNearby(v => !v)}
-          className="h-9 gap-1 text-xs ml-auto"
+          className={`h-9 gap-1 text-xs shadow-sm ${
+            showNearby
+              ? 'bg-secondary text-secondary-foreground'
+              : 'bg-white text-foreground hover:bg-white/90'
+          }`}
           title="Pokaż klientów w okolicy (1 km)"
         >
           <Users className="w-3.5 h-3.5" />
           W okolicy
         </Button>
-
-        <Button variant="ghost" size="icon" onClick={onClose} className="h-9 w-9 shrink-0">
-          <X className="w-4 h-4" />
-        </Button>
       </div>
 
-      {/* Map */}
-      <div className="flex-1 min-h-0">
-        <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} hqLocation={hqLocation} showNearby={showNearby} instanceId={instanceId} />
-      </div>
+      {/* Close button — top right, black on gray circle */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onClose}
+        className="absolute top-4 right-4 z-20 h-10 w-10 rounded-full bg-muted hover:bg-muted/80"
+      >
+        <X className="w-5 h-5 text-foreground" />
+      </Button>
     </div>
   );
 };

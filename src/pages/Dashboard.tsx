@@ -28,7 +28,7 @@ import DashboardOverview from '@/components/admin/DashboardOverview';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
+
 import { useReminders, useReminderTypes } from '@/hooks/useReminders';
 import type { Reminder } from '@/hooks/useReminders';
 
@@ -507,49 +507,19 @@ const Dashboard = () => {
         </>
       );
 
-      const mapPanel = mapOpen ? (
-        <CalendarMapPanel
-          items={calendarItems}
-          columns={calendarColumns}
-          onItemClick={handleItemClick}
-          onClose={() => setMapOpen(false)}
-          hqLocation={hqLocation}
-          instanceId={instanceId || ''}
-        />
-      ) : null;
-
-      // Mobile: map in drawer
-      if (isMobile && mapOpen) {
-        return (
-          <div className="flex-1 min-h-[600px] h-full relative">
-            {calendarContent}
-            <Drawer open={mapOpen} onOpenChange={setMapOpen}>
-              <DrawerContent className="h-[90vh]">
-                {mapPanel}
-              </DrawerContent>
-            </Drawer>
-          </div>
-        );
-      }
-
-      // Desktop with map: 50/50 layout
-      if (mapOpen) {
-        return (
-          <div className="flex flex-1 min-h-[600px] h-full">
-            <div className="w-1/2 min-w-0 relative">
-              {calendarContent}
-            </div>
-            <div className="w-1/2 min-w-0">
-              {mapPanel}
-            </div>
-          </div>
-        );
-      }
-
-      // Default: calendar only
       return (
         <div className="flex-1 min-h-[600px] h-full relative">
           {calendarContent}
+          {mapOpen && (
+            <CalendarMapPanel
+              items={calendarItems}
+              columns={calendarColumns}
+              onItemClick={handleItemClick}
+              onClose={() => setMapOpen(false)}
+              hqLocation={hqLocation}
+              instanceId={instanceId || ''}
+            />
+          )}
         </div>
       );
     }
