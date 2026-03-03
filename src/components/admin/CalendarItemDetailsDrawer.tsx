@@ -792,7 +792,7 @@ const CalendarItemDetailsDrawer = ({
               <Badge className={statusColors[item.status] || 'bg-muted'}>
                 {statusLabels[item.status] || item.status}
               </Badge>
-              {!isEmployee && (
+              {!isEmployee && item.status !== 'confirmed' && (
                 <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
               )}
             </div>

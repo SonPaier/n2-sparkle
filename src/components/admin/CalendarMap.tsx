@@ -11,12 +11,13 @@ interface CalendarMapProps {
   items: CalendarItem[];
   columns: CalendarColumn[];
   onItemClick: (item: CalendarItem) => void;
+  onNearbyAddressClick?: (address: NearbyAddress) => void;
   hqLocation?: { lat: number; lng: number; name: string } | null;
   showNearby?: boolean;
   instanceId?: string;
 }
 
-interface NearbyAddress {
+export interface NearbyAddress {
   id: string;
   customer_id: string;
   lat: number;
@@ -96,7 +97,7 @@ const createGrayMarkerIcon = () => {
 
 const grayIcon = createGrayMarkerIcon();
 
-const CalendarMap = ({ items, columns, onItemClick, hqLocation, showNearby = false, instanceId }: CalendarMapProps) => {
+const CalendarMap = ({ items, columns, onItemClick, onNearbyAddressClick, hqLocation, showNearby = false, instanceId }: CalendarMapProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -282,11 +283,20 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation, showNearby = fal
           permanent: false, direction: 'top', offset: [0, -4],
           className: 'calendar-map-tooltip',
         })
+        .on('click', () => onNearbyAddressClick?.(addr))
         .addTo(map);
+
+      marker.on('tooltipopen', () => {
+        const el = marker.getTooltip()?.getElement();
+        if (el) {
+          el.style.cursor = 'pointer';
+          el.onclick = (e) => { e.stopPropagation(); onNearbyAddressClick?.(addr); };
+        }
+      });
 
       nearbyMarkersRef.current.push(marker);
     });
-  }, [nearbyAddresses, showNearby]);
+  }, [nearbyAddresses, showNearby, onNearbyAddressClick]);
 
   // Invalidate size when container resizes
   useEffect(() => {
