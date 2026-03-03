@@ -1,63 +1,58 @@
 
 
-## Audyt zmian czasu pracy — co warto śledzić i jak to zaimplementować
+## Plan: Drawer audytu czasu pracy pracownika
 
-### Co zapisywać w logu audytowym
+### Cel
+Ikonka przy kazdym pracowniku w tabeli. Klikniecie otwiera Sheet z prawej z historia zmian time entries w wybranym okresie. Design wg specyfikacji: grupowanie po dniach, timeline z kolorowa kreska, badge roznicowe.
 
-Rekomendacja — pełny zestaw danych do skutecznego śledzenia:
+### Pliki do utworzenia
 
-1. **Kto zmienił** (`changed_by_user_id`) — admin czy sam pracownik
-2. **Kiedy zmienił** (`changed_at`) — timestamp zmiany
-3. **Co zmienił** (`change_type`) — `create`, `update`, `delete`
-4. **Poprzednie wartości** (`old_start_time`, `old_end_time`, `old_total_minutes`)
-5. **Nowe wartości** (`new_start_time`, `new_end_time`, `new_total_minutes`)
-6. **Którego wpisu dotyczy** (`time_entry_id`, `employee_id`, `entry_date`)
+**1. `src/hooks/useTimeEntryAuditLog.ts`**
+- Query `time_entry_audit_log` po `employee_id`, `instance_id`, zakres dat (`entry_date` between)
+- Sortowanie: `entry_date ASC`, `created_at ASC`
+- Osobny query na `profiles` po unikalnych `changed_by` zeby pobrac imiona
 
-Dodatkowe wartości warte rozważenia:
-- **IP / źródło** — trudne do realizacji bez edge function, pomijam
-- **Opóźnienie edycji** — ile dni po dacie wpisu nastąpiła zmiana (obliczane z `changed_at - entry_date`), nie trzeba osobnej kolumny
+**2. `src/components/admin/employees/TimeEntryAuditDrawer.tsx`**
+- Sheet standardowy (400px desktop, 100% mobile, od prawej)
+- Naglowek: imie pracownika
+- Tresc: ScrollArea z lista dni
 
-### Implementacja
-
-**1. Nowa tabela `time_entry_audit_log`**
-
+Struktura UI per dzien:
 ```text
-id              uuid PK
-time_entry_id   uuid (nullable - bo wpis mógł być usunięty)
-employee_id     uuid
-instance_id     uuid
-entry_date      text
-change_type     text  ('create' | 'update' | 'delete')
-changed_by      uuid  (auth.uid())
-old_start_time  timestamptz nullable
-old_end_time    timestamptz nullable
-old_total_minutes integer nullable
-new_start_time  timestamptz nullable
-new_end_time    timestamptz nullable
-new_total_minutes integer nullable
-created_at      timestamptz default now()
+┌─ Poniedziałek 2 marca ──────────────────┐
+│▐ zaraportowano 7h 30min                  │  ← szary tekst, brak tla
+│▐   o 17:12 dnia 02.03.2026              │
+│▐ zmieniono na 8h 20min          [+50min] │  ← fioletowe tlo, badge
+│▐   o 19:32 dnia 27.03.2026              │
+└──────────────────────────────────────────┘
 ```
 
-**2. Trigger bazodanowy na `time_entries`** (AFTER INSERT/UPDATE/DELETE)
+- Pionowa kreska lewa: fioletowa jesli dzien ma update/delete, szara jesli tylko create
+- Create: szary tekst, bez tla — "zaraportowano **Xh Ymin** o HH:MM dnia DD.MM.YYYY"
+- Update: lekko fioletowe tlo — "zmieniono na **Xh Ymin** o HH:MM dnia DD.MM.YYYY" + badge
+- Delete: lekko czerwone tlo — "usunięto wpis o HH:MM dnia DD.MM.YYYY"
+- Badge: pomaranczowy (+), zielony (−U+2212), roznica vs poprzedni wpis w danym dniu
+- Format: `7h 30min`, `8h 00min`
 
-Trigger automatycznie loguje każdą zmianę — nie wymaga zmian w kodzie frontendowym. Używa `auth.uid()` do identyfikacji kto wykonał operację.
+**3. Modyfikacja `src/components/admin/employees/EmployeesView.tsx`**
+- Dodanie ikonki `FileText` w wierszu pracownika (obok avatara lub po prawej)
+- Stan `auditEmployeeId: string | null` — toggle, jeden drawer naraz
+- Ikonka wyszarzona (`opacity-30 pointer-events-none`) jesli brak wpisow w okresie
+- Import i renderowanie `TimeEntryAuditDrawer`
 
-**3. RLS na `time_entry_audit_log`**
-- Admin/super_admin: SELECT (podgląd logów) + automatyczny INSERT przez trigger (SECURITY DEFINER)
-- Pracownik: SELECT własnych logów (opcjonalnie — żeby widział historię swoich zmian)
+**4. Modyfikacja `src/components/admin/employees/index.ts`**
+- Eksport `TimeEntryAuditDrawer`
 
-**4. Widok audytu (opcjonalnie, w przyszłości)**
-- Tabela w panelu admina pokazująca historię zmian z filtrami po pracowniku i dacie
-- Podświetlenie podejrzanych zmian (np. edycja wpisu >3 dni wstecz, duża różnica godzin)
+### Logika grupowania
 
-### Dlaczego trigger a nie kod frontendowy
+1. Pobierz logi z `time_entry_audit_log` dla employee + okres
+2. Grupuj po `entry_date`
+3. Sortuj dni chronologicznie, wpisy w dniu po `created_at`
+4. Pierwszy wpis dnia (create) = "zaraportowano" + `new_total_minutes`
+5. Kolejne wpisy = "zmieniono" + `new_total_minutes` + badge z roznica (`new_total_minutes - prev.new_total_minutes`)
+6. Delete = "usunięto" + badge ujemny (`-old_total_minutes`)
+7. Border-left kolor: fioletowy jesli dzien ma update/delete, szary jesli tylko create
 
-- Nie da się go ominąć — każda zmiana (z UI, z API, z edge function) jest logowana
-- Nie wymaga zmian w istniejących hookach (`useCreateTimeEntry`, `useUpdateTimeEntry`, `useDeleteTimeEntry`)
-- `auth.uid()` jest dostępny w triggerze dzięki Supabase RLS context
-
-### Pliki do utworzenia/edycji
-
-- **Migracja**: tabela `time_entry_audit_log` + trigger na `time_entries`
-- Brak zmian w kodzie frontendowym — trigger działa automatycznie
+### Brak zmian w bazie
+Tabela `time_entry_audit_log` + RLS + trigger juz istnieja.
 
