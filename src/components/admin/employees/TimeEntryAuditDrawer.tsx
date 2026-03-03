@@ -48,19 +48,19 @@ const formatDayHeader = (dateStr: string): string => {
   }
 };
 
-const DiffBadge = ({ diffMinutes }: { diffMinutes: number }) => {
+const DiffBadge = ({ diffMinutes, variant = 'default' }: { diffMinutes: number; variant?: 'default' | 'warning' }) => {
   if (diffMinutes === 0) return null;
   const isPositive = diffMinutes > 0;
   const sign = isPositive ? '+' : '\u2212';
   const label = `${sign}${formatMinutes(Math.abs(diffMinutes))}`;
 
+  const colorClass = variant === 'warning'
+    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+    : 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400';
+
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
-        isPositive
-          ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
-          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-      }`}
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${colorClass}`}
     >
       {label}
     </span>
@@ -122,7 +122,7 @@ const AuditEntry = ({
         </div>
         {(isUpdate || isDelete) && diffMinutes !== 0 && (
           <div className="flex-shrink-0 mt-0.5">
-            <DiffBadge diffMinutes={diffMinutes} />
+            <DiffBadge diffMinutes={diffMinutes} variant={isDifferentDay ? 'warning' : 'default'} />
           </div>
         )}
       </div>
