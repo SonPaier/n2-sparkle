@@ -594,6 +594,44 @@ export type Database = {
           },
         ]
       }
+      dashboard_user_settings: {
+        Row: {
+          created_at: string
+          id: string
+          instance_id: string
+          updated_at: string
+          user_id: string
+          view_mode: string
+          visible_sections: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_id: string
+          updated_at?: string
+          user_id: string
+          view_mode?: string
+          visible_sections?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          updated_at?: string
+          user_id?: string
+          view_mode?: string
+          visible_sections?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_user_settings_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_calendar_configs: {
         Row: {
           active: boolean
