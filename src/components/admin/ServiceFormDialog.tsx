@@ -588,13 +588,12 @@ export const ServiceFormDialog = ({
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="h-[100dvh] max-h-[100dvh]">
-          <DrawerHeader className="flex-shrink-0">
-            <DrawerTitle>{title}</DrawerTitle>
-            <DrawerDescription />
-          </DrawerHeader>
-          <div className="px-4 flex-1 overflow-y-auto">
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="right" hideCloseButton className="flex flex-col p-0 gap-0 z-[1000] w-full h-full bg-white">
+          <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
+            <SheetTitle className="text-lg font-semibold">{title}</SheetTitle>
+          </div>
+          <div className="px-4 flex-1 overflow-y-auto py-4">
             <ServiceFormContent
               service={service}
               categories={categories}
@@ -610,8 +609,8 @@ export const ServiceFormDialog = ({
             />
           </div>
           {footerContent}
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
     );
   }
 
@@ -621,7 +620,7 @@ export const ServiceFormDialog = ({
         side="right"
         hideCloseButton
         hideOverlay
-        className="flex flex-col p-0 gap-0 z-[1000] sm:max-w-lg bg-white"
+        className="flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[400px] sm:max-w-[400px] h-full bg-white"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {/* Header */}

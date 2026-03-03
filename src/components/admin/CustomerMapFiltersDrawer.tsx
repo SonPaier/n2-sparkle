@@ -66,7 +66,7 @@ const CustomerMapFiltersDrawer = ({
 
   return (
     <Drawer open={open} onOpenChange={v => { if (!v) onClose(); }} direction="right">
-      <DrawerContent className="ml-auto h-full w-full sm:max-w-sm max-w-none rounded-none bg-white">
+      <DrawerContent className="ml-auto h-full w-full sm:w-[400px] sm:max-w-[400px] max-w-none rounded-none bg-white">
         <div className="flex items-center justify-between p-3 border-b border-border">
           <h2 className="text-lg font-semibold">Filtry</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">

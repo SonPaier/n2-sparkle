@@ -105,17 +105,17 @@ const EmployeeSelectionDrawer = ({ open, onClose, employees, selectedIds, onConf
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={v => { if (!v) onClose(); }}>
-        <DrawerContent className="h-[70vh] max-h-[70vh] flex flex-col p-0 gap-0 z-[1100]" hideHandle>
+      <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
+        <SheetContent side="right" className="z-[1100] w-full h-full p-0 flex flex-col" hideCloseButton>
           {content}
-        </DrawerContent>
-      </Drawer>
+        </SheetContent>
+      </Sheet>
     );
   }
 
   return (
     <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <SheetContent side="right" className="z-[1100] sm:max-w-sm p-0 flex flex-col" hideCloseButton>
+      <SheetContent side="right" className="z-[1100] w-full sm:w-[400px] sm:max-w-[400px] h-full p-0 flex flex-col" hideCloseButton>
         {content}
       </SheetContent>
     </Sheet>

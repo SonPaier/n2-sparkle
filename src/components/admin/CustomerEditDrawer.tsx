@@ -487,7 +487,7 @@ const CustomerEditDrawer = ({
     <>
     <Sheet open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleClose(); }}>
       <SheetContent
-        className="w-full sm:max-w-lg p-0 flex flex-col z-[1400]"
+        className="w-full sm:w-[400px] sm:max-w-[400px] h-full p-0 flex flex-col z-[1400]"
         hideCloseButton
         hideOverlay
         onFocusOutside={(e) => e.preventDefault()}

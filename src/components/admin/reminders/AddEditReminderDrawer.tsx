@@ -367,13 +367,13 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
   if (isMobile) {
     return (
       <>
-        <Drawer open={open} onOpenChange={v => !v && onClose()} dismissible={false}>
-          <DrawerContent className="h-full max-h-full flex flex-col p-0 gap-0 bg-card" hideHandle>
+        <Sheet open={open} onOpenChange={v => !v && onClose()}>
+          <SheetContent side="right" className="w-full h-full flex flex-col p-0 gap-0 bg-card" hideCloseButton hideOverlay>
             {header}
             {formContent}
             {footer}
-          </DrawerContent>
-        </Drawer>
+          </SheetContent>
+        </Sheet>
         {employeeDrawer}
       </>
     );
@@ -382,7 +382,7 @@ export default function AddEditReminderDrawer({ open, onClose, instanceId, remin
   return (
     <>
       <Sheet open={open} onOpenChange={v => !v && onClose()}>
-        <SheetContent className="w-[480px] sm:max-w-[480px] flex flex-col p-0 gap-0 bg-card" hideCloseButton hideOverlay>
+        <SheetContent side="right" className="w-full sm:w-[400px] sm:max-w-[400px] h-full flex flex-col p-0 gap-0 bg-card" hideCloseButton hideOverlay>
           {header}
           {formContent}
           {footer}
