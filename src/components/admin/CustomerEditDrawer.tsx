@@ -147,7 +147,7 @@ const CustomerEditDrawer = ({
         setCompanyOpen(hasExisting);
       }
     }
-  }, [customer, open, isAddMode]);
+  }, [customer, open, isAddMode, customerCategoryMap]);
 
   const fetchAddresses = async (customerId: string) => {
     const { data } = await supabase
