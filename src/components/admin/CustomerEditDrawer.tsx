@@ -25,7 +25,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 import { normalizePhone } from '@/lib/phoneUtils';
 import type { Customer } from './CustomersView';
-import type { CustomerCategory } from '@/hooks/useCustomerCategories';
+import { useCustomerCategories, type CustomerCategory } from '@/hooks/useCustomerCategories';
 import { syncCustomerCategoryAssignments } from '@/hooks/useCustomerCategories';
 import AddCalendarItemDialog from './AddCalendarItemDialog';
 
@@ -64,11 +64,18 @@ const CustomerEditDrawer = ({
   prefilledServiceNames,
   onNewOrderCreated,
   onCustomerCreated,
-  customerCategories = [],
-  customerCategoryMap,
+  customerCategories: customerCategoriesProp = [],
+  customerCategoryMap: customerCategoryMapProp,
   prefilledName = '',
 }: CustomerEditDrawerProps) => {
   const isMobile = useIsMobile();
+  
+  // Auto-fetch categories when not provided via props
+  const { categories: fetchedCategories, customerCategoryMap: fetchedCategoryMap } = useCustomerCategories(
+    customerCategoriesProp.length === 0 && open ? instanceId : null
+  );
+  const customerCategories = customerCategoriesProp.length > 0 ? customerCategoriesProp : fetchedCategories;
+  const customerCategoryMap = customerCategoryMapProp ?? fetchedCategoryMap;
   const [newOrderOpen, setNewOrderOpen] = useState(false);
   const [columns, setColumns] = useState<CalendarColumn[]>([]);
 
