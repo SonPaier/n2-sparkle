@@ -247,7 +247,7 @@ const CalendarItemDetailsDrawer = ({
   canEditServices = false,
 }: CalendarItemDetailsDrawerProps) => {
   const isMobile = useIsMobile();
-  const sheetSide = forceSideRight ? 'right' : (isMobile ? 'bottom' : 'right');
+  // All drawers now open from the right
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [addressLabel, setAddressLabel] = useState<string | null>(null);
@@ -744,7 +744,7 @@ const CalendarItemDetailsDrawer = ({
   if (!item) {
     return (
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side={sheetSide} hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : (isEmployee ? 'w-full sm:max-w-full' : 'sm:max-w-md')}`}>
+        <SheetContent side="right" hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[400px] sm:max-w-[400px] h-full ${isEmployee ? 'sm:!w-full sm:!max-w-full' : ''}`}>
           <SheetTitle className="sr-only">Szczegóły</SheetTitle>
           <SheetDescription className="sr-only">Brak danych</SheetDescription>
         </SheetContent>
@@ -756,10 +756,10 @@ const CalendarItemDetailsDrawer = ({
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
         <SheetContent
-          side={sheetSide}
+          side="right"
           hideCloseButton
           hideOverlay
-          className={`flex flex-col p-0 gap-0 z-[1000] ${sheetSide === 'bottom' ? 'h-full' : (isEmployee ? 'w-full sm:max-w-full' : 'sm:max-w-md')}`}
+          className={`flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[400px] sm:max-w-[400px] h-full ${isEmployee ? 'sm:!w-full sm:!max-w-full' : ''}`}
         >
           {/* Accessible title */}
           <SheetTitle className="sr-only">{item.title}</SheetTitle>
