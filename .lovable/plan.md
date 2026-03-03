@@ -1,27 +1,41 @@
 
 
-## Plan: Warning background when edit date differs from entry date
+## Plan: Dodanie sekcji "Godziny w kalendarzu" i podpięcie do kalendarza
 
-When an audit log entry shows a change made on a **different day** than the original entry date (the day header), highlight it with a warning/amber background instead of the standard purple.
+### 1. Nowy komponent `WorkingHoursSettings.tsx`
 
-### Logic
+Skopiowany 1:1 z N2Wash, bez i18n — hardcoded polskie stringi. Komponent:
+- Wyświetla 7 dni tygodnia z switchami on/off
+- Dla włączonych dni — dwa inputy `type="time"` (od–do)
+- Domyślne: Pon–Pt 06:00–19:00, Sob 06:00–14:00, Nd zamknięte
+- Zapis bezpośrednio do `instances.working_hours` (bez RPC — zwykły `update`)
+- Po zapisie invaliduje query `['working_hours', instanceId]`
 
-Compare `created_at` date of each update/delete entry against the `entry_date` (the day header). If they differ → use amber/warning background (`bg-amber-50 dark:bg-amber-900/10`) instead of `bg-primary/5`.
+Plik: `src/components/admin/WorkingHoursSettings.tsx`
 
-### Change in `TimeEntryAuditDrawer.tsx`
+### 2. Dodanie sekcji do zakładki "Kalendarz" w `SettingsView.tsx`
 
-In the `AuditEntry` component, extract the date portion from `entry.created_at` and compare it to the parent group's `entry_date`. If different and entry is update/delete → apply warning background class.
+W `renderTabContent()` case `'calendar'` — dodać `WorkingHoursSettings` **nad** istniejącym `CalendarColumnsSettings`, oddzielone separatorem. Wynik:
 
-Pass `groupDate` (the `entry_date` string) as a prop to `AuditEntry`, then:
-
-```typescript
-const changeDate = entry.created_at.slice(0, 10); // YYYY-MM-DD
-const isDifferentDay = changeDate !== groupDate;
-
-let bgClass = '';
-if (isUpdate) bgClass = isDifferentDay ? 'bg-amber-50 dark:bg-amber-900/10' : 'bg-primary/5';
-if (isDelete) bgClass = 'bg-destructive/5';
+```
+[Godziny w kalendarzu]     ← nowa sekcja
+──────────────────────
+[Kolumny kalendarza]       ← istniejąca sekcja
 ```
 
-Single file change: `src/components/admin/employees/TimeEntryAuditDrawer.tsx`.
+### 3. Podpięcie godzin pracy do kalendarza
+
+W `AdminCalendar.tsx`:
+- Dodać prop `workingHours` do interfejsu
+- Obliczyć `startHour` i `endHour` z min/max otwartych godzin (fallback na 6–19)
+- Zamienić `DEFAULT_START_HOUR`/`DEFAULT_END_HOUR` na dynamiczne wartości w obliczeniach `HOURS`, `totalHeight`, pozycji elementów, etc.
+
+W `Dashboard.tsx`:
+- Przekazać `workingHours={workingHours}` do `<AdminCalendar>`
+
+### Pliki do zmiany
+- **Nowy**: `src/components/admin/WorkingHoursSettings.tsx`
+- **Edycja**: `src/components/admin/SettingsView.tsx` (import + render)
+- **Edycja**: `src/components/admin/AdminCalendar.tsx` (prop + dynamiczne godziny)
+- **Edycja**: `src/pages/Dashboard.tsx` (przekazanie prop)
 
