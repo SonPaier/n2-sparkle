@@ -94,7 +94,7 @@ const AuditEntry = ({
   const isDifferentDay = changeDate !== firstEntryDate;
 
   let bgClass = '';
-  if (isUpdate) bgClass = isDifferentDay ? 'bg-amber-50 dark:bg-amber-900/10' : 'bg-primary/5';
+  if (isUpdate && isDifferentDay) bgClass = 'bg-amber-50 dark:bg-amber-900/10';
   if (isDelete) bgClass = 'bg-destructive/5';
 
   return (
