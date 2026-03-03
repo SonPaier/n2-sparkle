@@ -61,7 +61,7 @@ interface InvoiceRow {
 }
 
 const formatCurrency = (value: number | null) => {
-  if (value == null) return '—';
+  if (value == null || value === 0) return '—';
   return value.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' zł';
 };
 
