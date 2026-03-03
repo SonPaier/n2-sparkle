@@ -137,11 +137,13 @@ async function ifirmaCreateInvoice(
       Email: invoiceData.buyer_email || "",
       Ulica: invoiceData.buyer_street || "",
       KodPocztowy: invoiceData.buyer_post_code || "",
-      Miasto: invoiceData.buyer_city || "",
+      Miejscowosc: invoiceData.buyer_city || "",
+      Kraj: invoiceData.buyer_country || "Polska",
     },
   };
 
   const bodyStr = JSON.stringify(body);
+  console.log("iFirma request body:", bodyStr);
   const messageToSign = `${url}${config.invoice_api_user}faktura${bodyStr}`;
   const hmacHash = await ifirmaHmac(config.invoice_api_key, messageToSign);
 
@@ -162,8 +164,13 @@ async function ifirmaCreateInvoice(
 
   const data = await res.json();
   console.log("iFirma response:", JSON.stringify(data));
+
+  if (!data?.response?.Identyfikator) {
+    throw new Error(`iFirma create_invoice validation failed: ${JSON.stringify(data)}`);
+  }
+
   return {
-    external_invoice_id: data.response?.Identyfikator ? String(data.response.Identyfikator) : null,
+    external_invoice_id: String(data.response.Identyfikator),
     external_client_id: null,
     invoice_number: data.response?.NumerPelny || null,
     pdf_url: null,
