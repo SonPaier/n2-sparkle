@@ -70,12 +70,21 @@ interface ReminderRow {
   reminder_type_name?: string;
 }
 
-const getDayPill = (itemDate: string) => {
+const getDayPill = (itemDate: string, endDate?: string | null) => {
   const date = new Date(itemDate + 'T00:00:00');
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  if (endDate && endDate !== itemDate) {
+    const end = new Date(endDate + 'T00:00:00');
+    const startName = capitalize(format(date, 'EEEE', { locale: pl }));
+    const endName = capitalize(format(end, 'EEEE', { locale: pl }));
+    return { label: `${startName} - ${endName}`, cls: 'bg-purple-500 text-white border-transparent' };
+  }
+
   if (isToday(date)) return { label: 'Dziś', cls: 'bg-green-500 text-white border-transparent' };
   if (isTomorrow(date)) return { label: 'Jutro', cls: 'bg-purple-500 text-white border-transparent' };
   const dayName = format(date, 'EEEE', { locale: pl });
-  return { label: dayName.charAt(0).toUpperCase() + dayName.slice(1), cls: 'bg-purple-500 text-white border-transparent' };
+  return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
 const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours, onOpenMap }: EmployeeDashboardProps) => {
@@ -264,7 +273,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
             ) : (
               <div>
                 {items.map((item, idx) => {
-                  const pill = getDayPill(item.item_date);
+                  const pill = getDayPill(item.item_date, item.end_date);
                   const statusCfg = STATUS_CONFIG[item.status] || { label: item.status, cls: 'bg-muted text-muted-foreground' };
                   const addr = buildDisplayAddress(item);
                   const mapsUrl = buildGoogleMapsUrl(item);
