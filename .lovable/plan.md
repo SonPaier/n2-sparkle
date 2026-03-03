@@ -1,55 +1,29 @@
 
 
-## Problem: iFirma HMAC autoryzacja i kilka bugów
+## Plan: Dodanie pól adresowych nabywcy do formularza faktury
 
-Przeanalizowałem edge function `invoicing-api/index.ts` i znalazłem **3 krytyczne błędy** w integracji iFirma:
+Formularz faktury nie wysyła `buyer_city`, `buyer_post_code`, `buyer_street` do API. Backend (edge function) już obsługuje te pola zarówno dla Fakturownia.pl jak i iFirma. Trzeba dodać logikę pobierania i UI do edycji.
 
-### Bug 1: Klucz API nie jest dekodowany z hex
-Klucz API iFirma to string hex (np. `"a1b2c3..."`). Trzeba go zdekodować na bajty przed użyciem jako klucz HMAC. Aktualnie kod robi `TextEncoder.encode(key)` — co koduje sam string hex jako UTF-8, zamiast zdekodować go na bajty.
+### Logika pobierania adresu (priorytet)
+1. Dane billingowe klienta (gdy ma NIP): `billing_city`, `billing_postal_code`, `billing_street` z tabeli `customers`
+2. Adres serwisowy ze zlecenia: `customer_address_id` z `calendar_items` → `customer_addresses` (city, postal_code, street)
+3. Puste (edytowalne ręcznie)
 
-```
-// Aktualnie (ŹLE):
-const keyData = encoder.encode("a1b2c3");  // → bajty ASCII liter "a","1","b","2"...
+### Zmiany w plikach
 
-// Powinno być (DOBRZE):
-const keyData = hexToBytes("a1b2c3");      // → bajty 0xA1, 0xB2, 0xC3...
-```
+**1. `src/components/invoicing/useInvoiceForm.ts`**
+- Dodać state: `buyerStreet`, `buyerPostCode`, `buyerCity` + settery
+- Rozszerzyć fetch klienta (linia 73): dodać `billing_city, billing_postal_code, billing_street` do selecta i ustawić pola
+- Dodać nowy effect: gdy `calendarItemId` → pobrać `customer_address_id` z `calendar_items`, potem adres z `customer_addresses` (jako fallback gdy brak danych billingowych)
+- W `handleSubmit` (linia 171-182): dodać `buyer_city`, `buyer_post_code`, `buyer_street` do `invoiceData`
+- Wyeksportować nowe pola z returna
 
-### Bug 2: Literówki w nazwach pól JSON
-- `NazwaSeriiNumerworaci` → powinno być `NazwaSeriiNumeracji`
-- `NazwaSzworablonuFaktworury` → powinno być `NazwaSzablonuFaktury`
+**2. `src/components/invoicing/InvoiceForm.tsx`**
+- Dodać propsy: `buyerStreet`, `buyerPostCode`, `buyerCity` + onChange handlery
+- W sekcji "Nabywca" dodać wiersz z polami: Ulica (pełna szerokość), Kod pocztowy + Miasto (grid 1/3 + 2/3)
 
-iFirma może odrzucać/ignorować te pola z błędnymi nazwami.
+**3. `src/components/invoicing/CreateInvoiceDrawer.tsx`**
+- Przekazać nowe propsy z `form` do `InvoiceForm`
 
-### Bug 3: Brak obsługi odpowiedzi iFirma
-iFirma zwraca `{ "response": { "Identyfikator": 123, ... } }` — ale jeśli odpowiedź ma inną strukturę (np. błąd walidacji z kodem 200), kod nie loguje szczegółów.
-
-### Plan zmian
-
-**Plik: `supabase/functions/invoicing-api/index.ts`**
-
-1. Naprawić `ifirmaHmac()` — dodać dekodowanie hex klucza na bajty:
-```typescript
-async function ifirmaHmac(hexKey: string, message: string): Promise<string> {
-  // Decode hex key to bytes
-  const keyData = new Uint8Array(hexKey.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
-  const msgData = new TextEncoder().encode(message);
-  // ... reszta HMAC jak dotąd
-}
-```
-
-2. Poprawić literówki w body `ifirmaCreateInvoice`:
-   - `NazwaSeriiNumerworaci` → `NazwaSeriiNumeracji`
-   - `NazwaSzworablonuFaktworury` → `NazwaSzablonuFaktury`
-
-3. Dodać logowanie odpowiedzi iFirma dla debugowania:
-```typescript
-const data = await res.json();
-console.log("iFirma response:", JSON.stringify(data));
-```
-
-4. Naprawić `ifirmaTestConnection` — klucz `abonent` też wymaga hex-decoded HMAC (to już będzie naprawione przez punkt 1).
-
-### Pliki do zmiany
-- `supabase/functions/invoicing-api/index.ts` — poprawki HMAC, literówki, logowanie
+**Edge function** — bez zmian, już obsługuje te pola.
 
