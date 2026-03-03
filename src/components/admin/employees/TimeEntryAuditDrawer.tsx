@@ -102,8 +102,8 @@ const AuditEntry = ({
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           {isCreate && (
-            <p className="text-sm text-muted-foreground">
-              zaraportowano <span className="font-semibold text-foreground">{formatMinutes(currentMinutes)}</span>
+            <p className="text-sm text-foreground">
+              zaraportowano <span className="font-semibold">{formatMinutes(currentMinutes)}</span>
             </p>
           )}
           {isUpdate && (
