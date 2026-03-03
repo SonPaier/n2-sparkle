@@ -6,7 +6,7 @@ import { X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import CalendarMap from './CalendarMap';
+import CalendarMap, { type NearbyAddress } from './CalendarMap';
 import CustomerOrderCard from './CustomerOrderCard';
 import type { CalendarItem, CalendarColumn } from './AdminCalendar';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -17,12 +17,13 @@ interface CalendarMapPanelProps {
   items: CalendarItem[];
   columns: CalendarColumn[];
   onItemClick: (item: CalendarItem) => void;
+  onNearbyAddressClick?: (address: NearbyAddress) => void;
   onClose: () => void;
   hqLocation?: { lat: number; lng: number; name: string } | null;
   instanceId: string;
 }
 
-const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, instanceId }: CalendarMapPanelProps) => {
+const CalendarMapPanel = ({ items, columns, onItemClick, onNearbyAddressClick, onClose, hqLocation, instanceId }: CalendarMapPanelProps) => {
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
   const [columnFilter, setColumnFilter] = useState<string>('all');
   const [showNearby, setShowNearby] = useState(false);
@@ -58,7 +59,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
     <div className="fixed inset-0 z-[200]">
       {/* Map background — z-0 so panels stay on top */}
       <div className="absolute inset-0 z-0">
-        <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} hqLocation={hqLocation} showNearby={showNearby} instanceId={instanceId} />
+        <CalendarMap items={filteredItems} columns={columns} onItemClick={onItemClick} onNearbyAddressClick={onNearbyAddressClick} hqLocation={hqLocation} showNearby={showNearby} instanceId={instanceId} />
       </div>
 
       {/* Left order list panel — desktop only */}

@@ -81,6 +81,7 @@ const Dashboard = () => {
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [mapOpen, setMapOpen] = useState(false);
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
+  const [mapOrderPrefill, setMapOrderPrefill] = useState<{ customerId?: string; customerName?: string; customerPhone?: string; customerEmail?: string; customerAddressId?: string }>({});
 
   // Protocol form state
   const [protocolFormOpen, setProtocolFormOpen] = useState(false);
@@ -244,7 +245,28 @@ const Dashboard = () => {
 
   const handleAddItem = (columnId: string, date: string, time: string) => {
     setEditingItem(null);
+    setMapOrderPrefill({});
     setNewItemData({ columnId, date, time });
+    setAddItemOpen(true);
+  };
+
+  const handleNearbyAddressClick = async (address: { id: string; customer_id: string; customer_name?: string }) => {
+    const { data: customer } = await supabase
+      .from('customers')
+      .select('id, name, phone, email')
+      .eq('id', address.customer_id)
+      .maybeSingle();
+
+    setEditingItem(null);
+    setMapOrderPrefill({
+      customerId: address.customer_id,
+      customerName: customer?.name || address.customer_name || '',
+      customerPhone: customer?.phone || '',
+      customerEmail: customer?.email || '',
+      customerAddressId: address.id,
+    });
+    setNewItemData({ columnId: '', date: '', time: '' });
+    setMapOpen(false);
     setAddItemOpen(true);
   };
 
@@ -342,6 +364,7 @@ const Dashboard = () => {
   const handleItemSuccess = () => {
     fetchItems();
     setEditingItem(null);
+    setMapOrderPrefill({});
     queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
   };
 
@@ -461,7 +484,7 @@ const Dashboard = () => {
 
           <AddCalendarItemDialog
             open={addItemOpen}
-            onClose={() => { setAddItemOpen(false); setEditingItem(null); }}
+            onClose={() => { setAddItemOpen(false); setEditingItem(null); setMapOrderPrefill({}); }}
             instanceId={instanceId}
             columns={calendarColumns}
             onSuccess={handleItemSuccess}
@@ -469,6 +492,11 @@ const Dashboard = () => {
             initialDate={newItemData.date}
             initialTime={newItemData.time}
             initialColumnId={newItemData.columnId}
+            initialCustomerId={mapOrderPrefill.customerId}
+            initialCustomerName={mapOrderPrefill.customerName}
+            initialCustomerPhone={mapOrderPrefill.customerPhone}
+            initialCustomerEmail={mapOrderPrefill.customerEmail}
+            initialCustomerAddressId={mapOrderPrefill.customerAddressId}
           />
 
           <CalendarItemDetailsDrawer
@@ -522,6 +550,7 @@ const Dashboard = () => {
               items={calendarItems}
               columns={calendarColumns}
               onItemClick={handleItemClick}
+              onNearbyAddressClick={handleNearbyAddressClick}
               onClose={() => setMapOpen(false)}
               hqLocation={hqLocation}
               instanceId={instanceId || ''}

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Phone, MessageSquare, Mail, X, ChevronDown, CalendarPlus } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Phone, MessageSquare, X, ChevronDown, CalendarPlus } from 'lucide-react';
 import type { SelectedCustomer } from './CustomerSearchInput';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { LightTabsList, LightTabsTrigger } from '@/components/ui/light-tabs';
@@ -21,7 +21,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import CustomerAddressesSection, { type CustomerAddress } from './CustomerAddressesSection';
 import NipLookupForm, { type NipLookupData } from './NipLookupForm';
 import { supabase } from '@/integrations/supabase/client';
-import { useIsMobile } from '@/hooks/use-mobile';
+
 import { toast } from 'sonner';
 import { normalizePhone } from '@/lib/phoneUtils';
 import type { Customer } from './CustomersView';
@@ -68,7 +68,7 @@ const CustomerEditDrawer = ({
   customerCategoryMap: customerCategoryMapProp,
   prefilledName = '',
 }: CustomerEditDrawerProps) => {
-  const isMobile = useIsMobile();
+  
   
   // Auto-fetch categories when not provided via props
   const { categories: fetchedCategories, customerCategoryMap: fetchedCategoryMap } = useCustomerCategories(
@@ -96,7 +96,8 @@ const CustomerEditDrawer = ({
   });
   const [companyOpen, setCompanyOpen] = useState(false);
 
-  const hasCompanyData = !!(companyData.nip || companyData.company || companyData.billingStreet || companyData.billingCity);
+  const prevOpenRef = useRef(false);
+  const prevCustomerIdRef = useRef<string | null>(null);
 
   // Fetch calendar columns for new order dialog
   useEffect(() => {
@@ -114,7 +115,10 @@ const CustomerEditDrawer = ({
   }, [open, instanceId, isAddMode]);
 
   useEffect(() => {
-    if (open) {
+    const justOpened = open && !prevOpenRef.current;
+    const customerChanged = !!customer?.id && customer.id !== prevCustomerIdRef.current;
+
+    if (open && (justOpened || isAddMode || customerChanged)) {
       if (isAddMode) {
         setIsEditing(true);
         setEditName(prefilledName || '');
@@ -123,7 +127,7 @@ const CustomerEditDrawer = ({
         setEditNotes('');
         setAddresses([]);
         setSelectedCategoryIds([]);
-        
+
         setCompanyData({ nip: '', company: '', billingStreet: '', billingPostalCode: '', billingCity: '' });
         setCompanyOpen(false);
       } else if (customer) {
@@ -135,7 +139,6 @@ const CustomerEditDrawer = ({
         fetchAddresses(customer.id);
         setSelectedCategoryIds(customerCategoryMap?.get(customer.id) || []);
 
-        // Company data
         setCompanyData({
           nip: customer.nip || '',
           company: customer.company || '',
@@ -147,7 +150,15 @@ const CustomerEditDrawer = ({
         setCompanyOpen(hasExisting);
       }
     }
-  }, [customer, open, isAddMode, customerCategoryMap]);
+
+    prevOpenRef.current = open;
+    prevCustomerIdRef.current = customer?.id || null;
+  }, [customer, open, isAddMode, prefilledName]);
+
+  useEffect(() => {
+    if (!open || isAddMode || !customer || isEditing) return;
+    setSelectedCategoryIds(customerCategoryMap?.get(customer.id) || []);
+  }, [customerCategoryMap, customer?.id, open, isAddMode, isEditing]);
 
   const fetchAddresses = async (customerId: string) => {
     const { data } = await supabase
@@ -476,7 +487,7 @@ const CustomerEditDrawer = ({
     <>
     <Sheet open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleClose(); }}>
       <SheetContent
-        className="w-full sm:max-w-lg p-0 flex flex-col z-[1100]"
+        className="w-full sm:max-w-lg p-0 flex flex-col z-[1400]"
         hideCloseButton
         hideOverlay
         onFocusOutside={(e) => e.preventDefault()}
