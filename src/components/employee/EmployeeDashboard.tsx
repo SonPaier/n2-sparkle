@@ -41,6 +41,7 @@ export interface CalendarItemRow {
   customer_id: string | null;
   customer_address_id: string | null;
   item_date: string;
+  end_date: string | null;
   start_time: string;
   end_time: string;
   status: string;
@@ -101,11 +102,11 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
 
     let itemsQuery = supabase
         .from('calendar_items')
-        .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, start_time, end_time, status, admin_notes, price, payment_status')
+        .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, payment_status')
         .eq('instance_id', instanceId)
         .in('column_id', columnIds)
-        .gte('item_date', dateStart)
         .lte('item_date', dateEnd)
+        .or(`end_date.gte.${dateStart},item_date.gte.${dateStart}`)
         .neq('status', 'cancelled')
         .order('item_date')
         .order('start_time');

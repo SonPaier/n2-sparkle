@@ -32,21 +32,22 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
     const today = startOfDay(new Date());
 
     return items.filter(item => {
-      const itemDate = startOfDay(new Date(item.item_date));
-      if (isBefore(itemDate, today)) return false;
+      const itemStart = startOfDay(new Date(item.item_date));
+      const itemEnd = item.end_date ? startOfDay(new Date(item.end_date)) : itemStart;
+      if (isBefore(itemEnd, today)) return false;
       if (columnFilter !== 'all' && item.column_id !== columnFilter) return false;
       if (item.status === 'cancelled') return false;
 
       if (dateFilter === 'today') {
-        return isSameDay(itemDate, today);
+        return !isAfter(itemStart, today) && !isBefore(itemEnd, today);
       }
       if (dateFilter === 'week') {
         const weekEnd = addDays(today, 7);
-        return !isAfter(itemDate, weekEnd);
+        return !isAfter(itemStart, weekEnd);
       }
       if (dateFilter === 'month') {
         const monthEnd = addDays(today, 30);
-        return !isAfter(itemDate, monthEnd);
+        return !isAfter(itemStart, monthEnd);
       }
 
       return true;
