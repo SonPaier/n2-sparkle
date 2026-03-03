@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
-import { Calendar, Bell, ChevronRight, MessageSquare, MapPin } from 'lucide-react';
+import { Calendar, Bell, ChevronRight, MessageSquare, MapPin, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useDashboardSettings } from '@/hooks/useDashboardSettings';
+import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -30,6 +32,7 @@ interface EmployeeDashboardProps {
   linkedEmployeeId?: string | null;
   workingHours?: WorkingHours;
   onOpenMap?: (items: CalendarItemRow[]) => void;
+  viewModeLabel?: string;
 }
 
 export interface CalendarItemRow {
@@ -91,6 +94,8 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { settings, save: saveSettings } = useDashboardSettings(instanceId);
 
   const [stableWorkingHours, setStableWorkingHours] = useState<WorkingHours>(workingHours ?? null);
 
@@ -101,7 +106,8 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
     }
   }, [workingHours]);
 
-  const businessDays = useMemo(() => getNextWorkingDays(3, stableWorkingHours), [stableWorkingHours]);
+  const daysCount = settings.viewMode === 'week' ? 7 : 3;
+  const businessDays = useMemo(() => getNextWorkingDays(daysCount, stableWorkingHours), [stableWorkingHours, daysCount]);
   const dateStart = businessDays[0];
   const dateEnd = businessDays[businessDays.length - 1];
 
@@ -247,16 +253,23 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
     );
   }
 
+  const dashboardTitle = settings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień';
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Mój dzień</h1>
-        {onOpenMap && (
-          <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onOpenMap(items)}>
-            <MapPin className="w-4 h-4" />
-            Mapa
+        <h1 className="text-2xl font-bold">{dashboardTitle}</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
+            <Settings2 className="w-5 h-5" />
           </Button>
-        )}
+          {onOpenMap && (
+            <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onOpenMap(items)}>
+              <MapPin className="w-4 h-4" />
+              Mapa
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -401,6 +414,14 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
           </Card>
         )}
       </div>
+
+      <DashboardSettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onSave={saveSettings}
+        isEmployee
+      />
     </div>
   );
 };

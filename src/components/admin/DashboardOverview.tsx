@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
-import { Calendar, Bell, Clock, User, Tag, CreditCard, DollarSign, ChevronRight, MessageSquare } from 'lucide-react';
+import { Calendar, Bell, Clock, User, Tag, CreditCard, DollarSign, ChevronRight, MessageSquare, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useDashboardSettings } from '@/hooks/useDashboardSettings';
+import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -78,8 +81,11 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
   const [allPaymentItems, setAllPaymentItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { settings, save: saveSettings } = useDashboardSettings(instanceId);
 
-  const workingDaysForFetch = useMemo(() => getNextWorkingDays(2, workingHours ?? null), [workingHours]);
+  const daysCount = settings.viewMode === 'week' ? 7 : 2;
+  const workingDaysForFetch = useMemo(() => getNextWorkingDays(daysCount, workingHours ?? null), [workingHours, daysCount]);
   const fetchDateStart = workingDaysForFetch[0] || format(new Date(), 'yyyy-MM-dd');
   const fetchDateEnd = workingDaysForFetch[workingDaysForFetch.length - 1] || format(new Date(), 'yyyy-MM-dd');
 
@@ -226,7 +232,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
   const todayDate = new Date();
   todayDate.setHours(0, 0, 0, 0);
 
-  const workingDays = useMemo(() => getNextWorkingDays(2, workingHours ?? null), [workingHours]);
+  const workingDays = useMemo(() => getNextWorkingDays(daysCount, workingHours ?? null), [workingHours, daysCount]);
   const dashboardItems = items.filter(i => {
     const endDate = (i as any).end_date || i.item_date;
     return workingDays.some(day => i.item_date <= day && endDate >= day);
@@ -272,92 +278,115 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     );
   }
 
+  const visibleCount = [settings.visibleSections.orders, settings.visibleSections.reminders, settings.visibleSections.payments].filter(Boolean).length;
+  const gridCols = visibleCount === 1 ? 'md:grid-cols-1' : visibleCount === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3';
+
   return (
     <div>
-      <h1 className="text-xl font-semibold text-foreground mb-6">Mój dzień</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-xl font-semibold text-foreground">
+          {settings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień'}
+        </h1>
+        <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
+          <Settings2 className="w-5 h-5" />
+        </Button>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={dashboardItems.length} emptyText="Brak zleceń na najbliższe dni robocze">
-          {dashboardItems.map((item, idx) => {
-            const pill = getDayPill(item.item_date, item.end_date);
-            const addr = buildDisplayAddress(item);
-            const mapsUrl = buildGoogleMapsUrl(item);
-            const phone = item.customer_phone;
-            const normalizedPhone = phone ? normalizePhone(phone) : null;
+      <div className={`grid grid-cols-1 ${gridCols} gap-6`}>
+        {settings.visibleSections.orders && (
+          <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={dashboardItems.length} emptyText="Brak zleceń na najbliższe dni robocze">
+            {dashboardItems.map((item, idx) => {
+              const pill = getDayPill(item.item_date, item.end_date);
+              const addr = buildDisplayAddress(item);
+              const mapsUrl = buildGoogleMapsUrl(item);
+              const phone = item.customer_phone;
+              const normalizedPhone = phone ? normalizePhone(phone) : null;
 
-            return (
-              <div
-                key={item.id}
-                className={`py-3 px-1 cursor-pointer hover:bg-primary/5 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
-                onClick={() => onItemClick?.(item.id)}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <div className="text-lg font-bold leading-tight">{item.title}</div>
-                    <div>
-                      <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+              return (
+                <div
+                  key={item.id}
+                  className={`py-3 px-1 cursor-pointer hover:bg-primary/5 transition-colors border-b border-border ${idx === 0 ? 'border-t' : ''}`}
+                  onClick={() => onItemClick?.(item.id)}
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <div className="text-lg font-bold leading-tight">{item.title}</div>
+                      <div>
+                        <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+                      </div>
+                      {addr && mapsUrl ? (
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline flex items-center gap-1.5"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          {addr}
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                        </a>
+                      ) : addr ? (
+                        <span className="text-sm text-foreground">{addr}</span>
+                      ) : null}
+                      {item.customer_name && (
+                        <div className="text-sm text-foreground">{item.customer_name}</div>
+                      )}
+                      {normalizedPhone && (
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`tel:${normalizedPhone}`}
+                            className="text-sm text-primary hover:underline"
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {formatPhoneDisplay(phone!)}
+                          </a>
+                          <a
+                            href={`sms:${normalizedPhone}`}
+                            className="text-muted-foreground hover:text-primary"
+                            onClick={e => e.stopPropagation()}
+                            title="Wyślij SMS"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                          </a>
+                        </div>
+                      )}
+                      {(item.price ?? 0) > 0 && (
+                        <div className="text-sm font-medium text-foreground">
+                          {item.price?.toFixed(2)} PLN
+                        </div>
+                      )}
                     </div>
-                    {addr && mapsUrl ? (
-                      <a
-                        href={mapsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline flex items-center gap-1.5"
-                        onClick={e => e.stopPropagation()}
-                      >
-                        {addr}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
-                      </a>
-                    ) : addr ? (
-                      <span className="text-sm text-foreground">{addr}</span>
-                    ) : null}
-                    {item.customer_name && (
-                      <div className="text-sm text-foreground">{item.customer_name}</div>
-                    )}
-                    {normalizedPhone && (
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`tel:${normalizedPhone}`}
-                          className="text-sm text-primary hover:underline"
-                          onClick={e => e.stopPropagation()}
-                        >
-                          {formatPhoneDisplay(phone!)}
-                        </a>
-                        <a
-                          href={`sms:${normalizedPhone}`}
-                          className="text-muted-foreground hover:text-primary"
-                          onClick={e => e.stopPropagation()}
-                          title="Wyślij SMS"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                        </a>
-                      </div>
-                    )}
-                    {(item.price ?? 0) > 0 && (
-                      <div className="text-sm font-medium text-foreground">
-                        {item.price?.toFixed(2)} PLN
-                      </div>
-                    )}
-                  </div>
-                  <div className="w-10 shrink-0 flex items-center justify-center">
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    <div className="w-10 shrink-0 flex items-center justify-center">
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </DashboardColumn>
-        <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={todayReminders.length} emptyText="Brak przypomnień">
-          {todayReminders.map((r, idx) => (
-            <ReminderCard key={r.id} reminder={r} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />
-          ))}
-        </DashboardColumn>
-        <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={allPaymentItems.length} emptyText="Brak płatności do rozliczenia">
-          {allPaymentItems.map((item, idx) => (
-            <PaymentCard key={item.id} item={item} isFirst={idx === 0} onClick={() => onPaymentClick?.(item.id)} />
-          ))}
-        </DashboardColumn>
+              );
+            })}
+          </DashboardColumn>
+        )}
+        {settings.visibleSections.reminders && (
+          <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={todayReminders.length} emptyText="Brak przypomnień">
+            {todayReminders.map((r, idx) => (
+              <ReminderCard key={r.id} reminder={r} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />
+            ))}
+          </DashboardColumn>
+        )}
+        {settings.visibleSections.payments && (
+          <DashboardColumn icon={<CreditCard className="w-5 h-5 text-primary" />} title="Płatności" count={allPaymentItems.length} emptyText="Brak płatności do rozliczenia">
+            {allPaymentItems.map((item, idx) => (
+              <PaymentCard key={item.id} item={item} isFirst={idx === 0} onClick={() => onPaymentClick?.(item.id)} />
+            ))}
+          </DashboardColumn>
+        )}
       </div>
+
+      <DashboardSettingsDrawer
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        settings={settings}
+        onSave={saveSettings}
+      />
     </div>
   );
 };

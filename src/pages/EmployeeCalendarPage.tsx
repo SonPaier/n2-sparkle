@@ -18,6 +18,7 @@ import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import EmployeeDashboard from '@/components/employee/EmployeeDashboard';
 import EmployeeTimeTrackingView from '@/components/employee/EmployeeTimeTrackingView';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
+import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/components/admin/AdminCalendar';
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
@@ -58,6 +59,7 @@ const EmployeeCalendarPage = () => {
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
+  const { settings: dashboardSettings } = useDashboardSettings(instanceId);
   const mainRef = useRef<HTMLElement>(null);
 
   // Protocol form state
@@ -361,7 +363,7 @@ const EmployeeCalendarPage = () => {
   }
 
   const navItems = [
-    { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
+    { id: 'dashboard' as EmployeeView, label: dashboardSettings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień', icon: LayoutDashboard },
     { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
     { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
   ];
