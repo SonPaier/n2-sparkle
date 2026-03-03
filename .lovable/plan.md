@@ -1,86 +1,63 @@
 
 
-## Refaktor "Mój dzień" → konfigurowalny widok (dzień/tydzień)
+## Audyt zmian czasu pracy — co warto śledzić i jak to zaimplementować
 
-### Kluczowe uwagi z Twojego feedbacku
+### Co zapisywać w logu audytowym
 
-1. **Zlecenia na tydzień do przodu, ale przypomnienia i płatności bez zmian** — tryb "tydzień" wpływa tylko na zakres dat zleceń
-2. **RLS dla `employee_calendar_configs`** — pracownik ma tylko SELECT na swój własny config (`auth.uid() = user_id`), nie ma UPDATE. Admin ma pełne zarządzanie. To oznacza, że pracownik **nie może sam zapisywać** do `employee_calendar_configs` bez nowej polityki RLS.
+Rekomendacja — pełny zestaw danych do skutecznego śledzenia:
 
-### Rozwiązanie RLS
+1. **Kto zmienił** (`changed_by_user_id`) — admin czy sam pracownik
+2. **Kiedy zmienił** (`changed_at`) — timestamp zmiany
+3. **Co zmienił** (`change_type`) — `create`, `update`, `delete`
+4. **Poprzednie wartości** (`old_start_time`, `old_end_time`, `old_total_minutes`)
+5. **Nowe wartości** (`new_start_time`, `new_end_time`, `new_total_minutes`)
+6. **Którego wpisu dotyczy** (`time_entry_id`, `employee_id`, `entry_date`)
 
-Dodać **ograniczoną politykę UPDATE** dla pracownika na `employee_calendar_configs`:
-- Pracownik może aktualizować **tylko** pole `dashboard_settings` na swoim własnym configu
-- Nie może zmienić `visible_fields`, `allowed_actions`, `column_ids` itd.
-- Realizacja: trigger walidacyjny `BEFORE UPDATE` na `employee_calendar_configs`, który dla użytkowników z rolą employee blokuje zmianę pól innych niż `dashboard_settings` (przywraca OLD wartości). Plus prosta RLS policy `UPDATE WHERE user_id = auth.uid()` tylko na kolumnę.
+Dodatkowe wartości warte rozważenia:
+- **IP / źródło** — trudne do realizacji bez edge function, pomijam
+- **Opóźnienie edycji** — ile dni po dacie wpisu nastąpiła zmiana (obliczane z `changed_at - entry_date`), nie trzeba osobnej kolumny
 
-Alternatywnie, prostsze podejście: **osobna tabela `dashboard_user_settings`** z kluczem `user_id + instance_id`, gdzie pracownik zapisuje tylko swoje preferencje widoku (dzień/tydzień). Admin zapisuje swoje do `instances.dashboard_settings`. To eliminuje problem RLS — każdy zapisuje do swojej tabeli.
+### Implementacja
 
-**Rekomendacja**: Osobna mała tabela `dashboard_user_settings` (user_id, instance_id, view_mode, visible_sections JSONB). Powody:
-- Czysta separacja: admin nie może nadpisać preferencji pracownika i odwrotnie
-- Prosta RLS: user może CRUD tylko swoje wiersze
-- Nie trzeba triggerów walidacyjnych
-- Działa zarówno dla admina jak i pracownika
+**1. Nowa tabela `time_entry_audit_log`**
 
-### Plan implementacji
-
-**1. Migracja bazy**
-
-Nowa tabela `dashboard_user_settings`:
-```sql
-CREATE TABLE public.dashboard_user_settings (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  instance_id uuid NOT NULL,
-  view_mode text NOT NULL DEFAULT 'day',  -- 'day' | 'week'
-  visible_sections jsonb NOT NULL DEFAULT '{"orders": true, "reminders": true, "payments": true}',
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE(user_id, instance_id)
-);
-
-ALTER TABLE public.dashboard_user_settings ENABLE ROW LEVEL SECURITY;
-
--- Użytkownik może zarządzać swoimi ustawieniami
-CREATE POLICY "Users can manage own dashboard settings"
-  ON public.dashboard_user_settings FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+```text
+id              uuid PK
+time_entry_id   uuid (nullable - bo wpis mógł być usunięty)
+employee_id     uuid
+instance_id     uuid
+entry_date      text
+change_type     text  ('create' | 'update' | 'delete')
+changed_by      uuid  (auth.uid())
+old_start_time  timestamptz nullable
+old_end_time    timestamptz nullable
+old_total_minutes integer nullable
+new_start_time  timestamptz nullable
+new_end_time    timestamptz nullable
+new_total_minutes integer nullable
+created_at      timestamptz default now()
 ```
 
-**2. Nowy komponent `DashboardSettingsDrawer.tsx`**
-- Sheet z prawej, styl identyczny jak drawer zleceń (hideCloseButton + custom X)
-- Na dole fixed: Anuluj (50%) + Zapisz (50%)
-- Radio group: "Widok" → Dzień / Tydzień
-- Checkboxy: "Widoczne sekcje" → Zlecenia, Przypomnienia, Płatności (domyślnie all true)
-- Dla pracownika: ukryj checkboxy sekcji (ma tylko radio dzień/tydzień), bo pracownik nie ma kolumny płatności
-- Props: `settings`, `onSave`, `isEmployee`
+**2. Trigger bazodanowy na `time_entries`** (AFTER INSERT/UPDATE/DELETE)
 
-**3. Hook `useDashboardSettings.ts`**
-- Pobiera i zapisuje ustawienia z `dashboard_user_settings` (upsert po user_id + instance_id)
-- Zwraca `{ viewMode, visibleSections, loading, save }`
+Trigger automatycznie loguje każdą zmianę — nie wymaga zmian w kodzie frontendowym. Używa `auth.uid()` do identyfikacji kto wykonał operację.
 
-**4. Zmiany w `DashboardOverview.tsx` (admin)**
-- Ikona Settings2 obok "Mój dzień"
-- Tytuł dynamiczny: "Mój dzień" vs "Mój tydzień"
-- Tryb tydzień: `getNextWorkingDays(7, ...)` tylko dla zleceń; przypomnienia i płatności bez zmian
-- Ukrywanie sekcji wg `visible_sections`
-- Grid dynamiczny: `md:grid-cols-{n}` wg liczby widocznych sekcji
+**3. RLS na `time_entry_audit_log`**
+- Admin/super_admin: SELECT (podgląd logów) + automatyczny INSERT przez trigger (SECURITY DEFINER)
+- Pracownik: SELECT własnych logów (opcjonalnie — żeby widział historię swoich zmian)
 
-**5. Zmiany w `EmployeeDashboard.tsx` (pracownik)**
-- Ikona Settings2 obok "Mój dzień" i "Mapa"
-- Tytuł dynamiczny
-- Tryb tydzień: `getNextWorkingDays(7, ...)` dla zleceń
-- Przypomnienia bez zmian (nie mają zakresu dat zleceń)
+**4. Widok audytu (opcjonalnie, w przyszłości)**
+- Tabela w panelu admina pokazująca historię zmian z filtrami po pracowniku i dacie
+- Podświetlenie podejrzanych zmian (np. edycja wpisu >3 dni wstecz, duża różnica godzin)
 
-**6. Zmiany w `EmployeeCalendarPage.tsx`**
-- Nawigacja: label dynamiczny "Mój dzień" / "Mój tydzień"
+### Dlaczego trigger a nie kod frontendowy
+
+- Nie da się go ominąć — każda zmiana (z UI, z API, z edge function) jest logowana
+- Nie wymaga zmian w istniejących hookach (`useCreateTimeEntry`, `useUpdateTimeEntry`, `useDeleteTimeEntry`)
+- `auth.uid()` jest dostępny w triggerze dzięki Supabase RLS context
 
 ### Pliki do utworzenia/edycji
-- **Nowy**: `src/hooks/useDashboardSettings.ts`
-- **Nowy**: `src/components/admin/DashboardSettingsDrawer.tsx`
-- **Edycja**: `src/components/admin/DashboardOverview.tsx`
-- **Edycja**: `src/components/employee/EmployeeDashboard.tsx`
-- **Edycja**: `src/pages/EmployeeCalendarPage.tsx`
-- **Migracja**: nowa tabela `dashboard_user_settings`
+
+- **Migracja**: tabela `time_entry_audit_log` + trigger na `time_entries`
+- Brak zmian w kodzie frontendowym — trigger działa automatycznie
 
