@@ -427,16 +427,10 @@ const CustomerEditDrawer = ({
     <div className="space-y-4 mt-4">
       {/* === Informacje podstawowe === */}
       <h3 className="text-sm font-semibold text-foreground">Informacje podstawowe</h3>
-      <div className="flex items-center gap-3 text-lg">
-        <Phone className="w-5 h-5 text-muted-foreground" />
-        <span className="font-medium text-foreground">{customer?.phone}</span>
-      </div>
-      <div className="space-y-2 text-sm">
+      <div className="space-y-1.5">
+        <div className="text-[15px] font-medium text-foreground">{customer?.phone}</div>
         {customer?.email && (
-          <div className="flex items-center gap-2 text-foreground">
-            <Mail className="w-4 h-4 text-muted-foreground" />
-            <span>{customer.email}</span>
-          </div>
+          <div className="text-[15px] text-foreground">{customer.email}</div>
         )}
       </div>
 
@@ -467,9 +461,8 @@ const CustomerEditDrawer = ({
         </div>
       )}
 
-
       {/* === Dane firmy === */}
-      {hasCompanyData && (
+      {companyData.nip && (
         <>
           <Separator />
           <h3 className="text-sm font-semibold text-foreground">Dane firmy</h3>
@@ -483,7 +476,7 @@ const CustomerEditDrawer = ({
     <>
     <Sheet open={open} onOpenChange={handleClose}>
       <SheetContent
-        className="w-full sm:max-w-lg p-0 flex flex-col z-[1000]"
+        className="w-full sm:max-w-lg p-0 flex flex-col z-[1100]"
         hideCloseButton
         hideOverlay
         onFocusOutside={(e) => e.preventDefault()}

@@ -1,4 +1,4 @@
-import { Plus, Trash2, UserPlus } from 'lucide-react';
+import { Plus, Trash2, UserPlus, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -113,15 +113,35 @@ const CustomerAddressesSection = ({
 
   if (!isEditing) {
     if (activeAddresses.length === 0) return null;
+
+    const buildMapsUrl = (addr: CustomerAddress) => {
+      if (addr.lat && addr.lng) return `https://www.google.com/maps?q=${addr.lat},${addr.lng}`;
+      const query = [addr.street, addr.city, addr.postal_code].filter(Boolean).join(', ');
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+    };
+
     return (
       <div>
         <h4 className="text-sm font-medium mb-2">Adresy serwisowe</h4>
         <div className="space-y-2">
           {activeAddresses.map((addr, idx) => (
             <div key={addr.id || idx} className="bg-white p-3 border border-border rounded-lg text-sm space-y-1 shadow-sm">
-              {addr.street && <div className="font-medium text-foreground">{addr.street}</div>}
+              {addr.street && (
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href={buildMapsUrl(addr)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-foreground hover:text-primary flex items-center gap-1"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                    {addr.street}
+                  </a>
+                </div>
+              )}
               {(addr.postal_code || addr.city) && (
-                <div className="text-foreground">
+                <div className="text-foreground pl-5">
                   {addr.postal_code} {addr.city}
                 </div>
               )}
