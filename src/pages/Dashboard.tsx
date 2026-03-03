@@ -288,6 +288,13 @@ const Dashboard = () => {
   };
 
   const handleDeleteItem = async (itemId: string) => {
+    await Promise.all([
+      supabase.from('invoices').delete().eq('calendar_item_id', itemId),
+      supabase.from('calendar_item_services').delete().eq('calendar_item_id', itemId),
+      supabase.from('customer_sms_notifications').delete().eq('calendar_item_id', itemId),
+      supabase.from('sms_logs').delete().eq('calendar_item_id', itemId),
+      supabase.from('protocols').delete().eq('calendar_item_id', itemId),
+    ]);
     const { error } = await supabase.from('calendar_items').delete().eq('id', itemId);
     if (error) { toast.error('Błąd usuwania'); return; }
     setCalendarItems(prev => prev.filter(i => i.id !== itemId));
