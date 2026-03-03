@@ -1,0 +1,195 @@
+import { format, parseISO } from 'date-fns';
+import { pl } from 'date-fns/locale';
+import { FileText } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import EmptyState from '@/components/ui/empty-state';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useTimeEntryAuditLog, AuditLogEntry } from '@/hooks/useTimeEntryAuditLog';
+import { Employee } from '@/hooks/useEmployees';
+
+interface TimeEntryAuditDrawerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  employee: Employee;
+  instanceId: string;
+  dateFrom: string;
+  dateTo: string;
+}
+
+const formatMinutes = (minutes: number): string => {
+  const h = Math.floor(Math.abs(minutes) / 60);
+  const m = Math.abs(minutes) % 60;
+  if (h === 0) return `${m}min`;
+  return `${h}h ${m.toString().padStart(2, '0')}min`;
+};
+
+const formatTimestamp = (isoString: string): string => {
+  try {
+    const d = new Date(isoString);
+    const time = format(d, 'HH:mm');
+    const date = format(d, 'dd.MM.yyyy');
+    return `o ${time} dnia ${date}`;
+  } catch {
+    return isoString;
+  }
+};
+
+const formatDayHeader = (dateStr: string): string => {
+  try {
+    const d = parseISO(dateStr);
+    const dayName = format(d, 'EEEE', { locale: pl });
+    const capitalized = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+    const dayMonth = format(d, 'd MMMM', { locale: pl });
+    return `${capitalized} ${dayMonth}`;
+  } catch {
+    return dateStr;
+  }
+};
+
+const DiffBadge = ({ diffMinutes }: { diffMinutes: number }) => {
+  if (diffMinutes === 0) return null;
+  const isPositive = diffMinutes > 0;
+  const sign = isPositive ? '+' : '\u2212';
+  const label = `${sign}${formatMinutes(Math.abs(diffMinutes))}`;
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${
+        isPositive
+          ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+      }`}
+    >
+      {label}
+    </span>
+  );
+};
+
+const AuditEntry = ({
+  entry,
+  prevEntry,
+  isFirst,
+}: {
+  entry: AuditLogEntry;
+  prevEntry: AuditLogEntry | null;
+  isFirst: boolean;
+}) => {
+  const isCreate = entry.change_type === 'create';
+  const isDelete = entry.change_type === 'delete';
+  const isUpdate = entry.change_type === 'update';
+
+  const currentMinutes = entry.new_total_minutes ?? 0;
+  const prevMinutes = prevEntry?.new_total_minutes ?? prevEntry?.old_total_minutes ?? 0;
+  const diffMinutes = isDelete
+    ? -(entry.old_total_minutes ?? 0)
+    : isUpdate
+    ? currentMinutes - prevMinutes
+    : 0;
+
+  let bgClass = '';
+  if (isUpdate) bgClass = 'bg-primary/5';
+  if (isDelete) bgClass = 'bg-destructive/5';
+
+  return (
+    <div className={`rounded-md px-3 py-2 ${bgClass}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          {isCreate && (
+            <p className="text-sm text-muted-foreground">
+              zaraportowano <span className="font-semibold text-foreground">{formatMinutes(currentMinutes)}</span>
+            </p>
+          )}
+          {isUpdate && (
+            <p className="text-sm text-foreground">
+              zmieniono na <span className="font-semibold">{formatMinutes(currentMinutes)}</span>
+            </p>
+          )}
+          {isDelete && (
+            <p className="text-sm text-destructive">
+              usunięto wpis
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {formatTimestamp(entry.created_at)}
+          </p>
+        </div>
+        {(isUpdate || isDelete) && diffMinutes !== 0 && (
+          <div className="flex-shrink-0 mt-0.5">
+            <DiffBadge diffMinutes={diffMinutes} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const TimeEntryAuditDrawer = ({
+  open,
+  onOpenChange,
+  employee,
+  instanceId,
+  dateFrom,
+  dateTo,
+}: TimeEntryAuditDrawerProps) => {
+  const isMobile = useIsMobile();
+  const { data: dayGroups, isLoading } = useTimeEntryAuditLog(
+    instanceId,
+    employee.id,
+    dateFrom,
+    dateTo
+  );
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className={`${isMobile ? 'w-full' : 'w-[400px] sm:max-w-[400px]'} h-full flex flex-col p-0`}
+      >
+        <SheetHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border">
+          <SheetTitle className="text-left">{employee.name} — historia zmian</SheetTitle>
+        </SheetHeader>
+
+        <ScrollArea className="flex-1 px-6 py-4">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : dayGroups.length === 0 ? (
+            <EmptyState icon={FileText} message="Brak zmian w wybranym okresie" />
+          ) : (
+            <div className="space-y-5">
+              {dayGroups.map((group) => (
+                <div key={group.date} className="relative">
+                  {/* Day header */}
+                  <h3 className="text-sm font-semibold text-foreground mb-2">
+                    {formatDayHeader(group.date)}
+                  </h3>
+
+                  {/* Timeline with left border */}
+                  <div
+                    className={`border-l-2 pl-3 space-y-1.5 ${
+                      group.hasChanges ? 'border-primary' : 'border-border'
+                    }`}
+                  >
+                    {group.entries.map((entry, idx) => (
+                      <AuditEntry
+                        key={entry.id}
+                        entry={entry}
+                        prevEntry={idx > 0 ? group.entries[idx - 1] : null}
+                        isFirst={idx === 0}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+export default TimeEntryAuditDrawer;

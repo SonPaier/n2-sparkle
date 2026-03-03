@@ -8,13 +8,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
-import { Plus, ChevronLeft, ChevronRight, Loader2, User, Settings2, CalendarOff } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Loader2, User, Settings2, CalendarOff, FileText } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, getISOWeek, addWeeks, subWeeks, isWithinInterval, eachDayOfInterval, isSameMonth, isSameWeek, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
 import WorkerTimeDialog from './WorkerTimeDialog';
 import AddEmployeeDayOffDialog from './AddEmployeeDayOffDialog';
 import WorkersSettingsDrawer from './WorkersSettingsDrawer';
+import TimeEntryAuditDrawer from './TimeEntryAuditDrawer';
 
 const WEEKDAY_TO_KEY: Record<number, string> = {
   0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
@@ -39,6 +40,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const [workerDialogEmployee, setWorkerDialogEmployee] = useState<Employee | null>(null);
   const [dayOffDialogOpen, setDayOffDialogOpen] = useState(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
+  const [auditEmployee, setAuditEmployee] = useState<Employee | null>(null);
 
   const { data: workersSettings, isLoading: loadingSettings } = useWorkersSettings(instanceId);
   const isWeeklyMode = workersSettings?.report_frequency === 'weekly';
@@ -278,7 +280,8 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                 <TableRow className="hover:bg-transparent">
                   <TableHead style={{ width: '47%' }}>Imię</TableHead>
                   <TableHead className="text-center" style={{ width: '23%' }}>Przepracowano</TableHead>
-                  <TableHead className="text-right" style={{ width: '30%' }}>Wypłata</TableHead>
+                  <TableHead className="text-right" style={{ width: '25%' }}>Wypłata</TableHead>
+                  {isAdmin && <TableHead style={{ width: '5%' }} />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -312,9 +315,20 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                           <div>{mins}min</div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right py-3 whitespace-nowrap font-medium" style={{ width: '30%' }}>
+                      <TableCell className="text-right py-3 whitespace-nowrap font-medium" style={{ width: '25%' }}>
                         {earnings ? `${earnings} zł` : '-'}
                       </TableCell>
+                      {isAdmin && (
+                        <TableCell className="text-center py-3" style={{ width: '5%' }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setAuditEmployee(employee); }}
+                            className="p-1 rounded hover:bg-accent transition-colors"
+                            title="Historia zmian"
+                          >
+                            <FileText className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -394,6 +408,17 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
 
       <AddEmployeeDayOffDialog open={dayOffDialogOpen} onOpenChange={setDayOffDialogOpen} instanceId={instanceId} employees={activeEmployees} />
       <WorkersSettingsDrawer open={settingsDrawerOpen} onOpenChange={setSettingsDrawerOpen} instanceId={instanceId} />
+
+      {auditEmployee && instanceId && (
+        <TimeEntryAuditDrawer
+          open={!!auditEmployee}
+          onOpenChange={(open) => !open && setAuditEmployee(null)}
+          employee={auditEmployee}
+          instanceId={instanceId}
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+        />
+      )}
     </div>
   );
 };
