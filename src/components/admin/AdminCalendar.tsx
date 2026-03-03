@@ -65,6 +65,8 @@ export interface Break {
   note: string | null;
 }
 
+type WorkingHoursMap = Record<string, { open: string; close: string } | null> | null;
+
 interface AdminCalendarProps {
   columns: CalendarColumn[];
   items: CalendarItem[];
@@ -79,14 +81,27 @@ interface AdminCalendarProps {
   onToggleMap?: () => void;
   mapOpen?: boolean;
   hideHours?: boolean;
+  workingHours?: WorkingHoursMap;
 }
 
-const DEFAULT_START_HOUR = 6;
-const DEFAULT_END_HOUR = 19;
+const FALLBACK_START_HOUR = 6;
+const FALLBACK_END_HOUR = 19;
 const SLOT_MINUTES = 30;
 const SLOTS_PER_HOUR = 60 / SLOT_MINUTES;
 const SLOT_HEIGHT = 29;
 const HOUR_HEIGHT = SLOT_HEIGHT * SLOTS_PER_HOUR;
+
+const computeHourRange = (workingHours?: WorkingHoursMap): { startHour: number; endHour: number } => {
+  if (!workingHours) return { startHour: FALLBACK_START_HOUR, endHour: FALLBACK_END_HOUR };
+  const activeDays = Object.values(workingHours).filter(Boolean) as { open: string; close: string }[];
+  if (activeDays.length === 0) return { startHour: FALLBACK_START_HOUR, endHour: FALLBACK_END_HOUR };
+  const starts = activeDays.map(d => parseInt(d.open.split(':')[0], 10));
+  const ends = activeDays.map(d => {
+    const [h, m] = d.close.split(':').map(Number);
+    return m > 0 ? h + 1 : h;
+  });
+  return { startHour: Math.min(...starts), endHour: Math.max(...ends) };
+};
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -120,7 +135,7 @@ const getTimeBasedZIndex = (startTime: string): number => {
   return 5 + Math.floor(hours - 5 + minutes / 60);
 };
 
-const HOURS = Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR);
+// HOURS is now computed inside the component
 
 const AdminCalendar = ({
   columns,
@@ -136,7 +151,10 @@ const AdminCalendar = ({
   onToggleMap,
   mapOpen,
   hideHours,
+  workingHours,
 }: AdminCalendarProps) => {
+  const { startHour: DEFAULT_START_HOUR, endHour: DEFAULT_END_HOUR } = computeHourRange(workingHours);
+  const HOURS = Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR);
   const [currentDate, setCurrentDate] = useState(() => {
     const saved = localStorage.getItem('admin-calendar-date');
     if (saved) {
