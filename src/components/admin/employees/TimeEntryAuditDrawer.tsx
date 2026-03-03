@@ -71,10 +71,12 @@ const AuditEntry = ({
   entry,
   prevEntry,
   isFirst,
+  groupDate,
 }: {
   entry: AuditLogEntry;
   prevEntry: AuditLogEntry | null;
   isFirst: boolean;
+  groupDate: string;
 }) => {
   const isCreate = entry.change_type === 'create';
   const isDelete = entry.change_type === 'delete';
@@ -88,8 +90,11 @@ const AuditEntry = ({
     ? currentMinutes - prevMinutes
     : 0;
 
+  const changeDate = entry.created_at.slice(0, 10);
+  const isDifferentDay = changeDate !== groupDate;
+
   let bgClass = '';
-  if (isUpdate) bgClass = 'bg-primary/5';
+  if (isUpdate) bgClass = isDifferentDay ? 'bg-amber-50 dark:bg-amber-900/10' : 'bg-primary/5';
   if (isDelete) bgClass = 'bg-destructive/5';
 
   return (
@@ -175,6 +180,7 @@ const TimeEntryAuditDrawer = ({
                   >
                     {group.entries.map((entry, idx) => (
                       <AuditEntry
+                        groupDate={group.date}
                         key={entry.id}
                         entry={entry}
                         prevEntry={idx > 0 ? group.entries[idx - 1] : null}
