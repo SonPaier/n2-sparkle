@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import CalendarColumnsSettings from './CalendarColumnsSettings';
+import WorkingHoursSettings from './WorkingHoursSettings';
 import EmployeeCalendarsListView from './employee-calendars/EmployeeCalendarsListView';
 import InstanceUsersTab from './users/InstanceUsersTab';
 import AddressSearchInput from './AddressSearchInput';
@@ -303,7 +304,13 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
         );
 
       case 'calendar':
-        return <CalendarColumnsSettings instanceId={instanceId} />;
+        return (
+          <div className="space-y-8">
+            <WorkingHoursSettings instanceId={instanceId} />
+            <div className="border-t border-border" />
+            <CalendarColumnsSettings instanceId={instanceId} />
+          </div>
+        );
 
       case 'employee-calendars':
         return <EmployeeCalendarsListView instanceId={instanceId} />;
