@@ -107,40 +107,40 @@ async function ifirmaCreateInvoice(
 ) {
   const url = "https://www.ifirma.pl/iapi/fakturakraj.json";
 
-  const positions = invoiceData.positions.map((p: any, i: number) => ({
-    StawkaVat: p.vat_rate === -1 ? -1 : p.vat_rate / 100,
-    Ilosc: p.quantity,
-    CenaJednostkowa: p.unit_price_gross,
+  const positions = invoiceData.positions.map((p: any) => ({
+    StawkaVat: p.vat_rate === -1 ? 0 : Number(p.vat_rate) / 100,
+    Ilosc: Number(p.quantity),
+    CenaJednostkowa: Number(p.unit_price_gross),
     NazwaPelna: p.name,
     Jednostka: p.unit || "szt",
     TypStawkiVat: p.vat_rate === -1 ? "ZW" : "PRC",
   }));
 
-  const body = {
+  const kontrahent: Record<string, any> = {
+    Nazwa: invoiceData.buyer_name,
+  };
+
+  if (invoiceData.buyer_tax_no) kontrahent.NIP = invoiceData.buyer_tax_no;
+  if (invoiceData.buyer_email) kontrahent.Email = invoiceData.buyer_email;
+  if (invoiceData.buyer_street) kontrahent.Ulica = invoiceData.buyer_street;
+  if (invoiceData.buyer_post_code) kontrahent.KodPocztowy = invoiceData.buyer_post_code;
+  if (invoiceData.buyer_city) kontrahent.Miejscowosc = invoiceData.buyer_city;
+  if (invoiceData.buyer_country) kontrahent.Kraj = invoiceData.buyer_country;
+
+  const body: Record<string, any> = {
     Zaplacono: 0,
     LiczOd: "BRT",
     DataWystawienia: invoiceData.issue_date,
-    MiejsceWystawienia: invoiceData.issue_place || "",
     DataSprzedazy: invoiceData.sell_date,
     FormatDatySprzedazy: "DZN",
-    TerminPlatnosci: invoiceData.payment_to,
     SposobZaplaty: "PRZ",
-    NazwaSeriiNumeracji: "default",
-    NazwaSzablonuFaktury: "default",
-    RodzajPodpisuOdbiorcy: "BPO",
-    WidocznyNumerGios: false,
-    Numer: null,
     Pozycje: positions,
-    Kontrahent: {
-      Nazwa: invoiceData.buyer_name,
-      NIP: invoiceData.buyer_tax_no || "",
-      Email: invoiceData.buyer_email || "",
-      Ulica: invoiceData.buyer_street || "",
-      KodPocztowy: invoiceData.buyer_post_code || "",
-      Miejscowosc: invoiceData.buyer_city || "",
-      Kraj: invoiceData.buyer_country || "Polska",
-    },
+    Kontrahent: kontrahent,
   };
+
+  if (invoiceData.payment_to) body.TerminPlatnosci = invoiceData.payment_to;
+  if (invoiceData.issue_place) body.MiejsceWystawienia = invoiceData.issue_place;
+  if (invoiceData.issuer_signature) body.PodpisWystawcy = invoiceData.issuer_signature;
 
   const bodyStr = JSON.stringify(body);
   console.log("iFirma request body:", bodyStr);
