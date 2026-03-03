@@ -1,4 +1,5 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Trash2, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 import { DOCUMENT_KINDS, VAT_RATES, type InvoicePosition, type DocumentKind } from './invoicing.types';
 
 type PriceMode = 'netto' | 'brutto';
@@ -65,7 +67,43 @@ export function InvoiceForm({
   onAutoSendEmailChange,
   settingsActive,
 }: InvoiceFormProps) {
+  const [nipLoading, setNipLoading] = useState(false);
   const priceLabel = priceMode === 'netto' ? 'Cena netto' : 'Cena brutto';
+
+  const handleNipLookup = async () => {
+    const nip = buyerTaxNo.replace(/[^0-9]/g, '');
+    if (!nip || nip.length !== 10) {
+      toast.error('Wprowadź poprawny NIP (10 cyfr)');
+      return;
+    }
+    setNipLoading(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(
+        `https://wl-api.mf.gov.pl/api/search/nip/${nip}?date=${today}`
+      );
+      if (!response.ok) throw new Error('Nie znaleziono firmy');
+      const data = await response.json();
+      if (data.result?.subject) {
+        const subject = data.result.subject;
+        const addr = subject.workingAddress || subject.residenceAddress || '';
+        const match = addr.match(/^(.+),\s*(\d{2}-\d{3})\s+(.+)$/);
+        onBuyerNameChange(subject.name || '');
+        if (match) {
+          onBuyerStreetChange(match[1].trim());
+          onBuyerPostCodeChange(match[2].trim());
+          onBuyerCityChange(match[3].trim());
+        }
+        toast.success('Pobrano dane firmy z GUS');
+      } else {
+        toast.error('Nie znaleziono firmy o podanym NIP');
+      }
+    } catch {
+      toast.error('Nie udało się pobrać danych firmy');
+    } finally {
+      setNipLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -111,11 +149,18 @@ export function InvoiceForm({
       <div className="space-y-3">
         <h3 className="text-sm font-semibold">Nabywca</h3>
         <div className="space-y-2">
-          <Input value={buyerName} onChange={(e) => onBuyerNameChange(e.target.value)} placeholder="Nazwa nabywcy *" className="bg-white h-9" />
-          <div className="grid grid-cols-2 gap-2">
-            <Input value={buyerTaxNo} onChange={(e) => onBuyerTaxNoChange(e.target.value)} placeholder="NIP" className="bg-white h-9" />
-            <Input value={buyerEmail} onChange={(e) => onBuyerEmailChange(e.target.value)} placeholder="Email" className="bg-white h-9" />
+          <div className="flex items-end gap-2">
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs">NIP</Label>
+              <Input value={buyerTaxNo} onChange={(e) => onBuyerTaxNoChange(e.target.value)} placeholder="0000000000" className="bg-white h-9" />
+            </div>
+            <Button type="button" variant="outline" size="sm" className="h-9" onClick={handleNipLookup} disabled={nipLoading}>
+              {nipLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
+              {nipLoading ? '...' : 'GUS'}
+            </Button>
           </div>
+          <Input value={buyerName} onChange={(e) => onBuyerNameChange(e.target.value)} placeholder="Nazwa nabywcy *" className="bg-white h-9" />
+          <Input value={buyerEmail} onChange={(e) => onBuyerEmailChange(e.target.value)} placeholder="Email" className="bg-white h-9" />
           <Input value={buyerStreet} onChange={(e) => onBuyerStreetChange(e.target.value)} placeholder="Ulica" className="bg-white h-9" />
           <div className="grid grid-cols-3 gap-2">
             <Input value={buyerPostCode} onChange={(e) => onBuyerPostCodeChange(e.target.value)} placeholder="Kod pocztowy" className="bg-white h-9" />

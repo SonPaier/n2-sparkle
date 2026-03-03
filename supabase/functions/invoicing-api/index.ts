@@ -178,6 +178,35 @@ async function ifirmaCreateInvoice(
   };
 }
 
+async function ifirmaSendEmail(
+  config: { invoice_api_user: string; invoice_api_key: string },
+  externalId: string,
+  buyerEmail?: string
+) {
+  const url = `https://www.ifirma.pl/iapi/fakturakraj/send/${externalId}.json`;
+  const body: Record<string, any> = {};
+  if (buyerEmail) body.SkrzynkaEmailOdbiorcy = buyerEmail;
+  const bodyStr = JSON.stringify(body);
+  const messageToSign = `${url}${config.invoice_api_user}faktura${bodyStr}`;
+  const hmacHash = await ifirmaHmac(config.invoice_api_key, messageToSign);
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authentication: `IAPIS user=${config.invoice_api_user}, hmac-sha1=${hmacHash}`,
+    },
+    body: bodyStr,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`iFirma send email error ${res.status}: ${text}`);
+  }
+  return true;
+}
+
 async function ifirmaTestConnection(config: { invoice_api_user: string; invoice_api_key: string }) {
   try {
     const url = "https://www.ifirma.pl/iapi/abonent/miesiacksiegowy.json";
@@ -317,9 +346,13 @@ Deno.serve(async (req) => {
       }
 
       // Auto send email if requested
-      if (autoSendEmail && provider === "fakturownia" && result.external_invoice_id) {
+      if (autoSendEmail && result.external_invoice_id) {
         try {
-          await fakturowniaSendEmail(config, result.external_invoice_id);
+          if (provider === "fakturownia") {
+            await fakturowniaSendEmail(config, result.external_invoice_id);
+          } else if (provider === "ifirma") {
+            await ifirmaSendEmail(config, result.external_invoice_id, invoiceData.buyer_email);
+          }
           await supabase
             .from("invoices")
             .update({ status: "sent" })
@@ -348,8 +381,9 @@ Deno.serve(async (req) => {
 
       if (provider === "fakturownia") {
         await fakturowniaSendEmail(config, inv.external_invoice_id);
+      } else if (provider === "ifirma") {
+        await ifirmaSendEmail(config, inv.external_invoice_id, inv.buyer_email);
       }
-      // iFirma doesn't have a separate send endpoint
 
       await supabase.from("invoices").update({ status: "sent" }).eq("id", invoiceId);
 
