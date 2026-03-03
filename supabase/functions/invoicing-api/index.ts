@@ -118,13 +118,13 @@ async function ifirmaCreateInvoice(
 
   const kontrahent: Record<string, any> = {
     Nazwa: invoiceData.buyer_name,
+    KodPocztowy: invoiceData.buyer_post_code || "00-000",
+    Miejscowosc: invoiceData.buyer_city || "-",
   };
 
   if (invoiceData.buyer_tax_no) kontrahent.NIP = invoiceData.buyer_tax_no;
   if (invoiceData.buyer_email) kontrahent.Email = invoiceData.buyer_email;
   if (invoiceData.buyer_street) kontrahent.Ulica = invoiceData.buyer_street;
-  if (invoiceData.buyer_post_code) kontrahent.KodPocztowy = invoiceData.buyer_post_code;
-  if (invoiceData.buyer_city) kontrahent.Miejscowosc = invoiceData.buyer_city;
   if (invoiceData.buyer_country) kontrahent.Kraj = invoiceData.buyer_country;
 
   const body: Record<string, any> = {
