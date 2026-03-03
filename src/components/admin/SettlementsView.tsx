@@ -542,7 +542,6 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                           downloadIfirmaPdf(invoice.id, instanceId);
                         }
                       }}>
-                              <FileText className="w-4 h-4 mr-2" />
                               Pobierz FV
                             </DropdownMenuItem>
                       }
@@ -730,7 +729,6 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                               downloadIfirmaPdf(invoice.id, instanceId);
                             }
                           }}>
-                              <FileText className="w-4 h-4 mr-2" />
                               Pobierz FV
                             </DropdownMenuItem>
                         }
