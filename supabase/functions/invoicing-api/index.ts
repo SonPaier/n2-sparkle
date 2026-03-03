@@ -81,10 +81,10 @@ async function fakturowniaTestConnection(config: { domain: string; api_token: st
 
 // ---- iFirma Strategy ----
 
-async function ifirmaHmac(key: string, message: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const keyData = encoder.encode(key);
-  const msgData = encoder.encode(message);
+async function ifirmaHmac(hexKey: string, message: string): Promise<string> {
+  // Decode hex key to raw bytes
+  const keyData = new Uint8Array(hexKey.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+  const msgData = new TextEncoder().encode(message);
 
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
@@ -125,8 +125,8 @@ async function ifirmaCreateInvoice(
     FormatDatySprzedazy: "DZN",
     TerminPlatnosci: invoiceData.payment_to,
     SposobZaplaty: "PRZ",
-    NazwaSeriiNumerworaci: "default",
-    NazwaSzworablonuFaktworury: "default",
+    NazwaSeriiNumeracji: "default",
+    NazwaSzablonuFaktury: "default",
     RodzajPodpisuOdbiorcy: "BPO",
     WidocznyNumerGios: false,
     Numer: null,
@@ -161,6 +161,7 @@ async function ifirmaCreateInvoice(
   }
 
   const data = await res.json();
+  console.log("iFirma response:", JSON.stringify(data));
   return {
     external_invoice_id: data.response?.Identyfikator ? String(data.response.Identyfikator) : null,
     external_client_id: null,
