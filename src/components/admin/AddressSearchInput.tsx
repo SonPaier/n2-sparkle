@@ -166,11 +166,11 @@ const AddressSearchInput = ({
             >
               <div className="flex items-center justify-between w-full">
                 <span className="font-medium text-base text-foreground">{r.street || r.city}</span>
-                {r.postal_code && <span className="text-sm text-muted-foreground ml-2">{r.postal_code}</span>}
+                {r.postal_code && <span className="text-sm text-muted-foreground ml-2 shrink-0">{r.postal_code}</span>}
               </div>
-              {r.city && (
-                <span className="text-sm text-muted-foreground">{r.city}</span>
-              )}
+              <span className="text-sm text-muted-foreground">
+                {[r.city, r.region].filter(Boolean).join(', ')}
+              </span>
             </button>
           ))}
         </div>

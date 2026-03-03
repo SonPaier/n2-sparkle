@@ -3,6 +3,7 @@ export interface AddressSearchResult {
   street: string;
   city: string;
   postal_code: string;
+  region: string;
   lat: number;
   lng: number;
 }
@@ -14,6 +15,9 @@ interface NominatimAddress {
   town?: string;
   village?: string;
   postcode?: string;
+  county?: string;
+  state?: string;
+  municipality?: string;
 }
 
 interface NominatimResult {
@@ -51,12 +55,14 @@ export async function searchAddress(
     const a = item.address;
     const street = [a.road, a.house_number].filter(Boolean).join(' ');
     const city = a.city || a.town || a.village || '';
+    const region = a.county || a.municipality || a.state || '';
 
     return {
       display_name: item.display_name,
       street,
       city,
       postal_code: a.postcode || '',
+      region,
       lat: parseFloat(item.lat),
       lng: parseFloat(item.lon),
     };
