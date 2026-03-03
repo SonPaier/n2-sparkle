@@ -233,6 +233,21 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
           .eq('id', calendarItemId);
       }
 
+      // Zapisz dane fakturowe do klienta (NIP, adres rozliczeniowy)
+      if (customerId && buyerTaxNo) {
+        const updateData: Record<string, string> = {
+          nip: buyerTaxNo,
+        };
+        if (buyerName) updateData.company = buyerName;
+        if (buyerStreet) updateData.billing_street = buyerStreet;
+        if (buyerPostCode) updateData.billing_postal_code = buyerPostCode;
+        if (buyerCity) updateData.billing_city = buyerCity;
+        await supabase
+          .from('customers')
+          .update(updateData)
+          .eq('id', customerId);
+      }
+
       toast.success(data?.invoice?.invoice_number
         ? `Faktura ${data.invoice.invoice_number} wystawiona`
         : 'Faktura wystawiona'

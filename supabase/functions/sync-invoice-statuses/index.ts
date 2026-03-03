@@ -128,7 +128,7 @@ async function syncIfirma(
       // and NumerPelny (full invoice number)
       const response = data.response || data;
       const zaplacono = response.Zaplacono ?? 0;
-      const razemBrutto = response.RazemBrutto ?? 0;
+      const razemBrutto = response.WartoscBrutto ?? response.RazemBrutto ?? 0;
 
       if (zaplacono >= razemBrutto && razemBrutto > 0) {
         newStatus = "paid";
