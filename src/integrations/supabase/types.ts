@@ -1522,6 +1522,57 @@ export type Database = {
           },
         ]
       }
+      time_entry_audit_log: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          created_at: string
+          employee_id: string
+          entry_date: string
+          id: string
+          instance_id: string
+          new_end_time: string | null
+          new_start_time: string | null
+          new_total_minutes: number | null
+          old_end_time: string | null
+          old_start_time: string | null
+          old_total_minutes: number | null
+          time_entry_id: string | null
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          created_at?: string
+          employee_id: string
+          entry_date: string
+          id?: string
+          instance_id: string
+          new_end_time?: string | null
+          new_start_time?: string | null
+          new_total_minutes?: number | null
+          old_end_time?: string | null
+          old_start_time?: string | null
+          old_total_minutes?: number | null
+          time_entry_id?: string | null
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          created_at?: string
+          employee_id?: string
+          entry_date?: string
+          id?: string
+          instance_id?: string
+          new_end_time?: string | null
+          new_start_time?: string | null
+          new_total_minutes?: number | null
+          old_end_time?: string | null
+          old_start_time?: string | null
+          old_total_minutes?: number | null
+          time_entry_id?: string | null
+        }
+        Relationships: []
+      }
       unified_categories: {
         Row: {
           active: boolean
