@@ -83,6 +83,12 @@ export function CreateInvoiceDrawer({
             onBuyerTaxNoChange={form.setBuyerTaxNo}
             buyerEmail={form.buyerEmail}
             onBuyerEmailChange={form.setBuyerEmail}
+            buyerStreet={form.buyerStreet}
+            onBuyerStreetChange={form.setBuyerStreet}
+            buyerPostCode={form.buyerPostCode}
+            onBuyerPostCodeChange={form.setBuyerPostCode}
+            buyerCity={form.buyerCity}
+            onBuyerCityChange={form.setBuyerCity}
             positions={form.positions}
             onAddPosition={form.addPosition}
             onRemovePosition={form.removePosition}

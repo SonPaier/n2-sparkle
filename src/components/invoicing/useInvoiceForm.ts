@@ -43,6 +43,9 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
   const [buyerName, setBuyerName] = useState('');
   const [buyerTaxNo, setBuyerTaxNo] = useState('');
   const [buyerEmail, setBuyerEmail] = useState('');
+  const [buyerStreet, setBuyerStreet] = useState('');
+  const [buyerPostCode, setBuyerPostCode] = useState('');
+  const [buyerCity, setBuyerCity] = useState('');
   const [positions, setPositions] = useState<InvoicePosition[]>([
     { name: '', quantity: 1, unit_price_gross: 0, vat_rate: 23 },
   ]);
@@ -57,6 +60,9 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     setBuyerName(customerName || '');
     setBuyerEmail(customerEmail || '');
     setBuyerTaxNo(customerNip || '');
+    setBuyerStreet('');
+    setBuyerPostCode('');
+    setBuyerCity('');
     setAutoSendEmail(settings?.auto_send_email ?? false);
     if (initialPositions?.length) {
       setPositions(initialPositions);
@@ -70,16 +76,46 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     if (!open || !customerId || customerNip) return;
     supabase
       .from('customers')
-      .select('nip, email, company')
+      .select('nip, email, company, billing_city, billing_postal_code, billing_street')
       .eq('id', customerId)
       .single()
       .then(({ data }) => {
         if (data) {
           if (data.nip && !buyerTaxNo) setBuyerTaxNo(data.nip);
           if (data.email && !buyerEmail) setBuyerEmail(data.email);
+          if (data.billing_street) setBuyerStreet(data.billing_street);
+          if (data.billing_postal_code) setBuyerPostCode(data.billing_postal_code);
+          if (data.billing_city) setBuyerCity(data.billing_city);
         }
       });
   }, [open, customerId]);
+
+  // Fetch service address from calendar item as fallback for buyer address
+  useEffect(() => {
+    if (!open || !calendarItemId) return;
+    const fetchAddress = async () => {
+      // Only fetch if no billing address was set
+      if (buyerCity || buyerPostCode || buyerStreet) return;
+      const { data: item } = await supabase
+        .from('calendar_items')
+        .select('customer_address_id')
+        .eq('id', calendarItemId)
+        .single();
+      if (item?.customer_address_id) {
+        const { data: addr } = await supabase
+          .from('customer_addresses')
+          .select('city, postal_code, street')
+          .eq('id', item.customer_address_id)
+          .single();
+        if (addr) {
+          if (addr.street && !buyerStreet) setBuyerStreet(addr.street);
+          if (addr.postal_code && !buyerPostCode) setBuyerPostCode(addr.postal_code);
+          if (addr.city && !buyerCity) setBuyerCity(addr.city);
+        }
+      }
+    };
+    fetchAddress();
+  }, [open, calendarItemId, buyerCity, buyerPostCode, buyerStreet]);
 
   // Fetch services for calendar item if no initial positions
   useEffect(() => {
@@ -176,6 +212,9 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
             buyer_name: buyerName,
             buyer_tax_no: buyerTaxNo,
             buyer_email: buyerEmail,
+            buyer_street: buyerStreet,
+            buyer_post_code: buyerPostCode,
+            buyer_city: buyerCity,
             currency: 'PLN',
             positions: grossPositions,
             oid: calendarItemId,
@@ -211,6 +250,9 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
     buyerName, setBuyerName,
     buyerTaxNo, setBuyerTaxNo,
     buyerEmail, setBuyerEmail,
+    buyerStreet, setBuyerStreet,
+    buyerPostCode, setBuyerPostCode,
+    buyerCity, setBuyerCity,
     positions,
     paymentTo,
     totalNetto,

@@ -25,6 +25,12 @@ interface InvoiceFormProps {
   onBuyerTaxNoChange: (v: string) => void;
   buyerEmail: string;
   onBuyerEmailChange: (v: string) => void;
+  buyerStreet: string;
+  onBuyerStreetChange: (v: string) => void;
+  buyerPostCode: string;
+  onBuyerPostCodeChange: (v: string) => void;
+  buyerCity: string;
+  onBuyerCityChange: (v: string) => void;
   positions: InvoicePosition[];
   onAddPosition: () => void;
   onRemovePosition: (idx: number) => void;
@@ -48,6 +54,9 @@ export function InvoiceForm({
   buyerName, onBuyerNameChange,
   buyerTaxNo, onBuyerTaxNoChange,
   buyerEmail, onBuyerEmailChange,
+  buyerStreet, onBuyerStreetChange,
+  buyerPostCode, onBuyerPostCodeChange,
+  buyerCity, onBuyerCityChange,
   positions, onAddPosition, onRemovePosition, onUpdatePosition,
   priceMode, onPriceModeChange,
   totalNetto, totalVat, totalGross,
@@ -106,6 +115,11 @@ export function InvoiceForm({
           <div className="grid grid-cols-2 gap-2">
             <Input value={buyerTaxNo} onChange={(e) => onBuyerTaxNoChange(e.target.value)} placeholder="NIP" className="bg-white h-9" />
             <Input value={buyerEmail} onChange={(e) => onBuyerEmailChange(e.target.value)} placeholder="Email" className="bg-white h-9" />
+          </div>
+          <Input value={buyerStreet} onChange={(e) => onBuyerStreetChange(e.target.value)} placeholder="Ulica" className="bg-white h-9" />
+          <div className="grid grid-cols-3 gap-2">
+            <Input value={buyerPostCode} onChange={(e) => onBuyerPostCodeChange(e.target.value)} placeholder="Kod pocztowy" className="bg-white h-9" />
+            <Input value={buyerCity} onChange={(e) => onBuyerCityChange(e.target.value)} placeholder="Miasto" className="bg-white h-9 col-span-2" />
           </div>
         </div>
       </div>
