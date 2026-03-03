@@ -28,6 +28,7 @@ interface CalendarItemRow {
   customer_name: string | null;
   customer_phone: string | null;
   item_date: string;
+  end_date: string | null;
   start_time: string;
   end_time: string;
   status: string;
@@ -77,15 +78,15 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     setLoading(true);
     const today = format(new Date(), 'yyyy-MM-dd');
 
-    const selectFields = 'id, title, customer_name, customer_phone, item_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price';
+    const selectFields = 'id, title, customer_name, customer_phone, item_date, end_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price';
 
     const [itemsRes, paymentItemsRes, remindersRes, overdueInvoicesRes] = await Promise.all([
       supabase
         .from('calendar_items')
         .select(selectFields)
         .eq('instance_id', instanceId)
-        .gte('item_date', fetchDateStart)
         .lte('item_date', fetchDateEnd)
+        .or(`end_date.gte.${fetchDateStart},item_date.gte.${fetchDateStart}`)
         .neq('status', 'cancelled')
         .order('item_date')
         .order('start_time'),
@@ -217,7 +218,10 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
   todayDate.setHours(0, 0, 0, 0);
 
   const workingDays = useMemo(() => getNextWorkingDays(2, workingHours ?? null), [workingHours]);
-  const dashboardItems = items.filter(i => workingDays.includes(i.item_date));
+  const dashboardItems = items.filter(i => {
+    const endDate = (i as any).end_date || i.item_date;
+    return workingDays.some(day => i.item_date <= day && endDate >= day);
+  });
 
   const todayReminders = reminders.filter(r => {
     const deadlineDate = new Date(r.deadline + 'T00:00:00');
