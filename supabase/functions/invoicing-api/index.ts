@@ -378,6 +378,44 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "get_ifirma_pdf") {
+      const { invoiceId } = params;
+      const { data: inv } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("id", invoiceId)
+        .single();
+
+      if (!inv?.external_invoice_id) throw new Error("Invoice not found");
+      if (provider !== "ifirma") throw new Error("Not an iFirma invoice");
+
+      const pdfUrl = `https://www.ifirma.pl/iapi/fakturakraj/${inv.external_invoice_id}.pdf`;
+      const messageToSign = `${pdfUrl}${config.invoice_api_user}faktura`;
+      const hmacHash = await ifirmaHmac(config.invoice_api_key, messageToSign);
+
+      const pdfRes = await fetch(pdfUrl, {
+        method: "GET",
+        headers: {
+          Accept: "application/pdf",
+          Authentication: `IAPIS user=${config.invoice_api_user}, hmac-sha1=${hmacHash}`,
+        },
+      });
+
+      if (!pdfRes.ok) {
+        const text = await pdfRes.text();
+        throw new Error(`iFirma PDF error ${pdfRes.status}: ${text}`);
+      }
+
+      const pdfData = await pdfRes.arrayBuffer();
+      return new Response(pdfData, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="faktura-${inv.invoice_number || inv.external_invoice_id}.pdf"`,
+        },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "Unknown action" }), {
       status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

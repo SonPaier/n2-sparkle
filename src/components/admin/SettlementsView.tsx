@@ -58,7 +58,45 @@ interface InvoiceRow {
   calendar_item_id: string;
   pdf_url: string | null;
   payment_to: string | null;
+  provider: string;
 }
+
+const downloadIfirmaPdf = async (invoiceId: string, instanceId: string) => {
+  try {
+    const { supabase } = await import('@/integrations/supabase/client');
+    const { data, error } = await supabase.functions.invoke('invoicing-api', {
+      body: { action: 'get_ifirma_pdf', instanceId, invoiceId },
+    });
+    if (error) throw error;
+    // The response comes as arraybuffer via the edge function
+    // We need to use fetch directly for binary response
+    const session = await supabase.auth.getSession();
+    const token = session.data.session?.access_token;
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invoicing-api`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify({ action: 'get_ifirma_pdf', instanceId, invoiceId }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `faktura-${invoiceId}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err: any) {
+    console.error('PDF download error:', err);
+    toast.error('Błąd pobierania PDF');
+  }
+};
 
 const formatCurrency = (value: number | null) => {
   if (value == null || value === 0) return '—';
@@ -165,7 +203,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
     queryFn: async () => {
       const { data, error } = await supabase.
       from('invoices').
-      select('id, calendar_item_id, pdf_url, payment_to').
+      select('id, calendar_item_id, pdf_url, payment_to, provider').
       eq('instance_id', instanceId);
       if (error) throw error;
       return (data || []) as InvoiceRow[];
@@ -496,8 +534,14 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuItem onSelect={() => openDetailsDrawer(order)}>Szczegóły</DropdownMenuItem>
-                          {invoice?.pdf_url &&
-                      <DropdownMenuItem onSelect={() => window.open(invoice.pdf_url!, '_blank')}>
+                          {(invoice?.pdf_url || invoice?.provider === 'ifirma') &&
+                      <DropdownMenuItem onSelect={() => {
+                        if (invoice.pdf_url) {
+                          window.open(invoice.pdf_url, '_blank');
+                        } else if (invoice.provider === 'ifirma') {
+                          downloadIfirmaPdf(invoice.id, instanceId);
+                        }
+                      }}>
                               <FileText className="w-4 h-4 mr-2" />
                               Pobierz FV
                             </DropdownMenuItem>
@@ -677,11 +721,16 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
 
                             Szczegóły
                           </DropdownMenuItem>
-                          {invoice?.pdf_url &&
+                          {(invoice?.pdf_url || invoice?.provider === 'ifirma') &&
                         <DropdownMenuItem
-                          onSelect={() => window.open(invoice.pdf_url!, '_blank')}>
-
-                              
+                          onSelect={() => {
+                            if (invoice.pdf_url) {
+                              window.open(invoice.pdf_url, '_blank');
+                            } else if (invoice.provider === 'ifirma') {
+                              downloadIfirmaPdf(invoice.id, instanceId);
+                            }
+                          }}>
+                              <FileText className="w-4 h-4 mr-2" />
                               Pobierz FV
                             </DropdownMenuItem>
                         }
