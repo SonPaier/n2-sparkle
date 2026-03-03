@@ -995,10 +995,42 @@ const CalendarItemDetailsDrawer = ({
                             <span className="font-medium">{inv.invoice_number || 'Faktura'}</span>
                             <span className="text-muted-foreground ml-2">{inv.total_gross?.toFixed(2)} {inv.currency}</span>
                           </div>
-                          {inv.pdf_url && (
-                            <a href={inv.pdf_url} target="_blank" rel="noopener noreferrer" className="text-primary text-xs hover:underline">
+                          {(inv.pdf_url || inv.provider === 'ifirma') && (
+                            <button
+                              onClick={async () => {
+                                if (inv.pdf_url) {
+                                  window.open(inv.pdf_url, '_blank');
+                                } else {
+                                  try {
+                                    const session = await supabase.auth.getSession();
+                                    const token = session.data.session?.access_token;
+                                    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invoicing-api`, {
+                                      method: 'POST',
+                                      headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`,
+                                        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                                      },
+                                      body: JSON.stringify({ action: 'get_ifirma_pdf', instanceId, invoiceId: inv.id }),
+                                    });
+                                    if (!res.ok) throw new Error(await res.text());
+                                    const blob = await res.blob();
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `faktura-${inv.invoice_number || inv.id}.pdf`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                  } catch (err: any) {
+                                    console.error('PDF download error:', err);
+                                    toast.error('Błąd pobierania PDF');
+                                  }
+                                }
+                              }}
+                              className="text-primary text-xs hover:underline"
+                            >
                               PDF
-                            </a>
+                            </button>
                           )}
                         </div>
                       ))}
