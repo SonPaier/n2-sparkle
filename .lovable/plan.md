@@ -1,29 +1,30 @@
 
 
-## Plan: Dodanie pól adresowych nabywcy do formularza faktury
+## Plan: Nadpisanie ceny zlecenia kwotą netto z faktury
 
-Formularz faktury nie wysyła `buyer_city`, `buyer_post_code`, `buyer_street` do API. Backend (edge function) już obsługuje te pola zarówno dla Fakturownia.pl jak i iFirma. Trzeba dodać logikę pobierania i UI do edycji.
+### Problem
+Po wystawieniu faktury, cena w zleceniu (`calendar_items.price`) nie jest aktualizowana. Powinna zostać nadpisana wartością netto z faktury.
 
-### Logika pobierania adresu (priorytet)
-1. Dane billingowe klienta (gdy ma NIP): `billing_city`, `billing_postal_code`, `billing_street` z tabeli `customers`
-2. Adres serwisowy ze zlecenia: `customer_address_id` z `calendar_items` → `customer_addresses` (city, postal_code, street)
-3. Puste (edytowalne ręcznie)
+### Rozwiązanie
+Po pomyślnym wystawieniu faktury, w `handleSubmit` w `useInvoiceForm.ts`, zaktualizować `calendar_items.price` wartością `totalNetto` (obliczaną już w hooku). Następnie wywołać `onSuccess` aby odświeżyć listę.
 
-### Zmiany w plikach
+### Zmiany
 
-**1. `src/components/invoicing/useInvoiceForm.ts`**
-- Dodać state: `buyerStreet`, `buyerPostCode`, `buyerCity` + settery
-- Rozszerzyć fetch klienta (linia 73): dodać `billing_city, billing_postal_code, billing_street` do selecta i ustawić pola
-- Dodać nowy effect: gdy `calendarItemId` → pobrać `customer_address_id` z `calendar_items`, potem adres z `customer_addresses` (jako fallback gdy brak danych billingowych)
-- W `handleSubmit` (linia 171-182): dodać `buyer_city`, `buyer_post_code`, `buyer_street` do `invoiceData`
-- Wyeksportować nowe pola z returna
+**`src/components/invoicing/useInvoiceForm.ts`** — w `handleSubmit`, po pomyślnym utworzeniu faktury (linia ~227), dodać update:
 
-**2. `src/components/invoicing/InvoiceForm.tsx`**
-- Dodać propsy: `buyerStreet`, `buyerPostCode`, `buyerCity` + onChange handlery
-- W sekcji "Nabywca" dodać wiersz z polami: Ulica (pełna szerokość), Kod pocztowy + Miasto (grid 1/3 + 2/3)
+```typescript
+// Po: if (data?.error) throw new Error(data.error);
+// Nadpisz cenę zlecenia kwotą netto
+if (calendarItemId) {
+  await supabase
+    .from('calendar_items')
+    .update({ price: totalNetto })
+    .eq('id', calendarItemId);
+}
+```
 
-**3. `src/components/invoicing/CreateInvoiceDrawer.tsx`**
-- Przekazać nowe propsy z `form` do `InvoiceForm`
+Wykorzystujemy `totalNetto` już obliczane w hooku (linia 151-166). Callback `onSuccess` (już wywoływany w linii 232) odświeża listę zleceń w komponencie nadrzędnym.
 
-**Edge function** — bez zmian, już obsługuje te pola.
+### Pliki do zmiany
+- `src/components/invoicing/useInvoiceForm.ts` — 1 zmiana (dodanie update po create_invoice)
 
