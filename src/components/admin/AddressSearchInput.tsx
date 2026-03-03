@@ -164,11 +164,13 @@ const AddressSearchInput = ({
               onClick={() => handleSelect(r)}
               onMouseEnter={() => setSelectedIndex(i)}
             >
-              <span className="font-medium text-base text-foreground">{r.street || r.city}</span>
-              <span className="text-sm text-muted-foreground">
-                {[r.postal_code, r.city].filter(Boolean).join(' ')}
-                {r.street && r.city ? ` • ${r.city}` : ''}
-              </span>
+              <div className="flex items-center justify-between w-full">
+                <span className="font-medium text-base text-foreground">{r.street || r.city}</span>
+                {r.postal_code && <span className="text-sm text-muted-foreground ml-2">{r.postal_code}</span>}
+              </div>
+              {r.city && (
+                <span className="text-sm text-muted-foreground">{r.city}</span>
+              )}
             </button>
           ))}
         </div>
