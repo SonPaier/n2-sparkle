@@ -225,6 +225,14 @@ export function useInvoiceForm(open: boolean, options: UseInvoiceFormOptions) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      // Nadpisz cenę zlecenia kwotą netto z faktury
+      if (calendarItemId) {
+        await supabase
+          .from('calendar_items')
+          .update({ price: totalNetto })
+          .eq('id', calendarItemId);
+      }
+
       toast.success(data?.invoice?.invoice_number
         ? `Faktura ${data.invoice.invoice_number} wystawiona`
         : 'Faktura wystawiona'
