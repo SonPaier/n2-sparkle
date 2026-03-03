@@ -474,7 +474,7 @@ const CustomerEditDrawer = ({
 
   return (
     <>
-    <Sheet open={open} onOpenChange={handleClose}>
+    <Sheet open={open} onOpenChange={(nextOpen) => { if (!nextOpen) handleClose(); }}>
       <SheetContent
         className="w-full sm:max-w-lg p-0 flex flex-col z-[1100]"
         hideCloseButton

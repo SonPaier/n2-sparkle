@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ interface DashboardLayoutProps {
 
 const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: DashboardLayoutProps) => {
   const { signOut, username, user } = useAuth();
+  const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('n2service-sidebar-collapsed') === 'true';
@@ -52,6 +54,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const [instanceLogo, setInstanceLogo] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const dashboardLabel = dashboardSettings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień';
 
   useEffect(() => {
     if (!instanceId) return;
@@ -123,18 +126,21 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
           {/* Navigation */}
           <nav className={cn("flex-1 space-y-2", sidebarCollapsed ? "p-2" : "p-4")}>
-            {navItems.map(({ id, label, icon: Icon }) => (
-              <Button
-                key={id}
-                variant={currentView === id ? 'secondary' : 'ghost'}
-                className={cn("w-full gap-3", currentView === id ? "hover:bg-secondary" : "hover:bg-primary/5", sidebarCollapsed ? "justify-center px-2" : "justify-start")}
-                onClick={() => handleNavClick(id)}
-                title={label}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {!sidebarCollapsed && label}
-              </Button>
-            ))}
+            {navItems.map(({ id, label, icon: Icon }) => {
+              const displayLabel = id === 'dashboard' ? dashboardLabel : label;
+              return (
+                <Button
+                  key={id}
+                  variant={currentView === id ? 'secondary' : 'ghost'}
+                  className={cn("w-full gap-3", currentView === id ? "hover:bg-secondary" : "hover:bg-primary/5", sidebarCollapsed ? "justify-center px-2" : "justify-start")}
+                  onClick={() => handleNavClick(id)}
+                  title={displayLabel}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {!sidebarCollapsed && displayLabel}
+                </Button>
+              );
+            })}
           </nav>
 
           {/* Collapse toggle & User menu */}
@@ -199,19 +205,22 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
       {/* Mobile bottom bar */}
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border/50 flex items-center justify-around h-16 px-2 pb-2.5">
-          {bottomBarItems.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => handleNavClick(id)}
-              className={cn(
-                "flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer transition-colors",
-                currentView === id ? "text-primary font-semibold" : "text-foreground hover:text-foreground"
-              )}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{label}</span>
-            </button>
-          ))}
+          {bottomBarItems.map(({ id, label, icon: Icon }) => {
+            const displayLabel = id === 'dashboard' ? dashboardLabel : label;
+            return (
+              <button
+                key={id}
+                onClick={() => handleNavClick(id)}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer transition-colors",
+                  currentView === id ? "text-primary font-semibold" : "text-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium">{displayLabel}</span>
+              </button>
+            );
+          })}
           <button
             onClick={() => setSidebarOpen(true)}
             className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer text-foreground hover:text-foreground transition-colors"
@@ -227,3 +236,4 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
 export default DashboardLayout;
 export type { ViewType };
+
