@@ -143,7 +143,7 @@ const CalendarMapPanel = ({ items, columns, onItemClick, onClose, hqLocation, in
               ? 'bg-secondary text-secondary-foreground'
               : 'bg-white text-foreground hover:bg-white/90'
           }`}
-          title="Pokaż klientów w okolicy (1 km)"
+          title="Pokaż klientów w okolicy (3 km)"
         >
           <Users className="w-3.5 h-3.5" />
           W okolicy

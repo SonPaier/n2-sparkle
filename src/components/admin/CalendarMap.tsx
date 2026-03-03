@@ -246,7 +246,7 @@ const CalendarMap = ({ items, columns, onItemClick, hqLocation, showNearby = fal
         if (addr.lat == null || addr.lng == null) continue;
         const isClose = validItems.some(item =>
           item.address_lat != null && item.address_lng != null &&
-          haversineKm(item.address_lat, item.address_lng, addr.lat!, addr.lng!) <= 1.0
+          haversineKm(item.address_lat, item.address_lng, addr.lat!, addr.lng!) <= 3.0
         );
         if (isClose) {
           nearby.push({
