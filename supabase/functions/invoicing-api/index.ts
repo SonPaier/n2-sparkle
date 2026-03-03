@@ -130,6 +130,7 @@ async function ifirmaCreateInvoice(
   const body: Record<string, any> = {
     Zaplacono: 0,
     LiczOd: "BRT",
+    RodzajPodpisuOdbiorcy: "BPO",
     DataWystawienia: invoiceData.issue_date,
     DataSprzedazy: invoiceData.sell_date,
     FormatDatySprzedazy: "DZN",
