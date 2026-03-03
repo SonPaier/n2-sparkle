@@ -56,12 +56,21 @@ interface ReminderRow {
   reminder_type_name?: string;
 }
 
-const getDayPill = (itemDate: string) => {
+const getDayPill = (itemDate: string, endDate?: string | null) => {
   const date = new Date(itemDate + 'T00:00:00');
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  if (endDate && endDate !== itemDate) {
+    const end = new Date(endDate + 'T00:00:00');
+    const startName = capitalize(format(date, 'EEEE', { locale: pl }));
+    const endName = capitalize(format(end, 'EEEE', { locale: pl }));
+    return { label: `${startName} - ${endName}`, cls: 'bg-purple-500 text-white border-transparent' };
+  }
+
   if (isToday(date)) return { label: 'Dziś', cls: 'bg-green-500 text-white border-transparent' };
   if (isTomorrow(date)) return { label: 'Jutro', cls: 'bg-purple-500 text-white border-transparent' };
   const dayName = format(date, 'EEEE', { locale: pl });
-  return { label: dayName.charAt(0).toUpperCase() + dayName.slice(1), cls: 'bg-purple-500 text-white border-transparent' };
+  return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
 const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick }: DashboardOverviewProps) => {
@@ -270,7 +279,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <DashboardColumn icon={<Calendar className="w-5 h-5 text-primary" />} title="Zlecenia" count={dashboardItems.length} emptyText="Brak zleceń na najbliższe dni robocze">
           {dashboardItems.map((item, idx) => {
-            const pill = getDayPill(item.item_date);
+            const pill = getDayPill(item.item_date, item.end_date);
             const addr = buildDisplayAddress(item);
             const mapsUrl = buildGoogleMapsUrl(item);
             const phone = item.customer_phone;
