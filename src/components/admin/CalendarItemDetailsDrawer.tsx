@@ -989,54 +989,53 @@ const CalendarItemDetailsDrawer = ({
                   )}
                   {itemInvoices.length > 0 && (
                     <div className="space-y-1">
-                      {itemInvoices.map(inv => (
-                        <div key={inv.id} className="flex items-center justify-between text-[15px] bg-muted/50 rounded-lg px-3 py-2">
-                          <div>
-                            <span className="font-medium">{inv.invoice_number || 'Faktura'}</span>
-                            <span className="text-muted-foreground ml-2">{inv.total_gross?.toFixed(2)} {inv.currency}</span>
-                          </div>
-                          {(inv.pdf_url || inv.provider === 'ifirma') && (
-                            <button
-                              onClick={async () => {
-                                if (inv.pdf_url) {
-                                  window.open(inv.pdf_url, '_blank');
-                                } else {
-                                  try {
-                                    const session = await supabase.auth.getSession();
-                                    const token = session.data.session?.access_token;
-                                    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invoicing-api`, {
-                                      method: 'POST',
-                                      headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${token}`,
-                                        'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-                                      },
-                                      body: JSON.stringify({ action: 'get_ifirma_pdf', instanceId, invoiceId: inv.id }),
-                                    });
-                                    if (!res.ok) throw new Error(await res.text());
-                                    const blob = await res.blob();
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `faktura-${inv.invoice_number || inv.id}.pdf`;
-                                    a.click();
-                                    URL.revokeObjectURL(url);
-                                  } catch (err: any) {
-                                    console.error('PDF download error:', err);
-                                    toast.error('Błąd pobierania PDF');
-                                  }
-                                }
-                              }}
-                              className="text-primary text-xs hover:underline"
-                            >
-                              PDF
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                      {itemInvoices.map(inv => {
+                        const hasPdf = inv.pdf_url || inv.provider === 'ifirma';
+                        const handlePdfClick = async () => {
+                          if (inv.pdf_url) {
+                            window.open(inv.pdf_url, '_blank');
+                          } else {
+                            try {
+                              const session = await supabase.auth.getSession();
+                              const token = session.data.session?.access_token;
+                              const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/invoicing-api`, {
+                                method: 'POST',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`,
+                                  'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+                                },
+                                body: JSON.stringify({ action: 'get_ifirma_pdf', instanceId, invoiceId: inv.id }),
+                              });
+                              if (!res.ok) throw new Error(await res.text());
+                              const blob = await res.blob();
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `faktura-${inv.invoice_number || inv.id}.pdf`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                            } catch (err: any) {
+                              console.error('PDF download error:', err);
+                              toast.error('Błąd pobierania PDF');
+                            }
+                          }
+                        };
+                        const priceDisplay = item.price != null ? `${item.price.toFixed(2)} zł netto` : `${inv.total_gross?.toFixed(2)} ${inv.currency}`;
+                        return (
+                          <button
+                            key={inv.id}
+                            onClick={hasPdf ? handlePdfClick : undefined}
+                            className={`flex items-center gap-2 text-[15px] w-full text-left ${hasPdf ? 'text-primary hover:underline cursor-pointer' : 'text-foreground'}`}
+                          >
+                            <span className="font-medium">{inv.invoice_number || 'Faktura'},</span>
+                            <span>{priceDisplay}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
-                  {item.status === 'completed' && (
+                  {item.status === 'completed' && itemInvoices.length === 0 && (
                     <Button
                       variant="outline"
                       className="w-full justify-start"
