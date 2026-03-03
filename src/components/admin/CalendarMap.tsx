@@ -26,6 +26,7 @@ export interface NearbyAddress {
   city: string | null;
   name: string;
   customer_name?: string;
+  customer_phone?: string;
 }
 
 // Haversine distance in km
@@ -234,7 +235,7 @@ const CalendarMap = ({ items, columns, onItemClick, onNearbyAddressClick, hqLoca
 
       const { data, error } = await supabase
         .from('customer_addresses')
-        .select('id, customer_id, lat, lng, street, city, name, customers(name)')
+        .select('id, customer_id, lat, lng, street, city, name, customers(name, phone)')
         .eq('instance_id', instanceId)
         .not('lat', 'is', null)
         .not('lng', 'is', null);
@@ -255,6 +256,7 @@ const CalendarMap = ({ items, columns, onItemClick, onNearbyAddressClick, hqLoca
             lat: addr.lat!,
             lng: addr.lng!,
             customer_name: (addr.customers as any)?.name || '',
+            customer_phone: (addr.customers as any)?.phone || '',
           });
         }
       }
@@ -274,7 +276,8 @@ const CalendarMap = ({ items, columns, onItemClick, onNearbyAddressClick, hqLoca
     if (!showNearby) return;
 
     nearbyAddresses.forEach(addr => {
-      const line1 = addr.customer_name || addr.name;
+      const line1Parts = [addr.customer_name || addr.name, addr.customer_phone].filter(Boolean);
+      const line1 = line1Parts.join(' · ');
       const line2 = [addr.street, addr.city].filter(Boolean).join(', ');
       const tooltipHtml = `<div class="calendar-map-tooltip-content"><div class="cmt-line1">${line1}</div>${line2 ? `<div class="cmt-line2">${line2}</div>` : ''}</div>`;
 

@@ -266,7 +266,6 @@ const Dashboard = () => {
       customerAddressId: address.id,
     });
     setNewItemData({ columnId: '', date: '', time: '' });
-    setMapOpen(false);
     setAddItemOpen(true);
   };
 
