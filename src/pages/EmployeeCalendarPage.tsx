@@ -129,13 +129,20 @@ const EmployeeCalendarPage = () => {
     const rangeStart = format(subDays(currentCalendarDate, 7), 'yyyy-MM-dd');
     const rangeEnd = format(addDays(currentCalendarDate, mapOpen ? 30 : 14), 'yyyy-MM-dd');
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('calendar_items')
       .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number')
       .eq('instance_id', instanceId)
       .in('column_id', columnIds)
       .gte('item_date', rangeStart)
       .lte('item_date', rangeEnd);
+
+    // Filter by linked employee so employees only see their own assignments
+    if (linkedEmployeeId) {
+      query = query.contains('assigned_employee_ids', [linkedEmployeeId]);
+    }
+
+    const { data, error } = await query;
     if (error) { console.error('Error fetching items:', error); return; }
 
     const items = data || [];
@@ -182,7 +189,7 @@ const EmployeeCalendarPage = () => {
     }
 
     setCalendarItems(items as CalendarItem[]);
-  }, [instanceId, config, currentCalendarDate, mapOpen]);
+  }, [instanceId, config, currentCalendarDate, mapOpen, linkedEmployeeId]);
 
   // Fetch breaks
   const fetchBreaks = useCallback(async () => {
