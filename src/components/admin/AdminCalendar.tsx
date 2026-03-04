@@ -230,36 +230,77 @@ const AdminCalendar = ({
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const gridScrollRef = useRef<HTMLDivElement>(null);
 
-  const scrollTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  // Touch handling for mobile - lock scroll to one axis
+  const scrollTouchStartRef = useRef<{x: number; y: number; scrollLeft: number; scrollTop: number} | null>(null);
   const scrollDirectionRef = useRef<'horizontal' | 'vertical' | null>(null);
+  const AXIS_LOCK_THRESHOLD = 8;
 
-  const handleScrollTouchStart = useCallback((e: React.TouchEvent) => {
-    scrollTouchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    scrollDirectionRef.current = null;
-  }, []);
+  // Use native event listeners with {passive: false} to allow preventDefault
+  // Re-attach when view/date changes since the DOM element may remount
+  useEffect(() => {
+    if (!isMobile) return;
+    
+    const timerId = setTimeout(() => {
+      const el = gridScrollRef.current;
+      if (!el) return;
 
-  const handleScrollTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!scrollTouchStartRef.current || !gridScrollRef.current) return;
-    const deltaX = Math.abs(e.touches[0].clientX - scrollTouchStartRef.current.x);
-    const deltaY = Math.abs(e.touches[0].clientY - scrollTouchStartRef.current.y);
-    if (!scrollDirectionRef.current && (deltaX > 10 || deltaY > 10)) {
-      scrollDirectionRef.current = deltaX > deltaY ? 'horizontal' : 'vertical';
-    }
-    if (scrollDirectionRef.current === 'horizontal') {
-      gridScrollRef.current.style.overflowY = 'hidden';
-    } else if (scrollDirectionRef.current === 'vertical') {
-      gridScrollRef.current.style.overflowX = 'hidden';
-    }
-  }, []);
+      const onTouchStart = (e: TouchEvent) => {
+        scrollTouchStartRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+          scrollLeft: el.scrollLeft,
+          scrollTop: el.scrollTop,
+        };
+        scrollDirectionRef.current = null;
+      };
 
-  const handleScrollTouchEnd = useCallback(() => {
-    scrollTouchStartRef.current = null;
-    scrollDirectionRef.current = null;
-    if (gridScrollRef.current) {
-      gridScrollRef.current.style.overflowX = 'auto';
-      gridScrollRef.current.style.overflowY = 'auto';
-    }
-  }, []);
+      const onTouchMove = (e: TouchEvent) => {
+        if (!scrollTouchStartRef.current) return;
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - scrollTouchStartRef.current.x;
+        const deltaY = touch.clientY - scrollTouchStartRef.current.y;
+        const absDx = Math.abs(deltaX);
+        const absDy = Math.abs(deltaY);
+
+        if (!scrollDirectionRef.current && (absDx > AXIS_LOCK_THRESHOLD || absDy > AXIS_LOCK_THRESHOLD)) {
+          scrollDirectionRef.current = absDx > absDy ? 'horizontal' : 'vertical';
+        }
+
+        if (scrollDirectionRef.current) {
+          e.preventDefault();
+          if (scrollDirectionRef.current === 'horizontal') {
+            el.scrollLeft = scrollTouchStartRef.current.scrollLeft - deltaX;
+          } else {
+            el.scrollTop = scrollTouchStartRef.current.scrollTop - deltaY;
+          }
+        }
+      };
+
+      const onTouchEnd = () => {
+        scrollTouchStartRef.current = null;
+        scrollDirectionRef.current = null;
+      };
+
+      el.addEventListener('touchstart', onTouchStart, { passive: true });
+      el.addEventListener('touchmove', onTouchMove, { passive: false });
+      el.addEventListener('touchend', onTouchEnd, { passive: true });
+
+      (el as any).__axisLockCleanup = () => {
+        el.removeEventListener('touchstart', onTouchStart);
+        el.removeEventListener('touchmove', onTouchMove);
+        el.removeEventListener('touchend', onTouchEnd);
+      };
+    }, 50);
+
+    return () => {
+      clearTimeout(timerId);
+      const el = gridScrollRef.current;
+      if (el && (el as any).__axisLockCleanup) {
+        (el as any).__axisLockCleanup();
+        delete (el as any).__axisLockCleanup;
+      }
+    };
+  }, [isMobile, currentDate, viewMode]);
 
   const handleHeaderScroll = useCallback(() => {
     if (headerScrollRef.current && gridScrollRef.current) {
@@ -954,7 +995,7 @@ const AdminCalendar = ({
         </div>
 
         {/* Scrollable grid */}
-        <div ref={gridScrollRef} onScroll={handleGridScroll} onTouchStart={handleScrollTouchStart} onTouchMove={handleScrollTouchMove} onTouchEnd={handleScrollTouchEnd} className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
+        <div ref={gridScrollRef} onScroll={handleGridScroll} className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
           <div className="flex relative" style={{ minHeight: totalHeight }}>
             {/* Time column */}
             <div className="w-12 md:w-16 shrink-0 border-r border-border/50 sticky left-0 z-30 bg-card">
