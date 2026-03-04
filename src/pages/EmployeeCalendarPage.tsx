@@ -40,6 +40,7 @@ const EmployeeCalendarPage = () => {
   const [loading, setLoading] = useState(true);
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [linkedEmployeeId, setLinkedEmployeeId] = useState<string | null>(null);
+  const [linkedEmployeeResolved, setLinkedEmployeeResolved] = useState(false);
 
   // Calendar state
   const [calendarColumns, setCalendarColumns] = useState<CalendarColumn[]>([]);
