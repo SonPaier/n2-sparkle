@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-type ViewType = 'dashboard' | 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'przypomnienia' | 'powiadomienia-sms' | 'ustawienia';
+type ViewType = 'dashboard' | 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'przypomnienia' | 'powiadomienia-sms' | 'ustawienia' | 'aktywnosci';
 
 const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
