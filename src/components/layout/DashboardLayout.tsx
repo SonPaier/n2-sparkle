@@ -26,7 +26,7 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'protokoly', label: 'Protokoły', icon: ClipboardCheck },
   { id: 'przypomnienia', label: 'Przypomnienia', icon: Bell },
   { id: 'uslugi', label: 'Usługi', icon: BadgeDollarSign },
-  { id: 'aktywnosci', label: 'Aktywności', icon: Activity },
+  { id: 'aktywnosci', label: 'Aktywności', icon: Bell },
   { id: 'powiadomienia-sms', label: 'Powiadomienia SMS', icon: MessageSquare },
   { id: 'ustawienia', label: 'Ustawienia', icon: Settings },
 ];
