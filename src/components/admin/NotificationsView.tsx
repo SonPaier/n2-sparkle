@@ -90,6 +90,7 @@ const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) 
           ))}
         </div>
       )}
+      <NotificationSettingsDrawer open={settingsOpen} onOpenChange={setSettingsOpen} instanceId={instanceId} />
     </div>
   );
 };
