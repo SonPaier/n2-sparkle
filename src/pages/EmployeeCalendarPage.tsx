@@ -59,6 +59,7 @@ const EmployeeCalendarPage = () => {
   const [mapOpen, setMapOpen] = useState(false);
   const [dashboardMapOpen, setDashboardMapOpen] = useState(false);
   const [dashboardMapItems, setDashboardMapItems] = useState<CalendarItemRow[]>([]);
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
