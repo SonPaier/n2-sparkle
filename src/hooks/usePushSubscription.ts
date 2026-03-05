@@ -92,7 +92,7 @@ export const usePushSubscription = (instanceId: string | null) => {
       // Save to database
       console.log('[Push] Saving to database...');
       const { error: dbError } = await supabase
-        .from('push_subscriptions')
+        .from('push_subscriptions' as any)
         .upsert({
           user_id: user.id,
           instance_id: instanceId,
