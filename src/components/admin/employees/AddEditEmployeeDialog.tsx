@@ -164,7 +164,7 @@ const AddEditEmployeeDialog = ({ open, onOpenChange, instanceId, employee, isAdm
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Kliknij zdjęcie aby zrobić nowe</p>
-                <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
               </div>
             </div>
             <div className="space-y-2">

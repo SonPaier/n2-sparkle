@@ -107,7 +107,7 @@ const WorkerTimeDialog = ({ open, onOpenChange, employee, instanceId, showEditBu
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Camera className="w-6 h-6 text-white" /></div>
               )}
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={isUploading} />
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold">{employee.name}</h2>
               {showEditButton && onEditEmployee && (
