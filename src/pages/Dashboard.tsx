@@ -26,6 +26,7 @@ import AddEditReminderDrawer from '@/components/admin/reminders/AddEditReminderD
 import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import DashboardOverview from '@/components/admin/DashboardOverview';
 import NotificationsView from '@/components/admin/NotificationsView';
+import { createNotification } from '@/hooks/useNotifications';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -307,10 +308,32 @@ const Dashboard = () => {
     if (error) {
       toast.error('Błąd przenoszenia');
       fetchItems(); // rollback
+    } else if (item.assigned_employee_ids?.length && instanceId) {
+      // Notify assigned employees about rescheduling
+      const { data: emps } = await supabase
+        .from('employees')
+        .select('linked_user_id')
+        .in('id', item.assigned_employee_ids)
+        .not('linked_user_id', 'is', null);
+      for (const emp of emps || []) {
+        if (emp.linked_user_id) {
+          await createNotification({
+            instanceId,
+            userId: emp.linked_user_id,
+            type: 'item_rescheduled',
+            title: `Przełożono: ${item.title || item.customer_name || 'Zlecenie'}`,
+            description: `Nowy termin: ${newDate}, ${updateData.start_time || item.start_time}–${updateData.end_time || item.end_time}`,
+            calendarItemId: itemId,
+          });
+        }
+      }
     }
   };
 
   const handleDeleteItem = async (itemId: string) => {
+    // Get item info before deletion to notify employees
+    const item = calendarItems.find(i => i.id === itemId);
+    
     await Promise.all([
       supabase.from('invoices').delete().eq('calendar_item_id', itemId),
       supabase.from('calendar_item_services').delete().eq('calendar_item_id', itemId),
@@ -320,6 +343,27 @@ const Dashboard = () => {
     ]);
     const { error } = await supabase.from('calendar_items').delete().eq('id', itemId);
     if (error) { toast.error('Błąd usuwania'); return; }
+
+    // Notify assigned employees about deletion
+    if (item?.assigned_employee_ids?.length && instanceId) {
+      const { data: emps } = await supabase
+        .from('employees')
+        .select('linked_user_id')
+        .in('id', item.assigned_employee_ids)
+        .not('linked_user_id', 'is', null);
+      for (const emp of emps || []) {
+        if (emp.linked_user_id) {
+          await createNotification({
+            instanceId,
+            userId: emp.linked_user_id,
+            type: 'item_deleted',
+            title: `Usunięto: ${item.title || item.customer_name || 'Zlecenie'}`,
+            description: `${item.item_date}, ${item.start_time}–${item.end_time}`,
+          });
+        }
+      }
+    }
+
     setCalendarItems(prev => prev.filter(i => i.id !== itemId));
     toast.success('Zlecenie usunięte');
   };

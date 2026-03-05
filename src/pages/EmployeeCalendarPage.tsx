@@ -24,7 +24,7 @@ import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/co
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications, createNotification } from '@/hooks/useNotifications';
 
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import type { CalendarItemRow } from '@/components/employee/EmployeeDashboard';
@@ -344,8 +344,34 @@ const EmployeeCalendarPage = () => {
     setCalendarItems(prev => prev.map(i => i.id === itemId ? { ...i, status: newStatus } : i));
     setSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
     const { error } = await supabase.from('calendar_items').update({ status: newStatus }).eq('id', itemId);
-    if (error) { toast.error('Błąd zmiany statusu'); fetchItems(); }
-    // no toast on status change per design
+    if (error) { toast.error('Błąd zmiany statusu'); fetchItems(); return; }
+
+    // Notify admins when employee starts/completes a task
+    if (instanceId && (newStatus === 'in_progress' || newStatus === 'completed')) {
+      const item = calendarItems.find(i => i.id === itemId);
+      const itemTitle = item?.title || item?.customer_name || 'Zlecenie';
+      const notifType = newStatus === 'in_progress' ? 'item_started' : 'item_completed';
+      const notifTitle = newStatus === 'in_progress'
+        ? `Rozpoczęto: ${itemTitle}`
+        : `Zakończono: ${itemTitle}`;
+
+      // Find admin user_ids for this instance
+      const { data: adminRoles } = await supabase
+        .from('user_roles' as any)
+        .select('user_id')
+        .eq('instance_id', instanceId)
+        .eq('role', 'admin');
+      for (const ar of adminRoles || []) {
+        await createNotification({
+          instanceId,
+          userId: (ar as any).user_id,
+          type: notifType,
+          title: notifTitle,
+          description: item ? `${item.item_date}, ${item.start_time}–${item.end_time}` : undefined,
+          calendarItemId: itemId,
+        });
+      }
+    }
   };
 
   const handleEditItem = (item: CalendarItem) => {

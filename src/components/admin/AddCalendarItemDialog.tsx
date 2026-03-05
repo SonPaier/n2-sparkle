@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
+import { createNotification } from '@/hooks/useNotifications';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
@@ -600,6 +601,29 @@ const AddCalendarItemDialog = ({
         await supabase
           .from('calendar_item_services' as any)
           .insert(serviceRows);
+      }
+
+      // Notify assigned employees about new/updated assignment
+      if (assignedEmployeeIds.length > 0) {
+        const { data: emps } = await supabase
+          .from('employees')
+          .select('linked_user_id')
+          .in('id', assignedEmployeeIds)
+          .not('linked_user_id', 'is', null);
+        const itemTitle = finalTitle || customerName.trim() || 'Zlecenie';
+        const itemDate = format(dateRange!.from!, 'dd.MM.yyyy');
+        for (const emp of emps || []) {
+          if (emp.linked_user_id) {
+            await createNotification({
+              instanceId,
+              userId: emp.linked_user_id,
+              type: isEditMode ? 'item_rescheduled' : 'item_assigned',
+              title: isEditMode ? `Zaktualizowano: ${itemTitle}` : `Nowe zlecenie: ${itemTitle}`,
+              description: `${itemDate}, ${startTime}–${endTime}`,
+              calendarItemId,
+            });
+          }
+        }
       }
 
       onSuccess();
