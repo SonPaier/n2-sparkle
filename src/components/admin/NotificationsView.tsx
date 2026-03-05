@@ -80,7 +80,7 @@ const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) 
               ) : (
                 <span className="text-sm text-foreground">{n.title}</span>
               )}
-              {!n.read && <div className="w-2 h-2 rounded-full bg-primary inline-block ml-2 align-middle" />}
+              
             </div>
           ))}
         </div>
