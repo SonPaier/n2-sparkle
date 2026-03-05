@@ -24,7 +24,7 @@ interface NotificationsViewProps {
 
 const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteAll } = useNotifications(instanceId);
-
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const handleClick = (n: Notification) => {
     if (!n.read) markAsRead(n.id);
     if (n.calendar_item_id && onItemClick) {
