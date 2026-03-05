@@ -4,7 +4,6 @@ import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, ChevronRight, MessageSquare, MapPin, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { supabase } from '@/integrations/supabase/client';
 import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
 import { Card, CardContent } from '@/components/ui/card';
