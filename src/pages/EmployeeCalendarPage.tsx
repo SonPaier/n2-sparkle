@@ -350,8 +350,13 @@ const EmployeeCalendarPage = () => {
 
     // Notify admins when employee starts/completes a task
     if (instanceId && (newStatus === 'in_progress' || newStatus === 'completed')) {
-      const item = calendarItems.find(i => i.id === itemId);
-      const itemTitle = item?.title || item?.customer_name || 'Zlecenie';
+      // Fetch item title directly from DB to ensure we have it regardless of view state
+      let itemTitle = 'Zlecenie';
+      const { data: itemData } = await supabase.from('calendar_items').select('title, customer_name').eq('id', itemId).single();
+      if (itemData) {
+        itemTitle = itemData.title || itemData.customer_name || 'Zlecenie';
+      }
+
       const notifType = newStatus === 'in_progress' ? 'item_started' : 'item_completed';
 
       // Get employee name for the notification
