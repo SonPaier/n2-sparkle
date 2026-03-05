@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 // VAPID public key - must match the one in edge functions
 // TODO: Replace with your generated VAPID public key
-const VAPID_PUBLIC_KEY = 'BAWbC044LI_A6_XGDmv9Q64Hbp2-k6LwCaiOMJaArlec3K2GQtmw3BQb9RclQLuZ0Zk2wiodBfbNxj6-xYkDlfA';
+const VAPID_PUBLIC_KEY = 'BK1lVsykiYJxr40k4sXX752cjplstYj1nvFOup2VJEL-ima94chPligB9lrGp0yrIHQn_g17yuhv6VZAEIIbQTM';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
