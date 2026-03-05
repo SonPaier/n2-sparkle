@@ -617,17 +617,22 @@ const EmployeeCalendarPage = () => {
           {[
             { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
             { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
-            { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
+            { id: 'aktywnosci' as EmployeeView, label: 'Aktywności', icon: Activity },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setCurrentView(id)}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors relative",
                 currentView === id ? "text-primary font-semibold" : "text-foreground"
               )}
             >
               <Icon className="w-5 h-5" />
+              {id === 'aktywnosci' && unreadCount > 0 && (
+                <span className="absolute top-0.5 right-1/2 translate-x-3 min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center px-0.5">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
               <span>{label}</span>
             </button>
           ))}
