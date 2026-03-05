@@ -36,7 +36,7 @@ const bottomBarItems: { id: ViewType; label: string; icon: React.ElementType }[]
   { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
   { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
-  { id: 'klienci', label: 'Klienci', icon: Users },
+  { id: 'aktywnosci', label: 'Aktywności', icon: Activity },
 ];
 
 interface DashboardLayoutProps {
