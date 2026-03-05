@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar as CalendarIcon, ClipboardCheck, Clock, LayoutDashboard, LogOut, Menu, MoreHorizontal, X } from 'lucide-react';
+import { Calendar as CalendarIcon, ClipboardCheck, Clock, LayoutDashboard, LogOut, Menu, MoreHorizontal, X, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,7 @@ import CalendarMapPanel from '@/components/admin/CalendarMapPanel';
 import CalendarMap from '@/components/admin/CalendarMap';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
+import NotificationsView from '@/components/admin/NotificationsView';
 import EmployeeDashboard from '@/components/employee/EmployeeDashboard';
 import EmployeeTimeTrackingView from '@/components/employee/EmployeeTimeTrackingView';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
@@ -23,10 +24,11 @@ import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/co
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNotifications } from '@/hooks/useNotifications';
 
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import type { CalendarItemRow } from '@/components/employee/EmployeeDashboard';
-type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly' | 'czas-pracy';
+type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly' | 'czas-pracy' | 'aktywnosci';
 
 const EmployeeCalendarPage = () => {
   const { configId } = useParams<{ configId: string }>();
@@ -60,6 +62,7 @@ const EmployeeCalendarPage = () => {
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
+  const { unreadCount } = useNotifications(instanceId);
   const { settings: dashboardSettings } = useDashboardSettings(instanceId);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -517,6 +520,22 @@ const EmployeeCalendarPage = () => {
             </>
           ) : currentView === 'czas-pracy' && instanceId ? (
             <EmployeeTimeTrackingView instanceId={instanceId} />
+          ) : currentView === 'aktywnosci' && instanceId ? (
+            <NotificationsView
+              instanceId={instanceId}
+              onItemClick={(calendarItemId) => {
+                // Fetch full item then open drawer
+                supabase.from('calendar_items')
+                  .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number')
+                  .eq('id', calendarItemId)
+                  .single()
+                  .then(({ data }) => {
+                    if (data) {
+                      handleItemClick(data as CalendarItem);
+                    }
+                  });
+              }}
+            />
           ) : currentView === 'protokoly' && instanceId ? (
             <ProtocolsView instanceId={instanceId} filterByUserId={user?.id} />
           ) : currentView === 'kalendarz' && instanceId ? (
@@ -614,17 +633,22 @@ const EmployeeCalendarPage = () => {
           {[
             { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
             { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
-            { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
+            { id: 'aktywnosci' as EmployeeView, label: 'Aktywności', icon: Activity },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setCurrentView(id)}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors",
+                "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-xs transition-colors relative",
                 currentView === id ? "text-primary font-semibold" : "text-foreground"
               )}
             >
               <Icon className="w-5 h-5" />
+              {id === 'aktywnosci' && unreadCount > 0 && (
+                <span className="absolute top-0.5 right-1/2 translate-x-3 min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center px-0.5">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
               <span>{label}</span>
             </button>
           ))}

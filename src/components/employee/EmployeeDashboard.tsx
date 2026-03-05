@@ -3,6 +3,7 @@ import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, ChevronRight, MessageSquare, MapPin, Settings2 } from 'lucide-react';
+import NotificationBell from '@/components/admin/NotificationBell';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
@@ -260,6 +261,10 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{dashboardTitle}</h1>
         <div className="flex items-center gap-2">
+          <NotificationBell
+            instanceId={instanceId}
+            onItemClick={(calendarItemId) => onItemClick?.({ id: calendarItemId } as any)}
+          />
           <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
             <Settings2 className="w-5 h-5" />
           </Button>

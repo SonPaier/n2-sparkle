@@ -3,6 +3,7 @@ import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, Clock, User, Tag, CreditCard, DollarSign, ChevronRight, MessageSquare, Settings2 } from 'lucide-react';
+import NotificationBell from '@/components/admin/NotificationBell';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
@@ -23,6 +24,7 @@ interface DashboardOverviewProps {
   onItemClick?: (itemId: string) => void;
   onReminderClick?: (reminderId: string) => void;
   onPaymentClick?: (itemId: string) => void;
+  onViewNotifications?: () => void;
 }
 
 interface CalendarItemRow {
@@ -76,7 +78,7 @@ const getDayPill = (itemDate: string, endDate?: string | null) => {
   return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
-const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick }: DashboardOverviewProps) => {
+const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick, onViewNotifications }: DashboardOverviewProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [allPaymentItems, setAllPaymentItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
@@ -287,9 +289,16 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
         <h1 className="text-xl font-semibold text-foreground">
           {settings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień'}
         </h1>
-        <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
-          <Settings2 className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <NotificationBell
+            instanceId={instanceId}
+            onItemClick={onItemClick}
+            onViewAll={onViewNotifications}
+          />
+          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
+            <Settings2 className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       <div className={`grid grid-cols-1 ${gridCols} gap-6`}>

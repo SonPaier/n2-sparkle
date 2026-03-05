@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard, Activity } from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -14,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-type ViewType = 'dashboard' | 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'przypomnienia' | 'powiadomienia-sms' | 'ustawienia';
+type ViewType = 'dashboard' | 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'przypomnienia' | 'powiadomienia-sms' | 'ustawienia' | 'aktywnosci';
 
 const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
@@ -25,6 +26,7 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'protokoly', label: 'Protokoły', icon: ClipboardCheck },
   { id: 'przypomnienia', label: 'Przypomnienia', icon: Bell },
   { id: 'uslugi', label: 'Usługi', icon: BadgeDollarSign },
+  { id: 'aktywnosci', label: 'Aktywności', icon: Activity },
   { id: 'powiadomienia-sms', label: 'Powiadomienia SMS', icon: MessageSquare },
   { id: 'ustawienia', label: 'Ustawienia', icon: Settings },
 ];
@@ -34,7 +36,7 @@ const bottomBarItems: { id: ViewType; label: string; icon: React.ElementType }[]
   { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
   { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
-  { id: 'klienci', label: 'Klienci', icon: Users },
+  { id: 'aktywnosci', label: 'Aktywności', icon: Activity },
 ];
 
 interface DashboardLayoutProps {
@@ -47,6 +49,7 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: DashboardLayoutProps) => {
   const { signOut, username, user } = useAuth();
   const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
+  const { unreadCount } = useNotifications(instanceId ?? null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('n2service-sidebar-collapsed') === 'true';
@@ -212,11 +215,16 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
                 key={id}
                 onClick={() => handleNavClick(id)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer transition-colors",
+                  "flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer transition-colors relative",
                   currentView === id ? "text-primary font-semibold" : "text-foreground hover:text-foreground"
                 )}
               >
                 <Icon className="w-5 h-5" />
+                {id === 'aktywnosci' && unreadCount > 0 && (
+                  <span className="absolute top-1 right-1/2 translate-x-3 min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center px-0.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
                 <span className="text-[10px] font-medium">{displayLabel}</span>
               </button>
             );

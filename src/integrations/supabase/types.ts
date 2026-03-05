@@ -1049,6 +1049,57 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          calendar_item_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          instance_id: string
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          calendar_item_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_id: string
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          calendar_item_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_id?: string
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_calendar_item_id_fkey"
+            columns: ["calendar_item_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

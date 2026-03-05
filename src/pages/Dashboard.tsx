@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell, LayoutDashboard } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell, LayoutDashboard, Activity } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
@@ -25,6 +25,7 @@ import RemindersView from '@/components/admin/reminders/RemindersView';
 import AddEditReminderDrawer from '@/components/admin/reminders/AddEditReminderDrawer';
 import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import DashboardOverview from '@/components/admin/DashboardOverview';
+import NotificationsView from '@/components/admin/NotificationsView';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -32,7 +33,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useReminders, useReminderTypes } from '@/hooks/useReminders';
 import type { Reminder } from '@/hooks/useReminders';
 
-const validViews: ViewType[] = ['dashboard', 'kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'przypomnienia', 'powiadomienia-sms', 'ustawienia'];
+const validViews: ViewType[] = ['dashboard', 'kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'przypomnienia', 'powiadomienia-sms', 'ustawienia', 'aktywnosci'];
 
 const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; description: string }> = {
   dashboard: { label: 'Twój dzień', icon: LayoutDashboard, description: 'Przegląd zadań na ten tydzień' },
@@ -45,6 +46,7 @@ const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; des
   uslugi: { label: 'Usługi', icon: BadgeDollarSign, description: 'Konfiguruj usługi i cennik' },
   'powiadomienia-sms': { label: 'Powiadomienia SMS', icon: MessageSquare, description: 'Szablony powiadomień SMS dla klientów' },
   ustawienia: { label: 'Ustawienia', icon: Settings, description: 'Ustawienia systemu i konfiguracja' },
+  aktywnosci: { label: 'Aktywności', icon: Activity, description: 'Powiadomienia i aktywności' },
 };
 
 const Dashboard = () => {
@@ -426,6 +428,7 @@ const Dashboard = () => {
             onItemClick={handleDashboardItemClick}
             onReminderClick={handleDashboardReminderClick}
             onPaymentClick={handleDashboardPaymentClick}
+            onViewNotifications={() => handleViewChange('aktywnosci')}
           />
         </div>
       );
@@ -461,6 +464,17 @@ const Dashboard = () => {
 
     if (currentView === 'przypomnienia' && instanceId) {
       return <div className="max-w-[1000px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
+    }
+
+    if (currentView === 'aktywnosci' && instanceId) {
+      return (
+        <div className="max-w-[1000px] mx-auto">
+          <NotificationsView
+            instanceId={instanceId}
+            onItemClick={handleDashboardItemClick}
+          />
+        </div>
+      );
     }
 
     if (currentView === 'kalendarz' && instanceId) {
