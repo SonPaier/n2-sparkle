@@ -49,6 +49,7 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: DashboardLayoutProps) => {
   const { signOut, username, user } = useAuth();
   const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
+  const { unreadCount } = useNotifications(instanceId ?? null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('n2service-sidebar-collapsed') === 'true';
