@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar as CalendarIcon, ClipboardCheck, Clock, LayoutDashboard, LogOut, Menu, MoreHorizontal, X } from 'lucide-react';
+import { Calendar as CalendarIcon, ClipboardCheck, Clock, LayoutDashboard, LogOut, Menu, MoreHorizontal, X, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
