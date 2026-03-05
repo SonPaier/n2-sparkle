@@ -256,8 +256,8 @@ export const MediaUploader = ({
   if (items.length === 0 && !uploading && !uploadError && !showAudioRecorder) {
     return (
       <div className="space-y-4">
-        <input ref={imageInputRef} type="file" accept="image/*" capture="environment" onChange={handleImageSelect} className="hidden" />
-        <input ref={videoInputRef} type="file" accept="video/*" capture="environment" onChange={handleVideoSelect} className="hidden" />
+      <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+        <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoSelect} className="hidden" />
         <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" onChange={handleFileSelect} className="hidden" />
         <input ref={anyFileInputRef} type="file" accept="*" onChange={handleAnyFileSelect} className="hidden" />
 
