@@ -215,11 +215,16 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
                 key={id}
                 onClick={() => handleNavClick(id)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer transition-colors",
+                  "flex flex-col items-center justify-center gap-0.5 flex-1 h-full cursor-pointer transition-colors relative",
                   currentView === id ? "text-primary font-semibold" : "text-foreground hover:text-foreground"
                 )}
               >
                 <Icon className="w-5 h-5" />
+                {id === 'aktywnosci' && unreadCount > 0 && (
+                  <span className="absolute top-1 right-1/2 translate-x-3 min-w-[16px] h-[16px] rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center px-0.5">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
                 <span className="text-[10px] font-medium">{displayLabel}</span>
               </button>
             );
