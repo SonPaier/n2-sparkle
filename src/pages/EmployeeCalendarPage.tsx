@@ -24,6 +24,7 @@ import type { CalendarItem, CalendarColumn, Break, AssignedEmployee } from '@/co
 import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDialog';
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useNotifications } from '@/hooks/useNotifications';
 
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import type { CalendarItemRow } from '@/components/employee/EmployeeDashboard';
