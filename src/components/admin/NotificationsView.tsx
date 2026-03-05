@@ -1,10 +1,12 @@
-import { Bell, CheckCheck, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, CheckCheck, Trash2, Settings2 } from 'lucide-react';
 import { useNotifications, type Notification } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import EmptyState from '@/components/ui/empty-state';
+import NotificationSettingsDrawer from './NotificationSettingsDrawer';
 
 const TYPE_LABELS: Record<string, string> = {
   item_assigned: 'Nowe zlecenie',
