@@ -722,6 +722,25 @@ const EmployeeCalendarPage = () => {
           prefillCalendarItemId={protocolPrefill.calendarItemId}
         />
       )}
+
+      {/* Global drawer for notifications view */}
+      {currentView === 'aktywnosci' && (
+        <CalendarItemDetailsDrawer
+          item={selectedItem}
+          open={detailsOpen}
+          onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
+          columns={calendarColumns}
+          onStatusChange={handleStatusChange}
+          onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
+          onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+          canEditServices={!!allowedActions.edit_services}
+          hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
+          hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
+          instanceId={instanceId || undefined}
+          forceSideRight
+          isEmployee
+        />
+      )}
     </div>
   );
 };
