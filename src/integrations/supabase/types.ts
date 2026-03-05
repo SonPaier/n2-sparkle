@@ -1828,6 +1828,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_instance_admin_user_ids: {
+        Args: { _instance_id: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       has_employee_permission: {
         Args: { _feature_key: string; _instance_id: string; _user_id: string }
         Returns: boolean
