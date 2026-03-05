@@ -455,6 +455,7 @@ const EmployeeCalendarPage = () => {
           {currentView === 'dashboard' && instanceId && config ? (
             <>
               <EmployeeDashboard
+                key={dashboardRefreshKey}
                 instanceId={instanceId}
                 columnIds={config.column_ids || []}
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
