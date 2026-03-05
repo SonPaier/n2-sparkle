@@ -292,9 +292,6 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
           <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
             <Settings2 className="w-5 h-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
-            <Settings2 className="w-5 h-5" />
-          </Button>
         </div>
       </div>
 
