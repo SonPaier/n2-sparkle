@@ -62,6 +62,7 @@ const EmployeeCalendarPage = () => {
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
+  const { unreadCount } = useNotifications(instanceId);
   const { settings: dashboardSettings } = useDashboardSettings(instanceId);
   const mainRef = useRef<HTMLElement>(null);
 
