@@ -351,9 +351,6 @@ const EmployeeCalendarPage = () => {
       const item = calendarItems.find(i => i.id === itemId);
       const itemTitle = item?.title || item?.customer_name || 'Zlecenie';
       const notifType = newStatus === 'in_progress' ? 'item_started' : 'item_completed';
-      const notifTitle = newStatus === 'in_progress'
-        ? `Rozpoczęto: ${itemTitle}`
-        : `Zakończono: ${itemTitle}`;
 
       // Find admin user_ids for this instance via security definer function
       const { data: adminUsers } = await supabase.rpc('get_instance_admin_user_ids', { _instance_id: instanceId });
