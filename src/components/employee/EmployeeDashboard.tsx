@@ -261,10 +261,9 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">{dashboardTitle}</h1>
         <div className="flex items-center gap-2">
-          <NotificationBell
-            instanceId={instanceId}
-            onItemClick={(calendarItemId) => onItemClick?.({ id: calendarItemId } as any)}
-          />
+          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
+            <Settings2 className="w-5 h-5" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
             <Settings2 className="w-5 h-5" />
           </Button>

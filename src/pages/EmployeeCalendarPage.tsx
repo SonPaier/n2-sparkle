@@ -354,6 +354,17 @@ const EmployeeCalendarPage = () => {
       const itemTitle = item?.title || item?.customer_name || 'Zlecenie';
       const notifType = newStatus === 'in_progress' ? 'item_started' : 'item_completed';
 
+      // Get employee name for the notification
+      let employeeName = username || 'Pracownik';
+      if (linkedEmployeeId) {
+        const { data: empData } = await supabase.from('employees').select('name').eq('id', linkedEmployeeId).single();
+        if (empData?.name) employeeName = empData.name;
+      }
+
+      const notifTitle = newStatus === 'in_progress'
+        ? `Pracownik ${employeeName} rozpoczął zlecenie ${itemTitle}`
+        : `Pracownik ${employeeName} zakończył zlecenie ${itemTitle}`;
+
       // Find admin user_ids for this instance via security definer function
       const { data: adminUsers } = await supabase.rpc('get_instance_admin_user_ids', { _instance_id: instanceId });
       for (const ar of adminUsers || []) {
@@ -361,7 +372,7 @@ const EmployeeCalendarPage = () => {
           instanceId,
           userId: (ar as any).user_id,
           type: notifType,
-          title: itemTitle,
+          title: notifTitle,
           calendarItemId: itemId,
         });
       }

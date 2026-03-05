@@ -290,11 +290,9 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
           {settings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień'}
         </h1>
         <div className="flex items-center gap-2">
-          <NotificationBell
-            instanceId={instanceId}
-            onItemClick={onItemClick}
-            onViewAll={onViewNotifications}
-          />
+          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
+            <Settings2 className="w-5 h-5" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
             <Settings2 className="w-5 h-5" />
           </Button>
