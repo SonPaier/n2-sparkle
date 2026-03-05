@@ -1,10 +1,12 @@
-import { Bell, CheckCheck, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, CheckCheck, Trash2, Settings2 } from 'lucide-react';
 import { useNotifications, type Notification } from '@/hooks/useNotifications';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import EmptyState from '@/components/ui/empty-state';
+import NotificationSettingsDrawer from './NotificationSettingsDrawer';
 
 const TYPE_LABELS: Record<string, string> = {
   item_assigned: 'Nowe zlecenie',
@@ -22,7 +24,7 @@ interface NotificationsViewProps {
 
 const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteAll } = useNotifications(instanceId);
-
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const handleClick = (n: Notification) => {
     if (!n.read) markAsRead(n.id);
     if (n.calendar_item_id && onItemClick) {
@@ -35,6 +37,9 @@ const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-foreground">Aktywności</h1>
         <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" title="Ustawienia powiadomień" onClick={() => setSettingsOpen(true)}>
+            <Settings2 className="w-4 h-4" />
+          </Button>
           {unreadCount > 0 && (
             <Button variant="ghost" size="icon" title="Oznacz wszystkie jako przeczytane" onClick={() => markAllAsRead()}>
               <CheckCheck className="w-4 h-4" />
@@ -85,6 +90,7 @@ const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) 
           ))}
         </div>
       )}
+      <NotificationSettingsDrawer open={settingsOpen} onOpenChange={setSettingsOpen} instanceId={instanceId} />
     </div>
   );
 };
