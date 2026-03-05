@@ -263,9 +263,6 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
           <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
             <Settings2 className="w-5 h-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
-            <Settings2 className="w-5 h-5" />
-          </Button>
           {onOpenMap && (
             <Button size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => onOpenMap(items)}>
               <MapPin className="w-4 h-4" />
