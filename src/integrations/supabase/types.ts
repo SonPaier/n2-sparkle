@@ -1245,6 +1245,44 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          instance_id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth?: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          instance_id: string
+          p256dh?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          instance_id?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminder_types: {
         Row: {
           active: boolean
