@@ -355,19 +355,14 @@ const EmployeeCalendarPage = () => {
         ? `Rozpoczęto: ${itemTitle}`
         : `Zakończono: ${itemTitle}`;
 
-      // Find admin user_ids for this instance
-      const { data: adminRoles } = await supabase
-        .from('user_roles' as any)
-        .select('user_id')
-        .eq('instance_id', instanceId)
-        .eq('role', 'admin');
-      for (const ar of adminRoles || []) {
+      // Find admin user_ids for this instance via security definer function
+      const { data: adminUsers } = await supabase.rpc('get_instance_admin_user_ids', { _instance_id: instanceId });
+      for (const ar of adminUsers || []) {
         await createNotification({
           instanceId,
           userId: (ar as any).user_id,
           type: notifType,
-          title: notifTitle,
-          description: item ? `${item.item_date}, ${item.start_time}–${item.end_time}` : undefined,
+          title: itemTitle,
           calendarItemId: itemId,
         });
       }
