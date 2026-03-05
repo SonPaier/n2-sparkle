@@ -357,7 +357,7 @@ const Dashboard = () => {
             instanceId,
             userId: emp.linked_user_id,
             type: 'item_deleted',
-            title: `Usunięto: ${item.title || item.customer_name || 'Zlecenie'}`,
+            title: item.title || item.customer_name || 'Zlecenie',
             description: `${item.item_date}, ${item.start_time}–${item.end_time}`,
           });
         }

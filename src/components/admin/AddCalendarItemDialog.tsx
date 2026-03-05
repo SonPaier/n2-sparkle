@@ -618,7 +618,7 @@ const AddCalendarItemDialog = ({
               instanceId,
               userId: emp.linked_user_id,
               type: isEditMode ? 'item_rescheduled' : 'item_assigned',
-              title: isEditMode ? `Zaktualizowano: ${itemTitle}` : `Nowe zlecenie: ${itemTitle}`,
+              title: itemTitle,
               description: `${itemDate}, ${startTime}–${endTime}`,
               calendarItemId,
             });
