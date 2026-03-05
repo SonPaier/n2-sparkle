@@ -59,6 +59,7 @@ const EmployeeCalendarPage = () => {
   const [mapOpen, setMapOpen] = useState(false);
   const [dashboardMapOpen, setDashboardMapOpen] = useState(false);
   const [dashboardMapItems, setDashboardMapItems] = useState<CalendarItemRow[]>([]);
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
@@ -345,6 +346,7 @@ const EmployeeCalendarPage = () => {
     setSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
     const { error } = await supabase.from('calendar_items').update({ status: newStatus }).eq('id', itemId);
     if (error) { toast.error('Błąd zmiany statusu'); fetchItems(); return; }
+    setDashboardRefreshKey(k => k + 1);
 
     // Notify admins when employee starts/completes a task
     if (instanceId && (newStatus === 'in_progress' || newStatus === 'completed')) {
@@ -453,6 +455,7 @@ const EmployeeCalendarPage = () => {
           {currentView === 'dashboard' && instanceId && config ? (
             <>
               <EmployeeDashboard
+                key={dashboardRefreshKey}
                 instanceId={instanceId}
                 columnIds={config.column_ids || []}
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
