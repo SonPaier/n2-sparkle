@@ -46,6 +46,7 @@ const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; des
   uslugi: { label: 'Usługi', icon: BadgeDollarSign, description: 'Konfiguruj usługi i cennik' },
   'powiadomienia-sms': { label: 'Powiadomienia SMS', icon: MessageSquare, description: 'Szablony powiadomień SMS dla klientów' },
   ustawienia: { label: 'Ustawienia', icon: Settings, description: 'Ustawienia systemu i konfiguracja' },
+  aktywnosci: { label: 'Aktywności', icon: Activity, description: 'Powiadomienia i aktywności' },
 };
 
 const Dashboard = () => {
