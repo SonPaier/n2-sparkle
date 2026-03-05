@@ -346,6 +346,7 @@ const EmployeeCalendarPage = () => {
     setSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
     const { error } = await supabase.from('calendar_items').update({ status: newStatus }).eq('id', itemId);
     if (error) { toast.error('Błąd zmiany statusu'); fetchItems(); return; }
+    setDashboardRefreshKey(k => k + 1);
 
     // Notify admins when employee starts/completes a task
     if (instanceId && (newStatus === 'in_progress' || newStatus === 'completed')) {
