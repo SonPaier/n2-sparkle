@@ -15,6 +15,7 @@ import CalendarMapPanel from '@/components/admin/CalendarMapPanel';
 import CalendarMap from '@/components/admin/CalendarMap';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
+import NotificationsView from '@/components/admin/NotificationsView';
 import EmployeeDashboard from '@/components/employee/EmployeeDashboard';
 import EmployeeTimeTrackingView from '@/components/employee/EmployeeTimeTrackingView';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
