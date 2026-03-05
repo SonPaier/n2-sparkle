@@ -659,7 +659,7 @@ const EmployeeCalendarPage = () => {
           {[
             { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
             { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
-            { id: 'aktywnosci' as EmployeeView, label: 'Aktywności', icon: Activity },
+            { id: 'aktywnosci' as EmployeeView, label: 'Aktywności', icon: Bell },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
