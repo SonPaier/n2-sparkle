@@ -37,6 +37,9 @@ const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) 
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-foreground">Aktywności</h1>
         <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" title="Ustawienia powiadomień" onClick={() => setSettingsOpen(true)}>
+            <Settings2 className="w-4 h-4" />
+          </Button>
           {unreadCount > 0 && (
             <Button variant="ghost" size="icon" title="Oznacz wszystkie jako przeczytane" onClick={() => markAllAsRead()}>
               <CheckCheck className="w-4 h-4" />

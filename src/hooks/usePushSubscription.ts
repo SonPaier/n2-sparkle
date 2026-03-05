@@ -134,7 +134,7 @@ export const usePushSubscription = (instanceId: string | null) => {
       if (subscription) {
         // Remove from database first
         await supabase
-          .from('push_subscriptions')
+          .from('push_subscriptions' as any)
           .delete()
           .eq('endpoint', subscription.endpoint);
 
