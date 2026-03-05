@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard, Activity } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'protokoly', label: 'Protokoły', icon: ClipboardCheck },
   { id: 'przypomnienia', label: 'Przypomnienia', icon: Bell },
   { id: 'uslugi', label: 'Usługi', icon: BadgeDollarSign },
-  { id: 'aktywnosci', label: 'Aktywności', icon: Activity },
+  { id: 'aktywnosci', label: 'Aktywności', icon: Bell },
   { id: 'powiadomienia-sms', label: 'Powiadomienia SMS', icon: MessageSquare },
   { id: 'ustawienia', label: 'Ustawienia', icon: Settings },
 ];
@@ -36,7 +36,7 @@ const bottomBarItems: { id: ViewType; label: string; icon: React.ElementType }[]
   { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
   { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
-  { id: 'aktywnosci', label: 'Aktywności', icon: Activity },
+  { id: 'aktywnosci', label: 'Aktywności', icon: Bell },
 ];
 
 interface DashboardLayoutProps {

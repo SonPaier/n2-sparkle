@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar as CalendarIcon, ClipboardCheck, Clock, LayoutDashboard, LogOut, Menu, MoreHorizontal, X, Activity } from 'lucide-react';
+import { Calendar as CalendarIcon, ClipboardCheck, Clock, LayoutDashboard, LogOut, Menu, MoreHorizontal, X, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
@@ -550,14 +550,14 @@ const EmployeeCalendarPage = () => {
             <NotificationsView
               instanceId={instanceId}
               onItemClick={(calendarItemId) => {
-                // Fetch full item then open drawer
                 supabase.from('calendar_items')
                   .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number')
                   .eq('id', calendarItemId)
                   .single()
                   .then(({ data }) => {
                     if (data) {
-                      handleItemClick(data as CalendarItem);
+                      setSelectedItem(data as CalendarItem);
+                      setDetailsOpen(true);
                     }
                   });
               }}
@@ -659,7 +659,7 @@ const EmployeeCalendarPage = () => {
           {[
             { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
             { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
-            { id: 'aktywnosci' as EmployeeView, label: 'Aktywności', icon: Activity },
+            { id: 'aktywnosci' as EmployeeView, label: 'Aktywności', icon: Bell },
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -720,6 +720,25 @@ const EmployeeCalendarPage = () => {
           prefillCustomerEmail={protocolPrefill.customerEmail}
           prefillCustomerAddressId={protocolPrefill.customerAddressId}
           prefillCalendarItemId={protocolPrefill.calendarItemId}
+        />
+      )}
+
+      {/* Global drawer for notifications view */}
+      {currentView === 'aktywnosci' && (
+        <CalendarItemDetailsDrawer
+          item={selectedItem}
+          open={detailsOpen}
+          onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
+          columns={calendarColumns}
+          onStatusChange={handleStatusChange}
+          onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
+          onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+          canEditServices={!!allowedActions.edit_services}
+          hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
+          hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
+          instanceId={instanceId || undefined}
+          forceSideRight
+          isEmployee
         />
       )}
     </div>
