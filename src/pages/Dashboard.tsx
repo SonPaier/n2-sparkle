@@ -465,6 +465,17 @@ const Dashboard = () => {
       return <div className="max-w-[1000px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
     }
 
+    if (currentView === 'aktywnosci' && instanceId) {
+      return (
+        <div className="max-w-[1000px] mx-auto">
+          <NotificationsView
+            instanceId={instanceId}
+            onItemClick={handleDashboardItemClick}
+          />
+        </div>
+      );
+    }
+
     if (currentView === 'kalendarz' && instanceId) {
       const calendarContent = (
         <>
