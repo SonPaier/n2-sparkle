@@ -23,6 +23,7 @@ interface DashboardOverviewProps {
   onItemClick?: (itemId: string) => void;
   onReminderClick?: (reminderId: string) => void;
   onPaymentClick?: (itemId: string) => void;
+  onViewNotifications?: () => void;
 }
 
 interface CalendarItemRow {
