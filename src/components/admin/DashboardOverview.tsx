@@ -3,7 +3,6 @@ import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, Clock, User, Tag, CreditCard, DollarSign, ChevronRight, MessageSquare, Settings2 } from 'lucide-react';
-import NotificationBell from '@/components/admin/NotificationBell';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
@@ -290,11 +289,9 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
           {settings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień'}
         </h1>
         <div className="flex items-center gap-2">
-          <NotificationBell
-            instanceId={instanceId}
-            onItemClick={onItemClick}
-            onViewAll={onViewNotifications}
-          />
+          <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
+            <Settings2 className="w-5 h-5" />
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Ustawienia widoku">
             <Settings2 className="w-5 h-5" />
           </Button>
