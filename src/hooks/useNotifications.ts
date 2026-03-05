@@ -39,11 +39,13 @@ export function useNotifications(instanceId: string | null) {
   useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
 
   // Realtime subscription
+  const channelIdRef = useRef(`notifications-${Math.random().toString(36).slice(2)}`);
+
   useEffect(() => {
     if (!user || !instanceId) return;
 
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel(channelIdRef.current)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
