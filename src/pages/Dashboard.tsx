@@ -428,6 +428,7 @@ const Dashboard = () => {
             onItemClick={handleDashboardItemClick}
             onReminderClick={handleDashboardReminderClick}
             onPaymentClick={handleDashboardPaymentClick}
+            onViewNotifications={() => handleViewChange('aktywnosci')}
           />
         </div>
       );
