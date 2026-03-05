@@ -321,7 +321,7 @@ const Dashboard = () => {
             instanceId,
             userId: emp.linked_user_id,
             type: 'item_rescheduled',
-            title: `Przełożono: ${item.title || item.customer_name || 'Zlecenie'}`,
+            title: item.title || item.customer_name || 'Zlecenie',
             description: `Nowy termin: ${newDate}, ${updateData.start_time || item.start_time}–${updateData.end_time || item.end_time}`,
             calendarItemId: itemId,
           });
