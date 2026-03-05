@@ -28,7 +28,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import type { CalendarItemRow } from '@/components/employee/EmployeeDashboard';
-type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly' | 'czas-pracy';
+type EmployeeView = 'dashboard' | 'kalendarz' | 'protokoly' | 'czas-pracy' | 'aktywnosci';
 
 const EmployeeCalendarPage = () => {
   const { configId } = useParams<{ configId: string }>();
