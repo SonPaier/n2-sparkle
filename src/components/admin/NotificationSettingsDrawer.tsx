@@ -97,6 +97,7 @@ const NotificationSettingsDrawer = ({ open, onOpenChange, instanceId }: Notifica
                   </p>
                 </div>
 
+                {isSubscribed ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-primary">
                       <Check className="w-5 h-5" />
