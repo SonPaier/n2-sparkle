@@ -6,15 +6,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import EmptyState from '@/components/ui/empty-state';
 
-const TYPE_ICONS: Record<string, string> = {
-  item_assigned: '📋',
-  item_deleted: '🗑️',
-  item_rescheduled: '📅',
-  item_started: '▶️',
-  item_completed: '✅',
-  reminder_due: '🔔',
-};
-
 const TYPE_LABELS: Record<string, string> = {
   item_assigned: 'Nowe zlecenie',
   item_deleted: 'Zlecenie usunięte',
@@ -43,17 +34,15 @@ const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) 
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold text-foreground">Aktywności</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => markAllAsRead()}>
+            <Button variant="ghost" size="icon" title="Oznacz wszystkie jako przeczytane" onClick={() => markAllAsRead()}>
               <CheckCheck className="w-4 h-4" />
-              Oznacz wszystkie
             </Button>
           )}
           {notifications.length > 0 && (
-            <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => deleteAll()}>
+            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Usuń wszystkie" onClick={() => deleteAll()}>
               <Trash2 className="w-4 h-4" />
-              Usuń wszystkie
             </Button>
           )}
         </div>
@@ -62,30 +51,36 @@ const NotificationsView = ({ instanceId, onItemClick }: NotificationsViewProps) 
       {notifications.length === 0 ? (
         <EmptyState icon={Bell} message="Brak powiadomień" />
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-2">
           {notifications.map(n => (
             <div
               key={n.id}
-              onClick={() => handleClick(n)}
               className={cn(
-                "px-4 py-3 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors flex gap-3 items-start",
-                !n.read && "bg-primary/5"
+                "px-4 py-3 rounded-lg border border-border/50 transition-colors",
+                n.read
+                  ? "bg-muted/30"
+                  : "bg-card"
               )}
             >
-              <span className="text-lg shrink-0 mt-0.5">{TYPE_ICONS[n.type] || '🔔'}</span>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className={cn("text-sm", !n.read && "font-semibold")}>{n.title}</span>
-                  <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full shrink-0">
-                    {TYPE_LABELS[n.type] || n.type}
-                  </span>
-                </div>
-                {n.description && <div className="text-sm text-muted-foreground mt-0.5">{n.description}</div>}
-                <div className="text-xs text-muted-foreground mt-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-card bg-foreground px-1.5 py-0.5 rounded">
+                  {TYPE_LABELS[n.type] || n.type}
+                </span>
+                <span className="text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: pl })}
-                </div>
+                </span>
               </div>
-              {!n.read && <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-2" />}
+              {n.calendar_item_id && onItemClick ? (
+                <button
+                  onClick={() => handleClick(n)}
+                  className="text-sm text-primary hover:underline text-left"
+                >
+                  {n.title}
+                </button>
+              ) : (
+                <span className="text-sm text-foreground">{n.title}</span>
+              )}
+              {!n.read && <div className="w-2 h-2 rounded-full bg-primary inline-block ml-2 align-middle" />}
             </div>
           ))}
         </div>
