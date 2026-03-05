@@ -603,6 +603,29 @@ const AddCalendarItemDialog = ({
           .insert(serviceRows);
       }
 
+      // Notify assigned employees about new/updated assignment
+      if (assignedEmployeeIds.length > 0) {
+        const { data: emps } = await supabase
+          .from('employees')
+          .select('linked_user_id')
+          .in('id', assignedEmployeeIds)
+          .not('linked_user_id', 'is', null);
+        const itemTitle = finalTitle || customerName.trim() || 'Zlecenie';
+        const itemDate = format(dateRange!.from!, 'dd.MM.yyyy');
+        for (const emp of emps || []) {
+          if (emp.linked_user_id) {
+            await createNotification({
+              instanceId,
+              userId: emp.linked_user_id,
+              type: isEditMode ? 'item_rescheduled' : 'item_assigned',
+              title: isEditMode ? `Zaktualizowano: ${itemTitle}` : `Nowe zlecenie: ${itemTitle}`,
+              description: `${itemDate}, ${startTime}–${endTime}`,
+              calendarItemId,
+            });
+          }
+        }
+      }
+
       onSuccess();
       onClose();
     } catch (error: any) {

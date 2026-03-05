@@ -308,6 +308,25 @@ const Dashboard = () => {
     if (error) {
       toast.error('Błąd przenoszenia');
       fetchItems(); // rollback
+    } else if (item.assigned_employee_ids?.length && instanceId) {
+      // Notify assigned employees about rescheduling
+      const { data: emps } = await supabase
+        .from('employees')
+        .select('linked_user_id')
+        .in('id', item.assigned_employee_ids)
+        .not('linked_user_id', 'is', null);
+      for (const emp of emps || []) {
+        if (emp.linked_user_id) {
+          await createNotification({
+            instanceId,
+            userId: emp.linked_user_id,
+            type: 'item_rescheduled',
+            title: `Przełożono: ${item.title || item.customer_name || 'Zlecenie'}`,
+            description: `Nowy termin: ${newDate}, ${updateData.start_time || item.start_time}–${updateData.end_time || item.end_time}`,
+            calendarItemId: itemId,
+          });
+        }
+      }
     }
   };
 
