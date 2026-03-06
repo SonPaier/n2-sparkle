@@ -172,6 +172,9 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
             </Button>
 
             {!sidebarCollapsed && <Separator className="my-3 -mx-4 w-[calc(100%+2rem)] bg-border/30" />}
+            {!sidebarCollapsed && currentVersion && (
+              <p className="text-[10px] text-muted-foreground text-center">v{currentVersion}</p>
+            )}
 
             {sidebarCollapsed ? (
               <Button
