@@ -106,7 +106,7 @@ const InlineQuantityEdit = ({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="text-muted-foreground whitespace-nowrap w-16 text-right hover:text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
+        className="text-foreground whitespace-nowrap w-16 text-right hover:text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
       >
         {value} {unit}
       </button>
@@ -180,15 +180,18 @@ const ServicesSummary = ({
 
   const handleQuantityChange = async (serviceId: string, newQty: number) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from('calendar_item_services')
-        .update({ quantity: newQty })
+        .update({ quantity: newQty } as any)
         .eq('calendar_item_id', itemId)
         .eq('service_id', serviceId);
 
+      if (error) throw error;
+
       queryClient.invalidateQueries({ queryKey: ['calendar-item-services-summary', itemId] });
       toast.success('Zapisano ilość');
-    } catch {
+    } catch (err) {
+      console.error('Error updating quantity:', err);
       toast.error('Nie udało się zapisać');
     }
   };
