@@ -380,6 +380,9 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
               </button>
             ))}
           </nav>
+          {currentVersion && (
+            <p className="text-[10px] text-muted-foreground text-center mt-4">Panel Admina v{currentVersion}</p>
+          )}
         </div>
       )}
 
