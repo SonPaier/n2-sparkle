@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAppUpdate } from '@/hooks/useAppUpdate';
+import { UpdateBanner } from '@/components/pwa/UpdateBanner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
