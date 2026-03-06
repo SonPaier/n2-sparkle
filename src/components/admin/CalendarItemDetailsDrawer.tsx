@@ -80,6 +80,56 @@ const statusColors: Record<string, string> = {
   change_requested: 'bg-red-100 text-red-800 border-red-300',
 };
 
+// Inline editable quantity cell
+const InlineQuantityEdit = ({
+  value,
+  unit,
+  onSave,
+}: {
+  value: number;
+  unit: string;
+  onSave: (newQty: number) => void;
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [localValue, setLocalValue] = useState(value);
+
+  useEffect(() => { setLocalValue(value); }, [value]);
+
+  const commit = () => {
+    setEditing(false);
+    const qty = Math.max(1, localValue || 1);
+    if (qty !== value) onSave(qty);
+  };
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="text-muted-foreground whitespace-nowrap w-16 text-right hover:text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
+      >
+        {value} {unit}
+      </button>
+    );
+  }
+
+  return (
+    <span className="whitespace-nowrap w-16 text-right inline-flex items-center justify-end gap-0.5">
+      <input
+        type="number"
+        min={1}
+        autoFocus
+        value={localValue}
+        onChange={e => setLocalValue(parseInt(e.target.value) || 1)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === 'Enter') commit(); }}
+        className="w-10 text-right text-sm border border-border rounded px-1 py-0 bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+      <span className="text-muted-foreground text-xs">{unit}</span>
+    </span>
+  );
+};
+
 // Receipt-style services summary
 const ServicesSummary = ({
   itemId,
@@ -127,6 +177,21 @@ const ServicesSummary = ({
     enabled: !!itemId,
     staleTime: 0,
   });
+
+  const handleQuantityChange = async (serviceId: string, newQty: number) => {
+    try {
+      await supabase
+        .from('calendar_item_services')
+        .update({ quantity: newQty })
+        .eq('calendar_item_id', itemId)
+        .eq('service_id', serviceId);
+
+      queryClient.invalidateQueries({ queryKey: ['calendar-item-services-summary', itemId] });
+      toast.success('Zapisano ilość');
+    } catch {
+      toast.error('Nie udało się zapisać');
+    }
+  };
 
   const handleServicesConfirmed = async (
     serviceIds: string[],
@@ -183,9 +248,17 @@ const ServicesSummary = ({
       <span className="text-sm font-medium">Usługi i produkty</span>
       <div className="space-y-0.5">
         {servicesData.map((s, i) => (
-          <div key={i} className="flex items-center text-sm gap-2">
-            <span className="truncate flex-1">{s.name}</span>
-            <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.quantity} {s.unit}</span>
+          <div key={i} className="flex items-start text-sm gap-2">
+            <span className="flex-1 line-clamp-2">{s.name}</span>
+            {allowEdit ? (
+              <InlineQuantityEdit
+                value={s.quantity}
+                unit={s.unit}
+                onSave={(qty) => handleQuantityChange(s.service_id, qty)}
+              />
+            ) : (
+              <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.quantity} {s.unit}</span>
+            )}
             {!hidePrices && (
               <>
                 <span className="text-muted-foreground whitespace-nowrap w-16 text-right">{s.price} zł</span>
