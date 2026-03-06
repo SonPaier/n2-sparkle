@@ -94,6 +94,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <UpdateBanner />
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-[115] bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
