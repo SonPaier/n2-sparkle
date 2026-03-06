@@ -1,33 +1,30 @@
 
 
-## Plan: Skopiowanie logiki wersjonowania z N2Wash
+## Plan: Nadpisanie ceny zlecenia kwotą netto z faktury
 
-### Co robimy
+### Problem
+Po wystawieniu faktury, cena w zleceniu (`calendar_items.price`) nie jest aktualizowana. Powinna zostać nadpisana wartością netto z faktury.
 
-Przenosimy cały system wersjonowania aplikacji z N2Wash: sprawdzanie wersji z serwera, banner aktualizacji, wyświetlanie numeru wersji w ustawieniach i mobile menu.
+### Rozwiązanie
+Po pomyślnym wystawieniu faktury, w `handleSubmit` w `useInvoiceForm.ts`, zaktualizować `calendar_items.price` wartością `totalNetto` (obliczaną już w hooku). Następnie wywołać `onSuccess` aby odświeżyć listę.
 
-### Nowe pliki do utworzenia
+### Zmiany
 
-1. **`src/lib/version.ts`** — stała `VERSION_STORAGE_KEY = 'n2s_app_version'`
+**`src/components/invoicing/useInvoiceForm.ts`** — w `handleSubmit`, po pomyślnym utworzeniu faktury (linia ~227), dodać update:
 
-2. **`src/hooks/useAppUpdate.ts`** — hook z N2Wash (fetch `/version.json`, porównanie z localStorage, SW update detection, `applyUpdate` z czyszczeniem cache)
+```typescript
+// Po: if (data?.error) throw new Error(data.error);
+// Nadpisz cenę zlecenia kwotą netto
+if (calendarItemId) {
+  await supabase
+    .from('calendar_items')
+    .update({ price: totalNetto })
+    .eq('id', calendarItemId);
+}
+```
 
-3. **`src/components/pwa/UpdateBanner.tsx`** — banner "Dostępna nowa wersja aplikacji" z przyciskiem "Aktualizuj", fixed top z `z-[100]`
+Wykorzystujemy `totalNetto` już obliczane w hooku (linia 151-166). Callback `onSuccess` (już wywoływany w linii 232) odświeża listę zleceń w komponencie nadrzędnym.
 
-4. **`public/version.json`** — plik wersji: `{"version": "01.00.01", "buildTime": "2026-03-06T..."}`
-
-### Zmiany w istniejących plikach
-
-5. **`src/components/layout/DashboardLayout.tsx`** — dodać `<UpdateBanner />` na górze layoutu + wyświetlanie `currentVersion` w sidebar (pod sekcją użytkownika), analogicznie do N2Wash SettingsView: `Panel Admina v{currentVersion}`
-
-6. **`src/components/admin/SettingsView.tsx`** — dodać `useAppUpdate()` i wyświetlić wersję na dole listy tabów: `Panel Admina v{currentVersion}`
-
-### Jak to działa
-
-- Przy starcie apki hook pobiera `/version.json?t=timestamp` (cache-busting)
-- Porównuje z wersją w `localStorage`
-- Pierwszy raz: zapisuje wersję, brak bannera
-- Gdy wersja się zmieni: pojawia się banner na górze ekranu
-- Klik "Aktualizuj": czyści cache, wysyła `SKIP_WAITING` do SW, przeładowuje stronę
-- Numer wersji widoczny w sidebar i w ustawieniach
+### Pliki do zmiany
+- `src/components/invoicing/useInvoiceForm.ts` — 1 zmiana (dodanie update po create_invoice)
 

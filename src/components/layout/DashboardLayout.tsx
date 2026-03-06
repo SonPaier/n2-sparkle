@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAppUpdate } from '@/hooks/useAppUpdate';
+import { UpdateBanner } from '@/components/pwa/UpdateBanner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -50,6 +52,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const { signOut, username, user } = useAuth();
   const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
   const { unreadCount } = useNotifications(instanceId ?? null);
+  const { currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('n2service-sidebar-collapsed') === 'true';
@@ -91,6 +94,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
+      <UpdateBanner />
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-[115] bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -168,6 +172,9 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
             </Button>
 
             {!sidebarCollapsed && <Separator className="my-3 -mx-4 w-[calc(100%+2rem)] bg-border/30" />}
+            {!sidebarCollapsed && currentVersion && (
+              <p className="text-[10px] text-muted-foreground text-center">v{currentVersion}</p>
+            )}
 
             {sidebarCollapsed ? (
               <Button

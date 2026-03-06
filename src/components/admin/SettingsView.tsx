@@ -14,6 +14,7 @@ import EmployeeCalendarsListView from './employee-calendars/EmployeeCalendarsLis
 import InstanceUsersTab from './users/InstanceUsersTab';
 import AddressSearchInput from './AddressSearchInput';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { IntegrationsSettingsView } from '@/components/invoicing/IntegrationsSettingsView';
 import SmsPaymentTemplatesView from './settings/SmsPaymentTemplatesView';
 import type { AddressSearchResult } from '@/lib/addressSearch';
@@ -27,6 +28,7 @@ type SettingsTab = 'company' | 'calendar' | 'employee-calendars' | 'users' | 'sm
 const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const { currentVersion } = useAppUpdate();
   const [activeTab, setActiveTab] = useState<SettingsTab>('company');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -378,6 +380,9 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
               </button>
             ))}
           </nav>
+          {currentVersion && (
+            <p className="text-[10px] text-muted-foreground text-center mt-4">Panel Admina v{currentVersion}</p>
+          )}
         </div>
       )}
 
