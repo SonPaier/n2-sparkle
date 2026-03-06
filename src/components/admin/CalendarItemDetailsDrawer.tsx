@@ -180,15 +180,18 @@ const ServicesSummary = ({
 
   const handleQuantityChange = async (serviceId: string, newQty: number) => {
     try {
-      await supabase
+      const { error } = await supabase
         .from('calendar_item_services')
-        .update({ quantity: newQty })
+        .update({ quantity: newQty } as any)
         .eq('calendar_item_id', itemId)
         .eq('service_id', serviceId);
 
+      if (error) throw error;
+
       queryClient.invalidateQueries({ queryKey: ['calendar-item-services-summary', itemId] });
       toast.success('Zapisano ilość');
-    } catch {
+    } catch (err) {
+      console.error('Error updating quantity:', err);
       toast.error('Nie udało się zapisać');
     }
   };
