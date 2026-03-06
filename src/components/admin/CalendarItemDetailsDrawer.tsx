@@ -114,7 +114,7 @@ const InlineQuantityEdit = ({
   }
 
   return (
-    <span className="whitespace-nowrap w-16 text-right inline-flex items-center justify-end gap-0.5">
+    <span className="whitespace-nowrap w-20 text-right inline-flex items-center justify-end gap-1">
       <input
         type="number"
         min={1}
@@ -123,9 +123,9 @@ const InlineQuantityEdit = ({
         onChange={e => setLocalValue(parseInt(e.target.value) || 1)}
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Enter') commit(); }}
-        className="w-10 text-right text-sm border border-border rounded px-1 py-0 bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+        className="w-14 text-right text-sm border border-border rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-primary"
       />
-      <span className="text-muted-foreground text-xs">{unit}</span>
+      <span className="text-muted-foreground text-sm">{unit}</span>
     </span>
   );
 };
