@@ -14,6 +14,7 @@ import EmployeeCalendarsListView from './employee-calendars/EmployeeCalendarsLis
 import InstanceUsersTab from './users/InstanceUsersTab';
 import AddressSearchInput from './AddressSearchInput';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { IntegrationsSettingsView } from '@/components/invoicing/IntegrationsSettingsView';
 import SmsPaymentTemplatesView from './settings/SmsPaymentTemplatesView';
 import type { AddressSearchResult } from '@/lib/addressSearch';
