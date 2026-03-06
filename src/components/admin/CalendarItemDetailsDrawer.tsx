@@ -1042,7 +1042,7 @@ const CalendarItemDetailsDrawer = ({
                   itemId={item.id}
                   instanceId={instanceId}
                   hidePrices={!!hidePrices}
-                  allowEdit={!!canEditServices}
+                  allowEdit={!isEmployee || !!canEditServices}
                 />
               )}
 
