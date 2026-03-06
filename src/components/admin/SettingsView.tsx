@@ -28,6 +28,7 @@ type SettingsTab = 'company' | 'calendar' | 'employee-calendars' | 'users' | 'sm
 const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
+  const { currentVersion } = useAppUpdate();
   const [activeTab, setActiveTab] = useState<SettingsTab>('company');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
