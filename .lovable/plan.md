@@ -1,30 +1,49 @@
 
 
-## Plan: Nadpisanie ceny zlecenia kwotą netto z faktury
+## Bug: Drawer edycji nie otwiera się z widoku Dashboard
 
-### Problem
-Po wystawieniu faktury, cena w zleceniu (`calendar_items.price`) nie jest aktualizowana. Powinna zostać nadpisana wartością netto z faktury.
+### Przyczyna
+
+`AddCalendarItemDialog` jest renderowany **wyłącznie wewnątrz bloku `currentView === 'kalendarz'`** (linia 543, wewnątrz `renderContent()`). 
+
+Kiedy użytkownik jest na widoku **Dashboard** ("Mój dzień"/"Mój tydzień") i klika "Edytuj" w szczegółach zlecenia, `handleEditItem` ustawia:
+1. `editingItem` → dane zlecenia
+2. `addItemOpen` → `true`
+3. `detailsOpen` / `dashboardDetailsOpen` → `false`
+
+Ale komponent `AddCalendarItemDialog` **nie istnieje w DOM**, bo Dashboard nie renderuje tego komponentu. Dialog pojawia się dopiero po przejściu na widok "Kalendarz", bo wtedy komponent się montuje i odczytuje `addItemOpen === true`.
 
 ### Rozwiązanie
-Po pomyślnym wystawieniu faktury, w `handleSubmit` w `useInvoiceForm.ts`, zaktualizować `calendar_items.price` wartością `totalNetto` (obliczaną już w hooku). Następnie wywołać `onSuccess` aby odświeżyć listę.
 
-### Zmiany
+Przenieść `AddCalendarItemDialog` z wnętrza bloku `kalendarz` na **poziom globalny** (obok innych globalnych drawerów jak `CreateProtocolForm`, `CalendarItemDetailsDrawer` dla dashboardu, `AddEditReminderDrawer`), tak aby był dostępny niezależnie od aktywnego widoku.
 
-**`src/components/invoicing/useInvoiceForm.ts`** — w `handleSubmit`, po pomyślnym utworzeniu faktury (linia ~227), dodać update:
+### Zmiana
 
-```typescript
-// Po: if (data?.error) throw new Error(data.error);
-// Nadpisz cenę zlecenia kwotą netto
-if (calendarItemId) {
-  await supabase
-    .from('calendar_items')
-    .update({ price: totalNetto })
-    .eq('id', calendarItemId);
-}
+**Plik: `src/pages/Dashboard.tsx`**
+
+1. **Usunąć** `<AddCalendarItemDialog ... />` z bloku `renderContent()` → `kalendarz` (linie 543-558)
+2. **Dodać** go na poziomie globalnym w `return`, obok `CreateProtocolForm` i dashboardowych drawerów (po linii 654), z warunkiem `instanceId`:
+
+```tsx
+{instanceId && (
+  <AddCalendarItemDialog
+    open={addItemOpen}
+    onClose={() => { setAddItemOpen(false); setEditingItem(null); setMapOrderPrefill({}); }}
+    instanceId={instanceId}
+    columns={calendarColumns}
+    onSuccess={handleItemSuccess}
+    editingItem={editingItem}
+    initialDate={newItemData.date}
+    initialTime={newItemData.time}
+    initialColumnId={newItemData.columnId}
+    initialCustomerId={mapOrderPrefill.customerId}
+    initialCustomerName={mapOrderPrefill.customerName}
+    initialCustomerPhone={mapOrderPrefill.customerPhone}
+    initialCustomerEmail={mapOrderPrefill.customerEmail}
+    initialCustomerAddressId={mapOrderPrefill.customerAddressId}
+  />
+)}
 ```
 
-Wykorzystujemy `totalNetto` już obliczane w hooku (linia 151-166). Callback `onSuccess` (już wywoływany w linii 232) odświeża listę zleceń w komponencie nadrzędnym.
-
-### Pliki do zmiany
-- `src/components/invoicing/useInvoiceForm.ts` — 1 zmiana (dodanie update po create_invoice)
+Jedna zmiana w jednym pliku. Żadne inne komponenty nie wymagają modyfikacji.
 
