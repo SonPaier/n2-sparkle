@@ -52,6 +52,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const { signOut, username, user } = useAuth();
   const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
   const { unreadCount } = useNotifications(instanceId ?? null);
+  const { currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem('n2service-sidebar-collapsed') === 'true';
