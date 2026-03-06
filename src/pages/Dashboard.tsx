@@ -540,23 +540,6 @@ const Dashboard = () => {
             workingHours={workingHours}
           />
 
-          <AddCalendarItemDialog
-            open={addItemOpen}
-            onClose={() => { setAddItemOpen(false); setEditingItem(null); setMapOrderPrefill({}); }}
-            instanceId={instanceId}
-            columns={calendarColumns}
-            onSuccess={handleItemSuccess}
-            editingItem={editingItem}
-            initialDate={newItemData.date}
-            initialTime={newItemData.time}
-            initialColumnId={newItemData.columnId}
-            initialCustomerId={mapOrderPrefill.customerId}
-            initialCustomerName={mapOrderPrefill.customerName}
-            initialCustomerPhone={mapOrderPrefill.customerPhone}
-            initialCustomerEmail={mapOrderPrefill.customerEmail}
-            initialCustomerAddressId={mapOrderPrefill.customerAddressId}
-          />
-
           <CalendarItemDetailsDrawer
             item={selectedItem}
             open={detailsOpen}
@@ -651,6 +634,24 @@ const Dashboard = () => {
           prefillCustomerEmail={protocolPrefill.customerEmail}
           prefillCustomerAddressId={protocolPrefill.customerAddressId}
           prefillCalendarItemId={protocolPrefill.calendarItemId}
+        />
+      )}
+      {instanceId && (
+        <AddCalendarItemDialog
+          open={addItemOpen}
+          onClose={() => { setAddItemOpen(false); setEditingItem(null); setMapOrderPrefill({}); }}
+          instanceId={instanceId}
+          columns={calendarColumns}
+          onSuccess={handleItemSuccess}
+          editingItem={editingItem}
+          initialDate={newItemData.date}
+          initialTime={newItemData.time}
+          initialColumnId={newItemData.columnId}
+          initialCustomerId={mapOrderPrefill.customerId}
+          initialCustomerName={mapOrderPrefill.customerName}
+          initialCustomerPhone={mapOrderPrefill.customerPhone}
+          initialCustomerEmail={mapOrderPrefill.customerEmail}
+          initialCustomerAddressId={mapOrderPrefill.customerAddressId}
         />
       )}
 
