@@ -106,7 +106,7 @@ const InlineQuantityEdit = ({
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="text-muted-foreground whitespace-nowrap w-16 text-right hover:text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
+        className="text-foreground whitespace-nowrap w-16 text-right hover:text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
       >
         {value} {unit}
       </button>
