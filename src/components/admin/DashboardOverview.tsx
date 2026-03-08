@@ -98,7 +98,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     setLoading(true);
     const today = format(new Date(), 'yyyy-MM-dd');
 
-    const selectFields = 'id, title, customer_name, customer_phone, item_date, end_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price';
+    const selectFields = 'id, title, customer_name, customer_phone, item_date, end_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price, priority';
 
     const [itemsRes, paymentItemsRes, remindersRes, overdueInvoicesRes] = await Promise.all([
       supabase
