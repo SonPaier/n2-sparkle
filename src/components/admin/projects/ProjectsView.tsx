@@ -29,7 +29,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { restrictToVerticalAxis } from '@dnd-kit/modifiers' with { type: 'not-used' };
+
 
 interface ProjectRow {
   id: string;
