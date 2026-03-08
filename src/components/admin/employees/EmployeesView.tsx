@@ -44,9 +44,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const [dayOffDialogOpen, setDayOffDialogOpen] = useState(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
   const [auditEmployee, setAuditEmployee] = useState<Employee | null>(null);
+  const [ordersEmployee, setOrdersEmployee] = useState<Employee | null>(null);
 
   const { data: workersSettings, isLoading: loadingSettings } = useWorkersSettings(instanceId);
   const isWeeklyMode = workersSettings?.report_frequency === 'weekly';
+  const isPerOrder = workersSettings?.settlement_type === 'per_order';
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
