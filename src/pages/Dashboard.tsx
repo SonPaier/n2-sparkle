@@ -381,7 +381,16 @@ const Dashboard = () => {
   const handleAddItem = (columnId: string, date: string, time: string) => {
     setEditingItem(null);
     setMapOrderPrefill({});
+    setInitialProjectId(undefined);
     setNewItemData({ columnId, date, time });
+    setAddItemOpen(true);
+  };
+
+  const handleProjectAddOrder = (projectId: string, customerId: string | null, customerAddressId: string | null) => {
+    setEditingItem(null);
+    setMapOrderPrefill({});
+    setInitialProjectId(projectId);
+    setNewItemData({ columnId: '', date: '', time: '' });
     setAddItemOpen(true);
   };
 
