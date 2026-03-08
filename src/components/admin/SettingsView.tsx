@@ -98,6 +98,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const { enabled: remindersEnabled, loading: remindersLoading, toggle: toggleReminders } = useInstanceFeature(instanceId, 'reminders');
   const { enabled: prioritiesEnabled, loading: prioritiesLoading, toggle: togglePriorities } = useInstanceFeature(instanceId, 'priorities');
   const { enabled: employeeCalendarViewEnabled, loading: employeeCalendarViewLoading, toggle: toggleEmployeeCalendarView } = useInstanceFeature(instanceId, 'employee_calendar_view');
+  const { enabled: projectsEnabled, loading: projectsLoading, toggle: toggleProjects } = useInstanceFeature(instanceId, 'projects');
 
   const allTabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
