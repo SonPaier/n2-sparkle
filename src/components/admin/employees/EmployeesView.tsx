@@ -1,14 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeEntriesForDateRange, calculateMonthlySummary, formatMinutesToTime, TimeEntry } from '@/hooks/useTimeEntries';
 import { useEmployeeDaysOff, DAY_OFF_TYPE_LABELS, DayOffType, EmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
 import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
-import { Plus, ChevronLeft, ChevronRight, Loader2, User, Settings2, CalendarOff, FileText } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, ChevronLeft, ChevronRight, Loader2, User, Settings2, CalendarOff, MoreVertical, FileText, ClipboardList } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, getISOWeek, addWeeks, subWeeks, isWithinInterval, eachDayOfInterval, isSameMonth, isSameWeek, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
@@ -16,6 +18,7 @@ import WorkerTimeDialog from './WorkerTimeDialog';
 import AddEmployeeDayOffDialog from './AddEmployeeDayOffDialog';
 import WorkersSettingsDrawer from './WorkersSettingsDrawer';
 import TimeEntryAuditDrawer from './TimeEntryAuditDrawer';
+import EmployeeOrdersDrawer from './EmployeeOrdersDrawer';
 
 const WEEKDAY_TO_KEY: Record<number, string> = {
   0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
