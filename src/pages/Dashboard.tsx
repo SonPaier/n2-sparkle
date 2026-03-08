@@ -220,16 +220,85 @@ const Dashboard = () => {
     setCalendarBreaks(data || []);
   }, [instanceId, currentCalendarDate]);
 
+  // Fetch active employees for employee calendar view
+  const fetchEmployees = useCallback(async () => {
+    if (!instanceId) return;
+    const { data, error } = await supabase
+      .from('employees')
+      .select('id, name, sort_order')
+      .eq('instance_id', instanceId)
+      .eq('active', true)
+      .order('sort_order');
+    if (error) { console.error('Error fetching employees:', error); return; }
+    setEmployeesList(data || []);
+  }, [instanceId]);
+
   useEffect(() => {
     if (currentView === 'kalendarz') {
       fetchColumns();
       fetchItems();
       fetchBreaks();
+      if (employeeCalendarViewEnabled) fetchEmployees();
     }
     if (currentView === 'dashboard') {
       fetchColumns();
     }
-  }, [currentView, fetchColumns, fetchItems, fetchBreaks]);
+  }, [currentView, fetchColumns, fetchItems, fetchBreaks, fetchEmployees, employeeCalendarViewEnabled]);
+
+  // Employee view data transformation
+  const employeeColumns = useMemo<CalendarColumn[]>(() => {
+    if (!employeeViewMode) return [];
+    return employeesList.map(emp => ({
+      id: emp.id,
+      name: emp.name,
+      color: null,
+    }));
+  }, [employeeViewMode, employeesList]);
+
+  const employeeViewItems = useMemo<CalendarItem[]>(() => {
+    if (!employeeViewMode) return [];
+    return calendarItems.flatMap(item => {
+      const empIds = item.assigned_employee_ids;
+      if (!empIds?.length) return [];
+      return empIds.map(empId => ({
+        ...item,
+        id: `${item.id}__emp_${empId}`,
+        column_id: empId,
+        _originalId: item.id,
+      }));
+    }) as CalendarItem[];
+  }, [employeeViewMode, calendarItems]);
+
+  // Conflict detection for employee view
+  const conflictItemIds = useMemo<Set<string>>(() => {
+    if (!employeeViewMode) return new Set();
+    const conflicts = new Set<string>();
+    // Group items by employee (column_id)
+    const byEmployee = new Map<string, CalendarItem[]>();
+    for (const item of employeeViewItems) {
+      if (item.status === 'cancelled') continue;
+      const empId = item.column_id!;
+      if (!byEmployee.has(empId)) byEmployee.set(empId, []);
+      byEmployee.get(empId)!.push(item);
+    }
+    for (const [, empItems] of byEmployee) {
+      for (let i = 0; i < empItems.length; i++) {
+        for (let j = i + 1; j < empItems.length; j++) {
+          const a = empItems[i];
+          const b = empItems[j];
+          // Check same day overlap
+          const aDates = getDateRange(a);
+          const bDates = getDateRange(b);
+          const commonDates = aDates.filter(d => bDates.includes(d));
+          if (commonDates.length > 0 && parseTime(a.start_time) < parseTime(b.end_time) && parseTime(b.start_time) < parseTime(a.end_time)) {
+            conflicts.add(a.id);
+            conflicts.add(b.id);
+          }
+        }
+      }
+    }
+    return conflicts;
+  }, [employeeViewItems, employeeViewMode]);
 
   // Fetch HQ location
   useEffect(() => {
