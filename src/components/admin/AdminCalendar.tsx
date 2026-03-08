@@ -1,7 +1,7 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin, DollarSign } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin, DollarSign, Users } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -86,6 +86,9 @@ interface AdminCalendarProps {
   hideEmployeeChips?: boolean;
   workingHours?: WorkingHoursMap;
   prioritiesEnabled?: boolean;
+  employeeViewActive?: boolean;
+  onToggleEmployeeView?: () => void;
+  conflictItemIds?: Set<string>;
 }
 
 const FALLBACK_START_HOUR = 6;
@@ -158,6 +161,9 @@ const AdminCalendar = ({
   hideEmployeeChips,
   workingHours,
   prioritiesEnabled,
+  employeeViewActive,
+  onToggleEmployeeView,
+  conflictItemIds,
 }: AdminCalendarProps) => {
   const { startHour: DEFAULT_START_HOUR, endHour: DEFAULT_END_HOUR } = computeHourRange(workingHours);
   const HOURS = Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR);
@@ -627,22 +633,25 @@ const AdminCalendar = ({
     const leftOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PERCENT : 0;
     const rightOffset = overlapInfo.hasOverlap ? (overlapInfo.total - 1 - overlapInfo.index) * OVERLAP_OFFSET_PERCENT : 0;
 
+    const hasConflict = conflictItemIds?.has(item.id);
+
     return (
       <div
         key={item.id}
-        draggable={!isMobile}
-        onDragStart={(e) => handleDragStart(e, item)}
+        draggable={!isMobile && !employeeViewActive}
+        onDragStart={(e) => !employeeViewActive && handleDragStart(e, item)}
         onDragEnd={handleDragEnd}
         className={cn(
           "absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5",
-          !isMobile && "cursor-grab active:cursor-grabbing",
-          isMobile && "cursor-pointer",
+          !isMobile && !employeeViewActive && "cursor-grab active:cursor-grabbing",
+          (isMobile || employeeViewActive) && "cursor-pointer",
           "transition-all duration-150 hover:shadow-lg hover:z-20",
           "overflow-hidden select-none",
           getStatusColor(item.status),
           isDragging && "opacity-30 scale-95",
           !isDragging && draggedItem && "pointer-events-none",
-          isSelected && "border-4 shadow-lg z-30"
+          isSelected && "border-4 shadow-lg z-30",
+          hasConflict && "ring-2 ring-red-500 ring-offset-1"
         )}
         style={{
           ...style,
@@ -803,7 +812,7 @@ const AdminCalendar = ({
       <div key={hour} style={{ height: HOUR_HEIGHT }}>
         {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => {
           const isDropTarget = dragOverColumn === columnId && dragOverDate === dateStr && dragOverSlot?.hour === hour && dragOverSlot?.slotIndex === i;
-          const isDisabled = isPastDay;
+          const isDisabled = isPastDay || !!employeeViewActive;
 
           return (
             <div
@@ -813,7 +822,7 @@ const AdminCalendar = ({
                 i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40",
                 isDropTarget && !isDisabled && "bg-primary/30 border-primary",
                 !isDropTarget && !isDisabled && "hover:bg-primary/10 hover:z-50 cursor-pointer",
-                isDisabled && "cursor-not-allowed"
+                isDisabled && !employeeViewActive && "cursor-not-allowed"
               )}
               style={{ height: SLOT_HEIGHT }}
               onClick={() => !isDisabled && handleSlotClick(columnId, hour, i, dateStr)}
@@ -917,23 +926,25 @@ const AdminCalendar = ({
                     </div>
                   )}
 
-                  {/* Column visibility */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm">Kolumny</h4>
-                      {hasHiddenColumns && (
-                        <Button variant="ghost" size="sm" onClick={showAllColumns} className="h-7 text-xs">Pokaż wszystkie</Button>
-                      )}
-                    </div>
+                  {/* Column visibility - hide in employee view */}
+                  {!employeeViewActive && (
                     <div className="space-y-2">
-                      {columns.map((col) => (
-                        <div key={col.id} className="flex items-center gap-2">
-                          <Checkbox id={`col-${col.id}`} checked={!hiddenColumnIds.has(col.id)} onCheckedChange={() => toggleColumnVisibility(col.id)} />
-                          <Label htmlFor={`col-${col.id}`} className="text-sm cursor-pointer flex-1">{col.name}</Label>
-                        </div>
-                      ))}
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">Kolumny</h4>
+                        {hasHiddenColumns && (
+                          <Button variant="ghost" size="sm" onClick={showAllColumns} className="h-7 text-xs">Pokaż wszystkie</Button>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {columns.map((col) => (
+                          <div key={col.id} className="flex items-center gap-2">
+                            <Checkbox id={`col-${col.id}`} checked={!hiddenColumnIds.has(col.id)} onCheckedChange={() => toggleColumnVisibility(col.id)} />
+                            <Label htmlFor={`col-${col.id}`} className="text-sm cursor-pointer flex-1">{col.name}</Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Compact mode */}
                   {!isMobile && (
@@ -947,7 +958,7 @@ const AdminCalendar = ({
             </Popover>
 
             {/* Map toggle */}
-            {onToggleMap && (
+            {onToggleMap && !employeeViewActive && (
               <Button
                 variant={mapOpen ? 'secondary' : 'outline'}
                 size="sm"
@@ -957,6 +968,20 @@ const AdminCalendar = ({
               >
                 <MapPin className="w-4 h-4" />
                 {!isMobile && <span>Mapa</span>}
+              </Button>
+            )}
+
+            {/* Employee calendar view toggle */}
+            {onToggleEmployeeView && (
+              <Button
+                variant={employeeViewActive ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={onToggleEmployeeView}
+                className="gap-1"
+                title={employeeViewActive ? 'Widok kolumn' : 'Widok pracowników'}
+              >
+                <Users className="w-4 h-4" />
+                {!isMobile && <span>Pracownicy</span>}
               </Button>
             )}
 

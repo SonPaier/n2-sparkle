@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
 import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell, LayoutDashboard } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
@@ -51,9 +51,29 @@ const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; des
   aktywnosci: { label: 'Aktywności', icon: Bell, description: 'Powiadomienia i aktywności' },
 };
 
+const parseTime = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours + minutes / 60;
+};
+
+const getDateRange = (item: CalendarItem): string[] => {
+  const start = item.item_date;
+  const end = item.end_date || item.item_date;
+  if (start === end) return [start];
+  const dates: string[] = [];
+  let current = new Date(start + 'T00:00:00');
+  const endDate = new Date(end + 'T00:00:00');
+  while (current <= endDate) {
+    dates.push(format(current, 'yyyy-MM-dd'));
+    current = addDays(current, 1);
+  }
+  return dates;
+};
+
 const Dashboard = () => {
   const { view } = useParams<{ view?: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { roles } = useAuth();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
@@ -67,6 +87,7 @@ const Dashboard = () => {
   const { enabled: protocolsEnabled } = useInstanceFeature(instanceId, 'protocols');
   const { enabled: remindersEnabled } = useInstanceFeature(instanceId, 'reminders');
   const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId, 'priorities');
+  const { enabled: employeeCalendarViewEnabled } = useInstanceFeature(instanceId, 'employee_calendar_view');
 
   const hostname = window.location.hostname;
   const isSubdomain = hostname.endsWith('.n2service.com');
@@ -91,6 +112,21 @@ const Dashboard = () => {
   const [mapOpen, setMapOpen] = useState(false);
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [mapOrderPrefill, setMapOrderPrefill] = useState<{ customerId?: string; customerName?: string; customerPhone?: string; customerEmail?: string; customerAddressId?: string }>({});
+  const [employeesList, setEmployeesList] = useState<{ id: string; name: string; sort_order: number | null }[]>([]);
+
+  // Employee calendar view mode from URL
+  const employeeViewMode = searchParams.get('view') === 'employees';
+  const toggleEmployeeView = useCallback(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (next.get('view') === 'employees') {
+        next.delete('view');
+      } else {
+        next.set('view', 'employees');
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Protocol form state
   const [protocolFormOpen, setProtocolFormOpen] = useState(false);
@@ -203,16 +239,85 @@ const Dashboard = () => {
     setCalendarBreaks(data || []);
   }, [instanceId, currentCalendarDate]);
 
+  // Fetch active employees for employee calendar view
+  const fetchEmployees = useCallback(async () => {
+    if (!instanceId) return;
+    const { data, error } = await supabase
+      .from('employees')
+      .select('id, name, sort_order')
+      .eq('instance_id', instanceId)
+      .eq('active', true)
+      .order('sort_order');
+    if (error) { console.error('Error fetching employees:', error); return; }
+    setEmployeesList(data || []);
+  }, [instanceId]);
+
   useEffect(() => {
     if (currentView === 'kalendarz') {
       fetchColumns();
       fetchItems();
       fetchBreaks();
+      if (employeeCalendarViewEnabled) fetchEmployees();
     }
     if (currentView === 'dashboard') {
       fetchColumns();
     }
-  }, [currentView, fetchColumns, fetchItems, fetchBreaks]);
+  }, [currentView, fetchColumns, fetchItems, fetchBreaks, fetchEmployees, employeeCalendarViewEnabled]);
+
+  // Employee view data transformation
+  const employeeColumns = useMemo<CalendarColumn[]>(() => {
+    if (!employeeViewMode) return [];
+    return employeesList.map(emp => ({
+      id: emp.id,
+      name: emp.name,
+      color: null,
+    }));
+  }, [employeeViewMode, employeesList]);
+
+  const employeeViewItems = useMemo<CalendarItem[]>(() => {
+    if (!employeeViewMode) return [];
+    return calendarItems.flatMap(item => {
+      const empIds = item.assigned_employee_ids;
+      if (!empIds?.length) return [];
+      return empIds.map(empId => ({
+        ...item,
+        id: `${item.id}__emp_${empId}`,
+        column_id: empId,
+        _originalId: item.id,
+      }));
+    }) as CalendarItem[];
+  }, [employeeViewMode, calendarItems]);
+
+  // Conflict detection for employee view
+  const conflictItemIds = useMemo<Set<string>>(() => {
+    if (!employeeViewMode) return new Set();
+    const conflicts = new Set<string>();
+    // Group items by employee (column_id)
+    const byEmployee = new Map<string, CalendarItem[]>();
+    for (const item of employeeViewItems) {
+      if (item.status === 'cancelled') continue;
+      const empId = item.column_id!;
+      if (!byEmployee.has(empId)) byEmployee.set(empId, []);
+      byEmployee.get(empId)!.push(item);
+    }
+    for (const [, empItems] of byEmployee) {
+      for (let i = 0; i < empItems.length; i++) {
+        for (let j = i + 1; j < empItems.length; j++) {
+          const a = empItems[i];
+          const b = empItems[j];
+          // Check same day overlap
+          const aDates = getDateRange(a);
+          const bDates = getDateRange(b);
+          const commonDates = aDates.filter(d => bDates.includes(d));
+          if (commonDates.length > 0 && parseTime(a.start_time) < parseTime(b.end_time) && parseTime(b.start_time) < parseTime(a.end_time)) {
+            conflicts.add(a.id);
+            conflicts.add(b.id);
+          }
+        }
+      }
+    }
+    return conflicts;
+  }, [employeeViewItems, employeeViewMode]);
 
   // Fetch HQ location
   useEffect(() => {
@@ -534,21 +639,32 @@ const Dashboard = () => {
       const calendarContent = (
         <>
           <AdminCalendar
-            columns={calendarColumns}
-            items={calendarItems}
-            breaks={calendarBreaks}
-            onItemClick={handleItemClick}
-            onAddItem={handleAddItem}
-            onAddBreak={handleAddBreak}
-            onDeleteBreak={handleDeleteBreak}
-            onItemMove={handleItemMove}
+            columns={employeeViewMode ? employeeColumns : calendarColumns}
+            items={employeeViewMode ? employeeViewItems : calendarItems}
+            breaks={employeeViewMode ? [] : calendarBreaks}
+            onItemClick={(item) => {
+              // Strip virtual ID suffix for employee view
+              if (employeeViewMode && item.id.includes('__emp_')) {
+                const originalId = item.id.split('__emp_')[0];
+                const original = calendarItems.find(i => i.id === originalId);
+                if (original) { handleItemClick(original); return; }
+              }
+              handleItemClick(item);
+            }}
+            onAddItem={employeeViewMode ? undefined : handleAddItem}
+            onAddBreak={employeeViewMode ? undefined : handleAddBreak}
+            onDeleteBreak={employeeViewMode ? undefined : handleDeleteBreak}
+            onItemMove={employeeViewMode ? undefined : handleItemMove}
             onDateChange={handleDateChange}
             selectedItemId={selectedItem?.id}
-            onToggleMap={() => setMapOpen(prev => !prev)}
-            mapOpen={mapOpen}
+            onToggleMap={employeeViewMode ? undefined : (() => setMapOpen(prev => !prev))}
+            mapOpen={employeeViewMode ? false : mapOpen}
             hideEmployeeChips={!employeesEnabled}
             workingHours={workingHours}
             prioritiesEnabled={prioritiesEnabled}
+            employeeViewActive={employeeViewMode}
+            onToggleEmployeeView={employeeCalendarViewEnabled && employeesEnabled ? toggleEmployeeView : undefined}
+            conflictItemIds={conflictItemIds}
           />
 
           <CalendarItemDetailsDrawer

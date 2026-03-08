@@ -97,6 +97,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const { enabled: protocolsEnabled, loading: protocolsLoading, toggle: toggleProtocols } = useInstanceFeature(instanceId, 'protocols');
   const { enabled: remindersEnabled, loading: remindersLoading, toggle: toggleReminders } = useInstanceFeature(instanceId, 'reminders');
   const { enabled: prioritiesEnabled, loading: prioritiesLoading, toggle: togglePriorities } = useInstanceFeature(instanceId, 'priorities');
+  const { enabled: employeeCalendarViewEnabled, loading: employeeCalendarViewLoading, toggle: toggleEmployeeCalendarView } = useInstanceFeature(instanceId, 'employee_calendar_view');
 
   const allTabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
@@ -399,6 +400,19 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 disabled={prioritiesLoading}
               />
             </div>
+            {employeesEnabled && (
+              <div className="flex items-center justify-between py-3 border-t border-border">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Widok kalendarza pracowników</Label>
+                  <p className="text-xs text-muted-foreground">Widok kalendarza z podziałem na pracowników i detekcją konfliktów</p>
+                </div>
+                <Switch
+                  checked={employeeCalendarViewEnabled}
+                  onCheckedChange={toggleEmployeeCalendarView}
+                  disabled={employeeCalendarViewLoading}
+                />
+              </div>
+            )}
           </div>
         );
 
