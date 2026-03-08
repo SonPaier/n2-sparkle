@@ -20,7 +20,7 @@ const navigationHandler = new NetworkFirst({
 });
 
 registerRoute(new NavigationRoute(navigationHandler, {
-  denylist: [/^\/~oauth/, /^\/login/],
+  denylist: [/^\/~oauth/],
 }));
 
 // Supabase API — StaleWhileRevalidate for offline support (24h, 500 entries)

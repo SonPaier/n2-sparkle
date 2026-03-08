@@ -35,7 +35,7 @@ const queryClient = new QueryClient({
       retry: 1,
     },
     mutations: {
-      networkMode: 'online', // fail immediately when offline
+      networkMode: 'always', // don't pause — let mutations run and fail with network error
     },
   },
 });

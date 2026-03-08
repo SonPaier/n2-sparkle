@@ -192,6 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(null);
     setFullName(null);
     previousUserIdRef.current = null;
+    // Clear persisted React Query cache to prevent data leak between users
+    await clearPersistedCache();
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('[Auth] signOut error (forcing local cleanup):', error);

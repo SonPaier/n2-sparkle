@@ -3,6 +3,12 @@ import type { PersistedClient, Persister } from '@tanstack/react-query-persist-c
 
 const IDB_KEY = 'n2service-rq-cache';
 
+/**
+ * Buster key based on user ID — prevents leaking cached data between users.
+ * Stored separately so we can detect user change on restore.
+ */
+const BUSTER_KEY = 'n2service-rq-buster';
+
 export function createIDBPersister(): Persister {
   return {
     persistClient: async (client: PersistedClient) => {
@@ -13,6 +19,17 @@ export function createIDBPersister(): Persister {
     },
     removeClient: async () => {
       await del(IDB_KEY);
+      await del(BUSTER_KEY);
     },
   };
+}
+
+/** Call on sign-out to wipe persisted query cache */
+export async function clearPersistedCache() {
+  try {
+    await del(IDB_KEY);
+    await del(BUSTER_KEY);
+  } catch {
+    // IndexedDB may be unavailable
+  }
 }
