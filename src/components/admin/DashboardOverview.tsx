@@ -78,7 +78,7 @@ const getDayPill = (itemDate: string, endDate?: string | null) => {
   return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
-const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick, onViewNotifications }: DashboardOverviewProps) => {
+const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick, onViewNotifications, remindersEnabled = true }: DashboardOverviewProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [allPaymentItems, setAllPaymentItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
