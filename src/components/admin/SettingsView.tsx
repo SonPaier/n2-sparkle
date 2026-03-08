@@ -400,6 +400,19 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 disabled={prioritiesLoading}
               />
             </div>
+            {employeesEnabled && (
+              <div className="flex items-center justify-between py-3 border-t border-border">
+                <div className="space-y-0.5">
+                  <Label className="text-sm font-medium">Widok kalendarza pracowników</Label>
+                  <p className="text-xs text-muted-foreground">Widok kalendarza z podziałem na pracowników i detekcją konfliktów</p>
+                </div>
+                <Switch
+                  checked={employeeCalendarViewEnabled}
+                  onCheckedChange={toggleEmployeeCalendarView}
+                  disabled={employeeCalendarViewLoading}
+                />
+              </div>
+            )}
           </div>
         );
 
