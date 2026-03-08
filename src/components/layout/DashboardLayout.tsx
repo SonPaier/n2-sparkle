@@ -4,6 +4,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { UpdateBanner } from '@/components/pwa/UpdateBanner';
+import { OfflineBanner } from '@/components/pwa/OfflineBanner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
