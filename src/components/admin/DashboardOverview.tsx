@@ -49,6 +49,7 @@ interface CalendarItemRow {
   price: number | null;
   employee_names?: string[];
   overdue_days?: number;
+  priority?: number | null;
 }
 
 interface ReminderRow {
