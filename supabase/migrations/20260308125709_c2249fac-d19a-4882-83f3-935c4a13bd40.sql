@@ -1,0 +1,1 @@
+ALTER TABLE public.workers_settings ADD COLUMN settlement_type TEXT NOT NULL DEFAULT 'hourly';

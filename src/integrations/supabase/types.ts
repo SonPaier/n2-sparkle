@@ -1866,6 +1866,7 @@ export type Database = {
           instance_id: string
           overtime_enabled: boolean
           report_frequency: string
+          settlement_type: string
           standard_hours_per_day: number
           start_stop_enabled: boolean
           time_calculation_mode: string
@@ -1874,6 +1875,7 @@ export type Database = {
           instance_id: string
           overtime_enabled?: boolean
           report_frequency?: string
+          settlement_type?: string
           standard_hours_per_day?: number
           start_stop_enabled?: boolean
           time_calculation_mode?: string
@@ -1882,6 +1884,7 @@ export type Database = {
           instance_id?: string
           overtime_enabled?: boolean
           report_frequency?: string
+          settlement_type?: string
           standard_hours_per_day?: number
           start_stop_enabled?: boolean
           time_calculation_mode?: string
