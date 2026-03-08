@@ -628,7 +628,7 @@ const EmployeeCalendarPage = () => {
                         calendarItemId: item.id,
                       });
                       setProtocolFormOpen(true);
-                    }}
+                    } : undefined}
                     instanceId={instanceId || undefined}
                     isEmployee
                   />
