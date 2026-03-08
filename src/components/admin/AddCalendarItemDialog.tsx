@@ -365,7 +365,7 @@ const AddCalendarItemDialog = ({
     setSendImmediateSms(false);
     setImmediateSmsTemplate(null);
     setImmediateSmsTemplateId(null);
-  }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns, initialCustomerId, initialCustomerName, initialCustomerPhone, initialCustomerEmail, initialCustomerAddressId, initialServiceIds]);
+  }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns, initialCustomerId, initialCustomerName, initialCustomerPhone, initialCustomerEmail, initialCustomerAddressId, initialServiceIds, initialProjectId, availableProjects]);
 
   const handleSelectCustomer = (customer: SelectedCustomer) => {
     setCustomerId(customer.id);
