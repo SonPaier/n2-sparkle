@@ -633,22 +633,25 @@ const AdminCalendar = ({
     const leftOffset = overlapInfo.hasOverlap ? overlapInfo.index * OVERLAP_OFFSET_PERCENT : 0;
     const rightOffset = overlapInfo.hasOverlap ? (overlapInfo.total - 1 - overlapInfo.index) * OVERLAP_OFFSET_PERCENT : 0;
 
+    const hasConflict = conflictItemIds?.has(item.id);
+
     return (
       <div
         key={item.id}
-        draggable={!isMobile}
-        onDragStart={(e) => handleDragStart(e, item)}
+        draggable={!isMobile && !employeeViewActive}
+        onDragStart={(e) => !employeeViewActive && handleDragStart(e, item)}
         onDragEnd={handleDragEnd}
         className={cn(
           "absolute rounded-lg border px-1 md:px-2 py-0 md:py-1 md:pb-1.5",
-          !isMobile && "cursor-grab active:cursor-grabbing",
-          isMobile && "cursor-pointer",
+          !isMobile && !employeeViewActive && "cursor-grab active:cursor-grabbing",
+          (isMobile || employeeViewActive) && "cursor-pointer",
           "transition-all duration-150 hover:shadow-lg hover:z-20",
           "overflow-hidden select-none",
           getStatusColor(item.status),
           isDragging && "opacity-30 scale-95",
           !isDragging && draggedItem && "pointer-events-none",
-          isSelected && "border-4 shadow-lg z-30"
+          isSelected && "border-4 shadow-lg z-30",
+          hasConflict && "ring-2 ring-red-500 ring-offset-1"
         )}
         style={{
           ...style,
