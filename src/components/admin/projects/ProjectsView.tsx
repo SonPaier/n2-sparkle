@@ -181,7 +181,7 @@ const ProjectsView = ({ instanceId }: ProjectsViewProps) => {
           {isLoading ? (
             <p className="text-center text-muted-foreground py-8">Ładowanie...</p>
           ) : filteredProjects.length === 0 ? (
-            <EmptyState icon={FolderKanban} title="Brak projektów" description="Dodaj pierwszy projekt, aby grupować zlecenia" />
+            <EmptyState icon={FolderKanban} message="Brak projektów — dodaj pierwszy projekt, aby grupować zlecenia" />
           ) : paginatedProjects.map(project => {
             const stages = stageMap[project.id] || { total: 0, completed: 0 };
             const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.active;
