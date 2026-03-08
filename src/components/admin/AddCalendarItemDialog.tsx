@@ -190,7 +190,7 @@ const AddCalendarItemDialog = ({
   // Fetch available projects
   useEffect(() => {
     if (!instanceId || !projectsEnabled) { setAvailableProjects([]); return; }
-    supabase.from('projects' as any).select('id, title, customer_id, customer_address_id').eq('instance_id', instanceId).eq('status', 'active').order('created_at', { ascending: false })
+    supabase.from('projects' as any).select('id, title, customer_id, customer_address_id').eq('instance_id', instanceId).in('status', ['not_started', 'in_progress']).order('created_at', { ascending: false })
       .then(({ data }: any) => setAvailableProjects(data || []));
   }, [instanceId, projectsEnabled]);
 
@@ -302,6 +302,8 @@ const AddCalendarItemDialog = ({
       // Handle initial project
       if (initialProjectId) {
         setProjectId(initialProjectId);
+        // Force no dates when adding from project view
+        setDateRange(undefined);
         // Auto-fill customer/address from project
         const proj = availableProjects.find(p => p.id === initialProjectId);
         if (proj) {
@@ -684,7 +686,7 @@ const AddCalendarItemDialog = ({
       }
 
       // Notify assigned employees about new/updated assignment
-      if (activitiesEnabled && assignedEmployeeIds.length > 0) {
+      if (activitiesEnabled && assignedEmployeeIds.length > 0 && hasDate) {
         const { data: emps } = await supabase
           .from('employees')
           .select('linked_user_id')
@@ -808,7 +810,9 @@ const AddCalendarItemDialog = ({
               />
             </div>
 
-            {/* Date - RadioGroup + Calendar */}
+            {/* Date - RadioGroup + Calendar (hidden when adding from project) */}
+            {!initialProjectId && (
+            <>
             <div className="space-y-2">
               <Label>Długość zlecenia</Label>
               <RadioGroup
@@ -921,6 +925,14 @@ const AddCalendarItemDialog = ({
                 </Select>
               </div>
             </div>
+            </>
+            )}
+
+            {initialProjectId && (
+              <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm text-muted-foreground">
+                Zlecenie zostanie dodane bez daty — możesz ją ustawić później z poziomu kalendarza.
+              </div>
+            )}
 
             {/* Assigned Employees */}
             {employeesEnabled && (

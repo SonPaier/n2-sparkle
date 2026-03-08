@@ -19,9 +19,9 @@ interface ProjectDetailsDrawerProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
-  active: { label: 'Aktywny', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
-  completed: { label: 'Zakończony', badgeClass: 'bg-slate-100 text-slate-600 border-slate-300' },
-  cancelled: { label: 'Anulowany', badgeClass: 'bg-red-100 text-red-600 border-red-300' },
+  not_started: { label: 'Nierozpoczęty', badgeClass: 'bg-slate-100 text-slate-600 border-slate-300' },
+  in_progress: { label: 'W trakcie', badgeClass: 'bg-blue-100 text-blue-700 border-blue-300' },
+  completed: { label: 'Zakończony', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
 };
 
 const ORDER_STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
@@ -81,7 +81,7 @@ const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, on
 
   const nonCancelledOrders = orders.filter((o: any) => o.status !== 'cancelled');
   const completedOrders = nonCancelledOrders.filter((o: any) => o.status === 'completed');
-  const statusCfg = STATUS_CONFIG[project?.status] || STATUS_CONFIG.active;
+  const statusCfg = STATUS_CONFIG[project?.status] || STATUS_CONFIG.not_started;
 
   if (!project) return null;
 
@@ -147,7 +147,20 @@ const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, on
 
           {/* Orders list */}
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold">Zlecenia w projekcie</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Zlecenia w projekcie</h3>
+              {onAddOrder && project.status !== 'completed' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => onAddOrder(project.id, project.customer_id, project.customer_address_id)}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Dodaj zlecenie
+                </Button>
+              )}
+            </div>
             {orders.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">Brak zleceń w tym projekcie</p>
             ) : (
@@ -183,7 +196,7 @@ const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, on
           </div>
         </div>
 
-        {onAddOrder && project.status === 'active' && (
+        {onAddOrder && project.status !== 'completed' && orders.length === 0 && (
           <div className="px-6 py-4 border-t border-border shrink-0">
             <Button
               variant="outline"

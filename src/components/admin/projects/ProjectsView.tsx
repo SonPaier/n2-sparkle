@@ -33,9 +33,9 @@ interface ProjectStageCount {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
-  active: { label: 'Aktywny', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
-  completed: { label: 'Zakończony', badgeClass: 'bg-slate-100 text-slate-600 border-slate-300' },
-  cancelled: { label: 'Anulowany', badgeClass: 'bg-red-100 text-red-600 border-red-300' },
+  not_started: { label: 'Nierozpoczęty', badgeClass: 'bg-slate-100 text-slate-600 border-slate-300' },
+  in_progress: { label: 'W trakcie', badgeClass: 'bg-blue-100 text-blue-700 border-blue-300' },
+  completed: { label: 'Zakończony', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -131,13 +131,10 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
   }, [filteredProjects, currentPage]);
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from('projects' as any)
-      .update({ status: 'cancelled' })
-      .eq('id', id);
-    if (error) { toast.error('Błąd anulowania projektu'); return; }
+    const { error } = await (supabase.from('projects' as any) as any).delete().eq('id', id);
+    if (error) { toast.error('Błąd usuwania projektu'); return; }
     queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
-    toast.success('Projekt anulowany');
+    toast.success('Projekt usunięty');
   };
 
   const handleOpenDetails = (projectId: string) => {
@@ -185,7 +182,7 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
             <EmptyState icon={FolderKanban} message="Brak projektów — dodaj pierwszy projekt, aby grupować zlecenia" />
           ) : paginatedProjects.map(project => {
             const stages = stageMap[project.id] || { total: 0, completed: 0 };
-            const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.active;
+            const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
             return (
               <div
                 key={project.id}
@@ -230,7 +227,7 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
               ) : paginatedProjects.map((project, idx) => {
                 const stages = stageMap[project.id] || { total: 0, completed: 0 };
-                const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.active;
+                const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
                 return (
                   <TableRow key={project.id} className="cursor-pointer" onClick={() => handleOpenDetails(project.id)}>
                     <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
@@ -251,11 +248,9 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
                           <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(project); }}>
                             Edytuj
                           </DropdownMenuItem>
-                          {project.status !== 'cancelled' && (
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} className="text-destructive">
-                              <Trash2 className="w-4 h-4 mr-2" />Anuluj
-                            </DropdownMenuItem>
-                          )}
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} className="text-destructive">
+                            <Trash2 className="w-4 h-4 mr-2" />Usuń
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
