@@ -481,6 +481,7 @@ const Dashboard = () => {
             onPaymentClick={handleDashboardPaymentClick}
             onViewNotifications={() => handleViewChange('aktywnosci')}
             remindersEnabled={remindersEnabled}
+            prioritiesEnabled={prioritiesEnabled}
           />
         </div>
       );

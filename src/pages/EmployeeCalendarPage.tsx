@@ -398,6 +398,7 @@ const EmployeeCalendarPage = () => {
       assigned_employee_ids: item.assigned_employee_ids, item_date: item.item_date,
       end_date: item.end_date, start_time: item.start_time, end_time: item.end_time,
       column_id: item.column_id, admin_notes: item.admin_notes, price: item.price,
+      priority: (item as any).priority,
     });
     setDetailsOpen(false);
     setAddItemOpen(true);
