@@ -851,10 +851,25 @@ const AddCalendarItemDialog = ({
             </div>
             )}
 
-            {/* Price */}
-            <div className="space-y-2">
-              <Label>Cena netto</Label>
-              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} min="0" step="0.01" className="bg-white w-1/3" />
+            {/* Price + Priority */}
+            <div className="flex gap-3">
+              <div className="space-y-2 w-1/3">
+                <Label>Cena netto</Label>
+                <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} min="0" step="0.01" className="bg-white" />
+              </div>
+              {prioritiesEnabled && (
+                <div className="space-y-2 w-1/3">
+                  <Label>Priorytet</Label>
+                  <Select value={String(priority)} onValueChange={(v) => setPriority(Number(v))}>
+                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent className="z-[1200]">
+                      {PRIORITY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Notes */}

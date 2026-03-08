@@ -875,6 +875,10 @@ const CalendarItemDetailsDrawer = ({
               {!isEmployee && item.status !== 'confirmed' && (
                 <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
               )}
+              {prioritiesEnabled && (item as any).priority != null && (item as any).priority !== DEFAULT_PRIORITY && (() => {
+                const cfg = getPriorityConfig((item as any).priority);
+                return <Badge className={`${cfg.badgeCls} border`}>{cfg.label}</Badge>;
+              })()}
             </div>
           </div>
 
