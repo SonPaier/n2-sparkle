@@ -860,7 +860,7 @@ const CalendarItemDetailsDrawer = ({
             {/* Line 2: date + time */}
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[14px] text-foreground capitalize">{shortDate}</span>
-              {!hideHours && (
+              {!hideHours && item.start_time && item.end_time && (
                 <>
                   <span className="text-muted-foreground">·</span>
                   <span className="text-[14px] font-medium">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
