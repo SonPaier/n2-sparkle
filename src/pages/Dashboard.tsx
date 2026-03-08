@@ -20,6 +20,7 @@ import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDial
 import { EmployeesView } from '@/components/admin/employees';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import SettlementsView from '@/components/admin/SettlementsView';
+import ProjectsView from '@/components/admin/projects/ProjectsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import RemindersView from '@/components/admin/reminders/RemindersView';
 import AddEditReminderDrawer from '@/components/admin/reminders/AddEditReminderDrawer';
