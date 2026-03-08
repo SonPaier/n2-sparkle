@@ -302,6 +302,8 @@ const AddCalendarItemDialog = ({
       // Handle initial project
       if (initialProjectId) {
         setProjectId(initialProjectId);
+        // Force no dates when adding from project view
+        setDateRange(undefined);
         // Auto-fill customer/address from project
         const proj = availableProjects.find(p => p.id === initialProjectId);
         if (proj) {
