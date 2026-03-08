@@ -291,6 +291,10 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
         instanceId={instanceId}
         onEdit={(project) => { setDetailsOpen(false); handleEdit(project); }}
         onOrdersChanged={invalidate}
+        onAddOrder={onAddOrder ? (projectId, customerId, customerAddressId) => {
+          setDetailsOpen(false);
+          onAddOrder(projectId, customerId, customerAddressId);
+        } : undefined}
       />
     </div>
   );
