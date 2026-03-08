@@ -1,40 +1,30 @@
 
 
-## Plan: Protokoły za flagą feature toggle
+## Plan: Nadpisanie ceny zlecenia kwotą netto z faktury
 
-Dodanie flagi `protocols` do systemu feature toggles — analogicznie do istniejących `activities` i `employees`.
+### Problem
+Po wystawieniu faktury, cena w zleceniu (`calendar_items.price`) nie jest aktualizowana. Powinna zostać nadpisana wartością netto z faktury.
 
-### Miejsca do zmiany
+### Rozwiązanie
+Po pomyślnym wystawieniu faktury, w `handleSubmit` w `useInvoiceForm.ts`, zaktualizować `calendar_items.price` wartością `totalNetto` (obliczaną już w hooku). Następnie wywołać `onSuccess` aby odświeżyć listę.
 
-**1. `src/components/admin/SettingsView.tsx`** — toggle w Ustawienia → Aplikacja
-- Dodać `useInstanceFeature(instanceId, 'protocols')` 
-- Dodać Switch "Protokoły" pod istniejącymi toggleami
+### Zmiany
 
-**2. `src/components/layout/DashboardLayout.tsx`** — nawigacja admin
-- Dodać `useInstanceFeature(instanceId ?? null, 'protocols')`
-- Filtrować `protokoly` z `navItems` gdy wyłączone
+**`src/components/invoicing/useInvoiceForm.ts`** — w `handleSubmit`, po pomyślnym utworzeniu faktury (linia ~227), dodać update:
 
-**3. `src/pages/Dashboard.tsx`** — widok admin
-- Dodać `useInstanceFeature(instanceId, 'protocols')`
-- Ukryć renderowanie `ProtocolsView` gdy wyłączone
-- Ukryć przycisk `onAddProtocol` w `CalendarItemDetailsDrawer` — przekazywać `onAddProtocol={protocolsEnabled ? handler : undefined}`
+```typescript
+// Po: if (data?.error) throw new Error(data.error);
+// Nadpisz cenę zlecenia kwotą netto
+if (calendarItemId) {
+  await supabase
+    .from('calendar_items')
+    .update({ price: totalNetto })
+    .eq('id', calendarItemId);
+}
+```
 
-**4. `src/pages/EmployeeCalendarPage.tsx`** — widok pracownika
-- Dodać `useInstanceFeature(instanceId, 'protocols')`
-- Filtrować `protokoly` z `navItems` pracownika
-- Analogicznie `onAddProtocol={protocolsEnabled ? handler : undefined}`
+Wykorzystujemy `totalNetto` już obliczane w hooku (linia 151-166). Callback `onSuccess` (już wywoływany w linii 232) odświeża listę zleceń w komponencie nadrzędnym.
 
-**5. `src/components/admin/CalendarItemDetailsDrawer.tsx`** — przycisk "Protokół" w szczegółach zlecenia
-- Przycisk już jest warunkowo renderowany (`onAddProtocol &&`) — wystarczy nie przekazywać propa z poziomu Dashboard/EmployeeCalendarPage gdy flaga wyłączona. Nie trzeba zmieniać tego komponentu.
-
-### Zakres zmian
-
-| Plik | Zmiana |
-|---|---|
-| `src/components/admin/SettingsView.tsx` | Dodać toggle "Protokoły" |
-| `src/components/layout/DashboardLayout.tsx` | Filtrować nav item `protokoly` |
-| `src/pages/Dashboard.tsx` | Warunkowo ukryć widok i przycisk protokołu |
-| `src/pages/EmployeeCalendarPage.tsx` | Warunkowo ukryć nav i przycisk protokołu |
-
-Brak zmian w bazie danych — system `instance_features` już obsługuje dowolne klucze, a brak rekordu = domyślnie włączone.
+### Pliki do zmiany
+- `src/components/invoicing/useInvoiceForm.ts` — 1 zmiana (dodanie update po create_invoice)
 

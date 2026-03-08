@@ -66,10 +66,12 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const dashboardLabel = dashboardSettings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień';
 
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId ?? null, 'employees');
+  const { enabled: protocolsEnabled } = useInstanceFeature(instanceId ?? null, 'protocols');
 
   const filteredNavItems = navItems
     .filter(i => activitiesEnabled || i.id !== 'aktywnosci')
-    .filter(i => employeesEnabled || i.id !== 'pracownicy');
+    .filter(i => employeesEnabled || i.id !== 'pracownicy')
+    .filter(i => protocolsEnabled || i.id !== 'protokoly');
   const filteredBottomBarItems = activitiesEnabled ? bottomBarItems : bottomBarItems.filter(i => i.id !== 'aktywnosci');
 
   useEffect(() => {

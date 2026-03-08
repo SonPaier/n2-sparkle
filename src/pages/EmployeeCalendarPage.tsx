@@ -65,6 +65,7 @@ const EmployeeCalendarPage = () => {
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
+  const { enabled: protocolsEnabled } = useInstanceFeature(instanceId, 'protocols');
   const { unreadCount } = useNotifications(activitiesEnabled ? instanceId : null);
   const { settings: dashboardSettings } = useDashboardSettings(instanceId);
   const mainRef = useRef<HTMLElement>(null);
@@ -414,7 +415,7 @@ const EmployeeCalendarPage = () => {
   const navItems = [
     { id: 'dashboard' as EmployeeView, label: dashboardSettings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień', icon: LayoutDashboard },
     { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
-    { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
+    ...(protocolsEnabled ? [{ id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck }] : []),
   ];
 
   return (
@@ -497,9 +498,8 @@ const EmployeeCalendarPage = () => {
                 canEditServices={!!allowedActions.edit_services}
                 hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                 hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
-                onAddProtocol={async (item) => {
+                onAddProtocol={protocolsEnabled ? async (item) => {
                   setDetailsOpen(false);
-                  // Check if protocol already exists for this calendar item
                   const { data: existing } = await supabase
                     .from('protocols')
                     .select('id')
@@ -516,7 +516,7 @@ const EmployeeCalendarPage = () => {
                     calendarItemId: item.id,
                   });
                   setProtocolFormOpen(true);
-                }}
+                } : undefined}
                 instanceId={instanceId || undefined}
                 forceSideRight
                 isEmployee
@@ -610,7 +610,7 @@ const EmployeeCalendarPage = () => {
                     canEditServices={!!allowedActions.edit_services}
                     hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                     hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
-                    onAddProtocol={async (item) => {
+                    onAddProtocol={protocolsEnabled ? async (item) => {
                       setDetailsOpen(false);
                       const { data: existing } = await supabase
                         .from('protocols')
@@ -628,7 +628,7 @@ const EmployeeCalendarPage = () => {
                         calendarItemId: item.id,
                       });
                       setProtocolFormOpen(true);
-                    }}
+                    } : undefined}
                     instanceId={instanceId || undefined}
                     isEmployee
                   />

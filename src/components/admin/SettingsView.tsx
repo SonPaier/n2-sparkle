@@ -94,6 +94,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
 
   const { enabled: activitiesEnabled, loading: activitiesLoading, toggle: toggleActivities } = useInstanceFeature(instanceId, 'activities');
   const { enabled: employeesEnabled, loading: employeesLoading, toggle: toggleEmployees } = useInstanceFeature(instanceId, 'employees');
+  const { enabled: protocolsEnabled, loading: protocolsLoading, toggle: toggleProtocols } = useInstanceFeature(instanceId, 'protocols');
 
   const allTabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
@@ -361,6 +362,17 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 checked={employeesEnabled}
                 onCheckedChange={toggleEmployees}
                 disabled={employeesLoading}
+              />
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Protokoły</Label>
+                <p className="text-xs text-muted-foreground">Moduł protokołów serwisowych zakończenia prac</p>
+              </div>
+              <Switch
+                checked={protocolsEnabled}
+                onCheckedChange={toggleProtocols}
+                disabled={protocolsLoading}
               />
             </div>
           </div>

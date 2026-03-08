@@ -64,6 +64,7 @@ const Dashboard = () => {
   const instanceId = adminRole?.instance_id ?? null;
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
+  const { enabled: protocolsEnabled } = useInstanceFeature(instanceId, 'protocols');
 
   const hostname = window.location.hostname;
   const isSubdomain = hostname.endsWith('.n2service.com');
@@ -497,7 +498,7 @@ const Dashboard = () => {
       return <div className="max-w-[1000px] mx-auto"><EmployeesView instanceId={instanceId} /></div>;
     }
 
-    if (currentView === 'protokoly' && instanceId) {
+    if (currentView === 'protokoly' && instanceId && protocolsEnabled) {
       return <div className="max-w-[1000px] mx-auto"><ProtocolsView instanceId={instanceId} /></div>;
     }
 
@@ -554,7 +555,7 @@ const Dashboard = () => {
             onStatusChange={handleStatusChange}
             onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
             onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
-            onAddProtocol={async (item) => {
+            onAddProtocol={protocolsEnabled ? async (item) => {
               setDetailsOpen(false);
               const { data: existing } = await supabase
                 .from('protocols')
@@ -572,7 +573,7 @@ const Dashboard = () => {
                 calendarItemId: item.id,
               });
               setProtocolFormOpen(true);
-            }}
+            } : undefined}
             instanceId={instanceId || undefined}
           />
 
@@ -670,7 +671,7 @@ const Dashboard = () => {
         onStatusChange={handleStatusChange}
         onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
         onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
-        onAddProtocol={async (item) => {
+        onAddProtocol={protocolsEnabled ? async (item) => {
           setDashboardDetailsOpen(false);
           const { data: existing } = await supabase
             .from('protocols')
@@ -688,7 +689,7 @@ const Dashboard = () => {
             calendarItemId: item.id,
           });
           setProtocolFormOpen(true);
-        }}
+        } : undefined}
         instanceId={instanceId || undefined}
       />
 
