@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Search, Plus, MoreHorizontal, Trash2, Eye, FolderKanban } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Search, Plus, MoreHorizontal, Trash2, Eye, FolderKanban, GripVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,22 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import EmptyState from '@/components/ui/empty-state';
 import AddEditProjectDrawer from './AddEditProjectDrawer';
 import ProjectDetailsDrawer from './ProjectDetailsDrawer';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers' with { type: 'not-used' };
 
 interface ProjectRow {
   id: string;
@@ -52,12 +68,118 @@ const ORDER_STATUS_CONFIG: Record<string, { label: string; dotClass: string }> =
 
 const ITEMS_PER_PAGE = 10;
 
+// Sortable order row component
+const SortableOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: () => void }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: order.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const statusCfg = ORDER_STATUS_CONFIG[order.status] || ORDER_STATUS_CONFIG.confirmed;
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className="bg-background hover:bg-muted/30 cursor-pointer"
+      onClick={onClick}
+    >
+      <TableCell className="w-[60px] py-1.5">
+        <button
+          className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground hover:text-foreground touch-none"
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <GripVertical className="w-3.5 h-3.5" />
+        </button>
+      </TableCell>
+      <TableCell colSpan={2} className="py-1.5">
+        <div className="flex items-center gap-2 pl-4">
+          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusCfg.dotClass}`} />
+          <span className="text-xs text-muted-foreground font-medium">
+            {order.stage_number ? `#${order.stage_number}` : '—'}
+          </span>
+          <span className="text-sm truncate">{order.title}</span>
+        </div>
+      </TableCell>
+      <TableCell className="py-1.5 text-xs text-muted-foreground">
+        {order.item_date
+          ? format(new Date(order.item_date + 'T00:00:00'), 'd MMM yyyy', { locale: pl })
+          : 'Bez daty'}
+      </TableCell>
+      <TableCell className="py-1.5">
+        <span className="text-xs text-muted-foreground">{statusCfg.label}</span>
+      </TableCell>
+      <TableCell />
+      <TableCell />
+    </TableRow>
+  );
+};
+
+// Mobile sortable order row
+const SortableMobileOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: () => void }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: order.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const osCfg = ORDER_STATUS_CONFIG[order.status] || ORDER_STATUS_CONFIG.confirmed;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/30 rounded px-1 py-0.5"
+      onClick={onClick}
+    >
+      <button
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none shrink-0"
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <GripVertical className="w-3 h-3" />
+      </button>
+      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${osCfg.dotClass}`} />
+      <span className="text-muted-foreground font-medium">{order.stage_number ? `#${order.stage_number}` : '—'}</span>
+      <span className="truncate flex-1">{order.title}</span>
+      <span className="text-muted-foreground shrink-0">
+        {order.item_date
+          ? format(new Date(order.item_date + 'T00:00:00'), 'd MMM', { locale: pl })
+          : 'Bez daty'}
+      </span>
+    </div>
+  );
+};
+
 interface ProjectsViewProps {
   instanceId: string;
   onAddOrder?: (projectId: string, customerId: string | null, customerAddressId: string | null) => void;
+  onOpenCalendarItem?: (itemId: string) => void;
 }
 
-const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
+const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -66,6 +188,11 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
   const [detailsProjectId, setDetailsProjectId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor)
+  );
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ['projects', instanceId],
@@ -80,7 +207,6 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
     },
   });
 
-  // Fetch customer names
   const customerIds = useMemo(() => [...new Set(projects.map(p => p.customer_id).filter(Boolean))] as string[], [projects]);
   const { data: customerMap = {} } = useQuery({
     queryKey: ['projects-customers', instanceId, customerIds],
@@ -93,7 +219,6 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
     },
   });
 
-  // Fetch all orders for all projects
   const projectIds = useMemo(() => projects.map(p => p.id), [projects]);
   const { data: allOrders = [] } = useQuery({
     queryKey: ['projects-orders', instanceId, projectIds],
@@ -166,36 +291,45 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
     queryClient.invalidateQueries({ queryKey: ['projects-orders', instanceId] });
   };
 
-  const renderOrderRows = (projectOrders: ProjectOrder[]) => {
-    if (projectOrders.length === 0) return null;
-    return projectOrders.map(order => {
-      const statusCfg = ORDER_STATUS_CONFIG[order.status] || ORDER_STATUS_CONFIG.confirmed;
-      return (
-        <TableRow key={order.id} className="bg-muted/20 hover:bg-muted/30">
-          <TableCell />
-          <TableCell colSpan={2} className="py-1.5">
-            <div className="flex items-center gap-2 pl-4">
-              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusCfg.dotClass}`} />
-              <span className="text-xs text-muted-foreground font-medium">
-                {order.stage_number ? `#${order.stage_number}` : '—'}
-              </span>
-              <span className="text-sm truncate">{order.title}</span>
-            </div>
-          </TableCell>
-          <TableCell className="py-1.5 text-xs text-muted-foreground">
-            {order.item_date
-              ? format(new Date(order.item_date + 'T00:00:00'), 'd MMM yyyy', { locale: pl })
-              : 'Bez daty'}
-          </TableCell>
-          <TableCell className="py-1.5">
-            <span className="text-xs text-muted-foreground">{statusCfg.label}</span>
-          </TableCell>
-          <TableCell />
-          <TableCell />
-        </TableRow>
-      );
-    });
+  const handleOrderClick = (orderId: string) => {
+    if (onOpenCalendarItem) {
+      onOpenCalendarItem(orderId);
+    }
   };
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent, projectId: string) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const projectOrders = ordersMap[projectId] || [];
+    const oldIndex = projectOrders.findIndex(o => o.id === active.id);
+    const newIndex = projectOrders.findIndex(o => o.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    // Reorder locally
+    const reordered = [...projectOrders];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+
+    // Update stage_numbers: 1-based
+    const updates = reordered.map((o, i) => ({ id: o.id, stage_number: i + 1 }));
+
+    // Optimistic update
+    queryClient.setQueryData(['projects-orders', instanceId, projectIds], (old: ProjectOrder[] | undefined) => {
+      if (!old) return old;
+      const updateMap = new Map(updates.map(u => [u.id, u.stage_number]));
+      return old.map(o => updateMap.has(o.id) ? { ...o, stage_number: updateMap.get(o.id)! } : o);
+    });
+
+    // Persist
+    for (const u of updates) {
+      await (supabase.from('calendar_items') as any)
+        .update({ stage_number: u.stage_number })
+        .eq('id', u.id);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['projects-orders', instanceId] });
+  }, [ordersMap, queryClient, instanceId, projectIds]);
 
   return (
     <div className="space-y-4">
@@ -253,22 +387,22 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
                   </div>
                 </div>
                 {projectOrders.length > 0 && (
-                  <div className="border-t border-border bg-muted/20 px-3 py-2 space-y-1">
-                    {projectOrders.map(order => {
-                      const osCfg = ORDER_STATUS_CONFIG[order.status] || ORDER_STATUS_CONFIG.confirmed;
-                      return (
-                        <div key={order.id} className="flex items-center gap-2 text-xs">
-                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${osCfg.dotClass}`} />
-                          <span className="text-muted-foreground font-medium">{order.stage_number ? `#${order.stage_number}` : '—'}</span>
-                          <span className="truncate flex-1">{order.title}</span>
-                          <span className="text-muted-foreground shrink-0">
-                            {order.item_date
-                              ? format(new Date(order.item_date + 'T00:00:00'), 'd MMM', { locale: pl })
-                              : 'Bez daty'}
-                          </span>
-                        </div>
-                      );
-                    })}
+                  <div className="border-t border-border bg-background px-3 py-2 space-y-1">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={(e) => handleDragEnd(e, project.id)}
+                    >
+                      <SortableContext items={projectOrders.map(o => o.id)} strategy={verticalListSortingStrategy}>
+                        {projectOrders.map(order => (
+                          <SortableMobileOrderRow
+                            key={order.id}
+                            order={order}
+                            onClick={() => handleOrderClick(order.id)}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
                   </div>
                 )}
               </div>
@@ -299,35 +433,48 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
                 const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
                 const projectOrders = ordersMap[project.id] || [];
                 return (
-                  <>
-                    <TableRow key={project.id} className="cursor-pointer border-b-0 font-medium" onClick={() => handleOpenDetails(project.id)}>
-                      <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
-                      <TableCell className="font-medium">{project.title}</TableCell>
-                      <TableCell className="text-muted-foreground">{project.customer_id ? customerMap[project.customer_id] || '—' : '—'}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
-                      <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
-                      <TableCell className="text-center font-medium">{stages.completed}/{stages.total}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenDetails(project.id); }}>
-                              <Eye className="w-4 h-4 mr-2" />Zobacz
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(project); }}>
-                              Edytuj
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} className="text-destructive">
-                              <Trash2 className="w-4 h-4 mr-2" />Usuń
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                    {renderOrderRows(projectOrders)}
-                  </>
+                  <DndContext
+                    key={project.id}
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={(e) => handleDragEnd(e, project.id)}
+                  >
+                    <SortableContext items={projectOrders.map(o => o.id)} strategy={verticalListSortingStrategy}>
+                      <TableRow className="cursor-pointer border-b-0 font-medium" onClick={() => handleOpenDetails(project.id)}>
+                        <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
+                        <TableCell className="font-medium">{project.title}</TableCell>
+                        <TableCell className="text-muted-foreground">{project.customer_id ? customerMap[project.customer_id] || '—' : '—'}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
+                        <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
+                        <TableCell className="text-center font-medium">{stages.completed}/{stages.total}</TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenDetails(project.id); }}>
+                                <Eye className="w-4 h-4 mr-2" />Zobacz
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(project); }}>
+                                Edytuj
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} className="text-destructive">
+                                <Trash2 className="w-4 h-4 mr-2" />Usuń
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                      {projectOrders.map(order => (
+                        <SortableOrderRow
+                          key={order.id}
+                          order={order}
+                          onClick={() => handleOrderClick(order.id)}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
                 );
               })}
             </TableBody>
@@ -335,7 +482,6 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-2">
           <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>Poprzednia</Button>

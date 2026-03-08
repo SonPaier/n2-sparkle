@@ -651,7 +651,16 @@ const Dashboard = () => {
     }
 
     if (currentView === 'projekty' && instanceId && projectsEnabled) {
-      return <div className="max-w-[1000px] mx-auto"><ProjectsView instanceId={instanceId} onAddOrder={handleProjectAddOrder} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><ProjectsView instanceId={instanceId} onAddOrder={handleProjectAddOrder} onOpenCalendarItem={async (itemId) => {
+        const { data } = await (supabase.from('calendar_items') as any)
+          .select('*')
+          .eq('id', itemId)
+          .maybeSingle();
+        if (data) {
+          setSelectedItem(data as CalendarItem);
+          setDetailsOpen(true);
+        }
+      }} /></div>;
     }
 
     if (currentView === 'powiadomienia-sms') {
