@@ -664,6 +664,13 @@ const AdminCalendar = ({
         onClick={(e) => { e.stopPropagation(); onItemClick?.(item); }}
       >
         <div className="px-0.5 text-black space-y-[3px]">
+          {/* Project tag */}
+          {item.project_name && (
+            <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] truncate">
+              <FolderKanban className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate font-medium">{item.project_name}</span>
+            </div>
+          )}
           {/* Line 1: Title */}
            <div className="flex items-center gap-1 text-[13px] md:text-[15px] min-w-0">
             <span className="font-semibold truncate">{item.title}</span>
