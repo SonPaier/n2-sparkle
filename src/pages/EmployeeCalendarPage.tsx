@@ -610,7 +610,7 @@ const EmployeeCalendarPage = () => {
                     canEditServices={!!allowedActions.edit_services}
                     hidePrices={config?.visible_fields && (config.visible_fields as any).price === false}
                     hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
-                    onAddProtocol={async (item) => {
+                    onAddProtocol={protocolsEnabled ? async (item) => {
                       setDetailsOpen(false);
                       const { data: existing } = await supabase
                         .from('protocols')

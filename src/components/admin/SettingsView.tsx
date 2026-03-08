@@ -364,6 +364,17 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 disabled={employeesLoading}
               />
             </div>
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Protokoły</Label>
+                <p className="text-xs text-muted-foreground">Moduł protokołów serwisowych zakończenia prac</p>
+              </div>
+              <Switch
+                checked={protocolsEnabled}
+                onCheckedChange={toggleProtocols}
+                disabled={protocolsLoading}
+              />
+            </div>
           </div>
         );
 
