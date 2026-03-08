@@ -107,6 +107,7 @@ const AddCalendarItemDialog = ({
   const isEditMode = !!editingItem?.id;
   const isMobile = useIsMobile();
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
+  const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
   const { data: allEmployees = [] } = useEmployees(instanceId);
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
@@ -826,6 +827,7 @@ const AddCalendarItemDialog = ({
             </div>
 
             {/* Assigned Employees */}
+            {employeesEnabled && (
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <HardHat className="w-3.5 h-3.5" />
@@ -840,6 +842,7 @@ const AddCalendarItemDialog = ({
                 {assignedEmployeeIds.length > 0 ? 'Zmień pracowników' : 'Przypisz pracowników'}
               </Button>
             </div>
+            )}
 
             {/* Price */}
             <div className="space-y-2">

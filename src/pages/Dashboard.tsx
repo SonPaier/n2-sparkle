@@ -63,6 +63,7 @@ const Dashboard = () => {
   const adminRole = roles.find(r => (r.role === 'admin' || r.role === 'employee') && r.instance_id);
   const instanceId = adminRole?.instance_id ?? null;
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
+  const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
 
   const hostname = window.location.hostname;
   const isSubdomain = hostname.endsWith('.n2service.com');
@@ -539,6 +540,7 @@ const Dashboard = () => {
             selectedItemId={selectedItem?.id}
             onToggleMap={() => setMapOpen(prev => !prev)}
             mapOpen={mapOpen}
+            hideEmployeeChips={!employeesEnabled}
             workingHours={workingHours}
           />
 

@@ -93,8 +93,9 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
   }, [instanceId]);
 
   const { enabled: activitiesEnabled, loading: activitiesLoading, toggle: toggleActivities } = useInstanceFeature(instanceId, 'activities');
+  const { enabled: employeesEnabled, loading: employeesLoading, toggle: toggleEmployees } = useInstanceFeature(instanceId, 'employees');
 
-  const tabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
+  const allTabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
     { key: 'calendar', label: 'Kalendarz', icon: <Grid2X2 className="w-4 h-4" /> },
     { key: 'employee-calendars', label: 'Kalendarze pracowników', icon: <Monitor className="w-4 h-4" /> },
@@ -103,6 +104,8 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
     { key: 'integrations', label: 'Integracje', icon: <Plug className="w-4 h-4" /> },
     { key: 'app', label: 'Aplikacja', icon: <Smartphone className="w-4 h-4" /> },
   ];
+
+  const tabs = allTabs.filter(t => employeesEnabled || t.key !== 'employee-calendars');
 
   const handleInputChange = (field: string, value: string) => {
     setCompanyForm(prev => ({ ...prev, [field]: value }));
@@ -347,6 +350,17 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 checked={activitiesEnabled}
                 onCheckedChange={toggleActivities}
                 disabled={activitiesLoading}
+              />
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Pracownicy</Label>
+                <p className="text-xs text-muted-foreground">Moduł zarządzania pracownikami i przypisywania do zleceń</p>
+              </div>
+              <Switch
+                checked={employeesEnabled}
+                onCheckedChange={toggleEmployees}
+                disabled={employeesLoading}
               />
             </div>
           </div>

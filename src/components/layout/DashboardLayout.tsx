@@ -64,7 +64,11 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const isMobile = useIsMobile();
   const dashboardLabel = dashboardSettings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień';
 
-  const filteredNavItems = activitiesEnabled ? navItems : navItems.filter(i => i.id !== 'aktywnosci');
+  const { enabled: employeesEnabled } = useInstanceFeature(instanceId ?? null, 'employees');
+
+  const filteredNavItems = navItems
+    .filter(i => activitiesEnabled || i.id !== 'aktywnosci')
+    .filter(i => employeesEnabled || i.id !== 'pracownicy');
   const filteredBottomBarItems = activitiesEnabled ? bottomBarItems : bottomBarItems.filter(i => i.id !== 'aktywnosci');
 
   useEffect(() => {

@@ -28,6 +28,7 @@ import { useInvoicingSettings } from '@/components/invoicing/useInvoicingSetting
 import { useInvoices } from '@/components/invoicing/useInvoices';
 import CustomerOrderCard from './CustomerOrderCard';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
 
 interface SmsNotificationInfo {
@@ -356,6 +357,7 @@ const CalendarItemDetailsDrawer = ({
   const [historyDetailItem, setHistoryDetailItem] = useState<CalendarItem | null>(null);
   const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
   const { data: allEmployees = [] } = useEmployees(instanceId || null);
+  const { enabled: employeesEnabled } = useInstanceFeature(instanceId || null, 'employees');
   const { settings: invoicingSettings } = useInvoicingSettings(instanceId || null);
   const { data: itemInvoices = [], refetch: refetchInvoices } = useInvoices(instanceId || null, item?.id);
 
@@ -972,6 +974,7 @@ const CalendarItemDetailsDrawer = ({
               )}
 
               {/* Assigned Employees */}
+              {employeesEnabled && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   Przypisani pracownicy
@@ -1013,6 +1016,7 @@ const CalendarItemDetailsDrawer = ({
                   )}
                 </div>
               </div>
+              )}
 
               {/* Notes */}
               <div className="space-y-1">
