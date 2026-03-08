@@ -81,6 +81,7 @@ interface AdminCalendarProps {
   onToggleMap?: () => void;
   mapOpen?: boolean;
   hideHours?: boolean;
+  hideEmployeeChips?: boolean;
   workingHours?: WorkingHoursMap;
 }
 
