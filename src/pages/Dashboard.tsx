@@ -639,21 +639,32 @@ const Dashboard = () => {
       const calendarContent = (
         <>
           <AdminCalendar
-            columns={calendarColumns}
-            items={calendarItems}
-            breaks={calendarBreaks}
-            onItemClick={handleItemClick}
-            onAddItem={handleAddItem}
-            onAddBreak={handleAddBreak}
-            onDeleteBreak={handleDeleteBreak}
-            onItemMove={handleItemMove}
+            columns={employeeViewMode ? employeeColumns : calendarColumns}
+            items={employeeViewMode ? employeeViewItems : calendarItems}
+            breaks={employeeViewMode ? [] : calendarBreaks}
+            onItemClick={(item) => {
+              // Strip virtual ID suffix for employee view
+              if (employeeViewMode && item.id.includes('__emp_')) {
+                const originalId = item.id.split('__emp_')[0];
+                const original = calendarItems.find(i => i.id === originalId);
+                if (original) { handleItemClick(original); return; }
+              }
+              handleItemClick(item);
+            }}
+            onAddItem={employeeViewMode ? undefined : handleAddItem}
+            onAddBreak={employeeViewMode ? undefined : handleAddBreak}
+            onDeleteBreak={employeeViewMode ? undefined : handleDeleteBreak}
+            onItemMove={employeeViewMode ? undefined : handleItemMove}
             onDateChange={handleDateChange}
             selectedItemId={selectedItem?.id}
-            onToggleMap={() => setMapOpen(prev => !prev)}
-            mapOpen={mapOpen}
+            onToggleMap={employeeViewMode ? undefined : (() => setMapOpen(prev => !prev))}
+            mapOpen={employeeViewMode ? false : mapOpen}
             hideEmployeeChips={!employeesEnabled}
             workingHours={workingHours}
             prioritiesEnabled={prioritiesEnabled}
+            employeeViewActive={employeeViewMode}
+            onToggleEmployeeView={employeeCalendarViewEnabled && employeesEnabled ? toggleEmployeeView : undefined}
+            conflictItemIds={conflictItemIds}
           />
 
           <CalendarItemDetailsDrawer
