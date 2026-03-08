@@ -66,6 +66,7 @@ const Dashboard = () => {
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
   const { enabled: protocolsEnabled } = useInstanceFeature(instanceId, 'protocols');
   const { enabled: remindersEnabled } = useInstanceFeature(instanceId, 'reminders');
+  const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId, 'priorities');
 
   const hostname = window.location.hostname;
   const isSubdomain = hostname.endsWith('.n2service.com');
