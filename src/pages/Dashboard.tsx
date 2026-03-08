@@ -804,7 +804,7 @@ const Dashboard = () => {
       {instanceId && (
         <AddCalendarItemDialog
           open={addItemOpen}
-          onClose={() => { setAddItemOpen(false); setEditingItem(null); setMapOrderPrefill({}); }}
+          onClose={() => { setAddItemOpen(false); setEditingItem(null); setMapOrderPrefill({}); setInitialProjectId(undefined); }}
           instanceId={instanceId}
           columns={calendarColumns}
           onSuccess={handleItemSuccess}
@@ -817,6 +817,7 @@ const Dashboard = () => {
           initialCustomerPhone={mapOrderPrefill.customerPhone}
           initialCustomerEmail={mapOrderPrefill.customerEmail}
           initialCustomerAddressId={mapOrderPrefill.customerAddressId}
+          initialProjectId={initialProjectId}
         />
       )}
 
