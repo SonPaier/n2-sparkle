@@ -321,10 +321,12 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
             <Table className="w-full" style={{ tableLayout: 'fixed' }}>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead style={{ width: '47%' }}>Imię</TableHead>
-                  <TableHead className="text-center" style={{ width: '23%' }}>Przepracowano</TableHead>
-                  <TableHead className="text-right" style={{ width: '25%' }}>Wypłata</TableHead>
-                  {isAdmin && <TableHead style={{ width: '5%' }} />}
+                  <TableHead style={{ width: isPerOrder ? '60%' : '47%' }}>Imię</TableHead>
+                  <TableHead className="text-center" style={{ width: isPerOrder ? '30%' : '23%' }}>
+                    {isPerOrder ? 'Wykonano zleceń' : 'Przepracowano'}
+                  </TableHead>
+                  {!isPerOrder && <TableHead className="text-right" style={{ width: '25%' }}>Wypłata</TableHead>}
+                  {isAdmin && <TableHead style={{ width: isPerOrder ? '10%' : '5%' }} />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -338,10 +340,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2) : null;
                   const hours = Math.floor(displayMinutes / 60);
                   const mins = displayMinutes % 60;
+                  const orderCount = completedOrderCounts.get(employee.id) || 0;
                   
                   return (
                     <TableRow key={employee.id} className="cursor-pointer" onClick={() => handleTileClick(employee)}>
-                      <TableCell className="py-3" style={{ width: '47%' }}>
+                      <TableCell className="py-3" style={{ width: isPerOrder ? '60%' : '47%' }}>
                         <div className="flex items-center gap-2 min-w-0">
                           <Avatar className="h-8 w-8 flex-shrink-0">
                             <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
@@ -352,31 +355,47 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                           <span className="font-medium truncate">{employee.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center py-3" style={{ width: '23%' }}>
-                        <div className="text-sm leading-tight">
-                          {hours > 0 && <div>{hours}h</div>}
-                          <div>{mins}min</div>
-                        </div>
+                      <TableCell className="text-center py-3" style={{ width: isPerOrder ? '30%' : '23%' }}>
+                        {isPerOrder ? (
+                          <span className="text-sm font-medium">{orderCount}</span>
+                        ) : (
+                          <div className="text-sm leading-tight">
+                            {hours > 0 && <div>{hours}h</div>}
+                            <div>{mins}min</div>
+                          </div>
+                        )}
                       </TableCell>
-                      <TableCell className="text-right py-3 whitespace-nowrap font-medium" style={{ width: '25%' }}>
-                        {earnings ? `${earnings} zł` : '-'}
-                      </TableCell>
+                      {!isPerOrder && (
+                        <TableCell className="text-right py-3 whitespace-nowrap font-medium" style={{ width: '25%' }}>
+                          {earnings ? `${earnings} zł` : '-'}
+                        </TableCell>
+                      )}
                       {isAdmin && (
-                        <TableCell className="text-center py-3" style={{ width: '5%' }}>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setAuditEmployee(employee); }}
-                            className="p-1 rounded hover:bg-accent transition-colors"
-                            title="Historia zmian"
-                          >
-                            <FileText className="w-4 h-4 text-muted-foreground" />
-                          </button>
+                        <TableCell className="text-center py-3" style={{ width: isPerOrder ? '10%' : '5%' }}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <button className="p-1 rounded hover:bg-accent transition-colors">
+                                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setAuditEmployee(employee); }}>
+                                <FileText className="w-4 h-4 mr-2" />
+                                Historia zmian
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setOrdersEmployee(employee); }}>
+                                <ClipboardList className="w-4 h-4 mr-2" />
+                                Wykonane zlecenia
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       )}
                     </TableRow>
                   );
                 })}
               </TableBody>
-              {isAdmin && totalEarnings > 0 && (
+              {isAdmin && !isPerOrder && totalEarnings > 0 && (
                 <TableFooter className="bg-card">
                   <TableRow>
                     <TableCell colSpan={2} className="py-3 text-right text-xs text-muted-foreground">
