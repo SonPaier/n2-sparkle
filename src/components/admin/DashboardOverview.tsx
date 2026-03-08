@@ -24,6 +24,7 @@ interface DashboardOverviewProps {
   onReminderClick?: (reminderId: string) => void;
   onPaymentClick?: (itemId: string) => void;
   onViewNotifications?: () => void;
+  remindersEnabled?: boolean;
 }
 
 interface CalendarItemRow {
