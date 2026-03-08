@@ -410,36 +410,40 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
           })}
         </div>
       ) : (
-        <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[60px]">Nr</TableHead>
-                <TableHead>Tytuł</TableHead>
-                <TableHead>Klient</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Etapy</TableHead>
-                <TableHead className="w-[50px]" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
-              ) : filteredProjects.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
-              ) : paginatedProjects.map((project, idx) => {
-                const stages = stageMap[project.id] || { total: 0, completed: 0 };
-                const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
-                const projectOrders = ordersMap[project.id] || [];
-                return (
-                  <DndContext
-                    key={project.id}
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={(e) => handleDragEnd(e, project.id)}
-                  >
-                    <SortableContext items={projectOrders.map(o => o.id)} strategy={verticalListSortingStrategy}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={(e) => {
+            // Find which project this order belongs to
+            const activeId = e.active.id as string;
+            const order = allOrders.find(o => o.id === activeId);
+            if (order) handleDragEnd(e, order.project_id);
+          }}
+        >
+          <div className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[60px]">Nr</TableHead>
+                  <TableHead>Tytuł</TableHead>
+                  <TableHead>Klient</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Etapy</TableHead>
+                  <TableHead className="w-[50px]" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
+                ) : filteredProjects.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
+                ) : paginatedProjects.map((project, idx) => {
+                  const stages = stageMap[project.id] || { total: 0, completed: 0 };
+                  const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
+                  const projectOrders = ordersMap[project.id] || [];
+                  return (
+                    <SortableContext key={project.id} items={projectOrders.map(o => o.id)} strategy={verticalListSortingStrategy}>
                       <TableRow className="cursor-pointer border-b-0 font-medium" onClick={() => handleOpenDetails(project.id)}>
                         <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
                         <TableCell className="font-medium">{project.title}</TableCell>
@@ -474,12 +478,12 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
                         />
                       ))}
                     </SortableContext>
-                  </DndContext>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </DndContext>
       )}
 
       {totalPages > 1 && (
