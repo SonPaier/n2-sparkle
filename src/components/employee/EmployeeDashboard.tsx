@@ -315,6 +315,10 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
                             <Badge className={`text-[11px] px-2 py-0.5 ${statusCfg.cls}`}>{statusCfg.label}</Badge>
+                            {prioritiesEnabled && item.priority != null && item.priority !== DEFAULT_PRIORITY && (() => {
+                              const cfg = getPriorityConfig(item.priority);
+                              return <Badge className={`text-[11px] px-2 py-0.5 border ${cfg.badgeCls}`}>{cfg.label}</Badge>;
+                            })()}
                           </div>
                           {addr && mapsUrl ? (
                             <a
