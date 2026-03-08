@@ -66,6 +66,7 @@ const Dashboard = () => {
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
   const { enabled: protocolsEnabled } = useInstanceFeature(instanceId, 'protocols');
   const { enabled: remindersEnabled } = useInstanceFeature(instanceId, 'reminders');
+  const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId, 'priorities');
 
   const hostname = window.location.hostname;
   const isSubdomain = hostname.endsWith('.n2service.com');
@@ -133,7 +134,7 @@ const Dashboard = () => {
     const rangeEnd = format(addDays(currentCalendarDate, mapOpen ? 30 : 14), 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('calendar_items')
-      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number, priority')
       .eq('instance_id', instanceId)
       .gte('item_date', rangeStart)
       .lte('item_date', rangeEnd);
@@ -405,6 +406,7 @@ const Dashboard = () => {
       column_id: item.column_id,
       admin_notes: item.admin_notes,
       price: item.price,
+      priority: (item as any).priority,
     });
     setDetailsOpen(false);
     setDashboardDetailsOpen(false);
@@ -427,7 +429,7 @@ const Dashboard = () => {
     if (!instanceId) return;
     const { data } = await supabase
       .from('calendar_items')
-      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number, priority')
       .eq('id', itemId)
       .single();
     if (!data) return;
@@ -479,6 +481,7 @@ const Dashboard = () => {
             onPaymentClick={handleDashboardPaymentClick}
             onViewNotifications={() => handleViewChange('aktywnosci')}
             remindersEnabled={remindersEnabled}
+            prioritiesEnabled={prioritiesEnabled}
           />
         </div>
       );

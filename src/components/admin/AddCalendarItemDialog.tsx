@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { supabase } from '@/integrations/supabase/client';
 import { createNotification } from '@/hooks/useNotifications';
 import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
+import { PRIORITY_OPTIONS, DEFAULT_PRIORITY } from '@/lib/priorityUtils';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
@@ -52,6 +53,7 @@ export interface EditingCalendarItem {
   admin_notes?: string | null;
   price?: number | null;
   photo_urls?: string[] | null;
+  priority?: number | null;
 }
 
 interface AddCalendarItemDialogProps {
@@ -108,6 +110,7 @@ const AddCalendarItemDialog = ({
   const isMobile = useIsMobile();
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
+  const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId, 'priorities');
   const { data: allEmployees = [] } = useEmployees(instanceId);
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
@@ -141,6 +144,7 @@ const AddCalendarItemDialog = ({
   };
   const [adminNotes, setAdminNotes] = useState('');
   const [price, setPrice] = useState('');
+  const [priority, setPriority] = useState<number>(DEFAULT_PRIORITY);
 
 
   // Service selection state
@@ -217,6 +221,7 @@ const AddCalendarItemDialog = ({
       setEndTime(editingItem.end_time || '09:00');
       setAdminNotes(editingItem.admin_notes || '');
       setPrice(editingItem.price?.toString() || '');
+      setPriority(editingItem.priority ?? DEFAULT_PRIORITY);
       setAssignedEmployeeIds(editingItem.assigned_employee_ids || []);
 
       // Load saved services from calendar_item_services
@@ -278,6 +283,7 @@ const AddCalendarItemDialog = ({
       setEndTime(halfClosest);
       setAdminNotes('');
       setPrice('');
+      setPriority(DEFAULT_PRIORITY);
       setAssignedEmployeeIds([]);
 
       // Pre-fill services if provided
@@ -546,6 +552,7 @@ const AddCalendarItemDialog = ({
         end_time: endTime,
         admin_notes: adminNotes.trim() || null,
         price: price ? parseFloat(price) : null,
+        priority: priority,
         assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
       };
 
@@ -844,10 +851,25 @@ const AddCalendarItemDialog = ({
             </div>
             )}
 
-            {/* Price */}
-            <div className="space-y-2">
-              <Label>Cena netto</Label>
-              <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} min="0" step="0.01" className="bg-white w-1/3" />
+            {/* Price + Priority */}
+            <div className="flex gap-3">
+              <div className="space-y-2 w-1/3">
+                <Label>Cena netto</Label>
+                <Input type="number" value={price} onChange={(e) => setPrice(e.target.value)} min="0" step="0.01" className="bg-white" />
+              </div>
+              {prioritiesEnabled && (
+                <div className="space-y-2 w-1/3">
+                  <Label>Priorytet</Label>
+                  <Select value={String(priority)} onValueChange={(v) => setPriority(Number(v))}>
+                    <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent className="z-[1200]">
+                      {PRIORITY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Notes */}

@@ -67,6 +67,7 @@ const EmployeeCalendarPage = () => {
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
   const { enabled: protocolsEnabled } = useInstanceFeature(instanceId, 'protocols');
   const { enabled: remindersEnabled } = useInstanceFeature(instanceId, 'reminders');
+  const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId, 'priorities');
   const { unreadCount } = useNotifications(activitiesEnabled ? instanceId : null);
   const { settings: dashboardSettings } = useDashboardSettings(instanceId);
   const mainRef = useRef<HTMLElement>(null);
@@ -140,7 +141,7 @@ const EmployeeCalendarPage = () => {
 
     let query = supabase
       .from('calendar_items')
-      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number, priority')
       .eq('instance_id', instanceId)
       .in('column_id', columnIds)
       .gte('item_date', rangeStart)
@@ -397,6 +398,7 @@ const EmployeeCalendarPage = () => {
       assigned_employee_ids: item.assigned_employee_ids, item_date: item.item_date,
       end_date: item.end_date, start_time: item.start_time, end_time: item.end_time,
       column_id: item.column_id, admin_notes: item.admin_notes, price: item.price,
+      priority: (item as any).priority,
     });
     setDetailsOpen(false);
     setAddItemOpen(true);
@@ -488,6 +490,7 @@ const EmployeeCalendarPage = () => {
                   setDashboardMapOpen(true);
                 }}
                 remindersEnabled={remindersEnabled}
+                prioritiesEnabled={prioritiesEnabled}
               />
               <CalendarItemDetailsDrawer
                 item={selectedItem}

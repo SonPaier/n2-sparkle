@@ -29,6 +29,7 @@ import { useInvoices } from '@/components/invoicing/useInvoices';
 import CustomerOrderCard from './CustomerOrderCard';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
 import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
+import { getPriorityConfig, DEFAULT_PRIORITY } from '@/lib/priorityUtils';
 import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
 
 interface SmsNotificationInfo {
@@ -358,6 +359,7 @@ const CalendarItemDetailsDrawer = ({
   const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
   const { data: allEmployees = [] } = useEmployees(instanceId || null);
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId || null, 'employees');
+  const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId || null, 'priorities');
   const { settings: invoicingSettings } = useInvoicingSettings(instanceId || null);
   const { data: itemInvoices = [], refetch: refetchInvoices } = useInvoices(instanceId || null, item?.id);
 
@@ -873,6 +875,10 @@ const CalendarItemDetailsDrawer = ({
               {!isEmployee && item.status !== 'confirmed' && (
                 <InvoiceStatusBadge status={itemInvoices.length > 0 ? (itemInvoices[0].status === 'sent' ? 'invoice_sent' : itemInvoices[0].status === 'paid' ? 'paid' : 'invoice_sent') : (item as any).payment_status} />
               )}
+              {prioritiesEnabled && (item as any).priority != null && (item as any).priority !== DEFAULT_PRIORITY && (() => {
+                const cfg = getPriorityConfig((item as any).priority);
+                return <Badge className={`${cfg.badgeCls} border`}>{cfg.label}</Badge>;
+              })()}
             </div>
           </div>
 

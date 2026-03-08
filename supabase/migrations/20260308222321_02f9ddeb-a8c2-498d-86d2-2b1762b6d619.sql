@@ -1,0 +1,1 @@
+ALTER TABLE public.calendar_items ADD COLUMN priority integer NOT NULL DEFAULT 3;

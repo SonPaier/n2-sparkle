@@ -54,6 +54,7 @@ export interface CalendarItem {
   photo_urls?: string[] | null;
   payment_status?: string | null;
   order_number?: string | null;
+  priority?: number | null;
 }
 
 export interface Break {

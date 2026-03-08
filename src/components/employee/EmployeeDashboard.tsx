@@ -3,6 +3,7 @@ import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, ChevronRight, MessageSquare, MapPin, Settings2 } from 'lucide-react';
+import { getPriorityConfig, DEFAULT_PRIORITY } from '@/lib/priorityUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
@@ -34,6 +35,7 @@ interface EmployeeDashboardProps {
   onOpenMap?: (items: CalendarItemRow[]) => void;
   viewModeLabel?: string;
   remindersEnabled?: boolean;
+  prioritiesEnabled?: boolean;
 }
 
 export interface CalendarItemRow {
@@ -60,6 +62,7 @@ export interface CalendarItemRow {
   address_lat?: number | null;
   address_lng?: number | null;
   employee_names?: string[];
+  priority?: number | null;
 }
 
 interface ReminderRow {
@@ -91,7 +94,7 @@ const getDayPill = (itemDate: string, endDate?: string | null) => {
   return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
-const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours, onOpenMap, remindersEnabled = true }: EmployeeDashboardProps) => {
+const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours, onOpenMap, remindersEnabled = true, prioritiesEnabled = false }: EmployeeDashboardProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +121,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
 
     let itemsQuery = supabase
         .from('calendar_items')
-        .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, payment_status')
+        .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, payment_status, priority')
         .eq('instance_id', instanceId)
         .in('column_id', columnIds)
         .lte('item_date', dateEnd)
@@ -206,7 +209,13 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
       return notifyDate <= today;
     });
 
-    setItems(calItems);
+    setItems(calItems.sort((a, b) => {
+      const dateCmp = a.item_date.localeCompare(b.item_date);
+      if (dateCmp !== 0) return dateCmp;
+      const aPri = a.priority ?? DEFAULT_PRIORITY;
+      const bPri = b.priority ?? DEFAULT_PRIORITY;
+      return aPri - bPri;
+    }));
     setReminders(filteredReminders);
     setLoading(false);
   }, [instanceId, columnIds, dateStart, dateEnd, linkedEmployeeId]);
@@ -306,6 +315,10 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
                             <Badge className={`text-[11px] px-2 py-0.5 ${statusCfg.cls}`}>{statusCfg.label}</Badge>
+                            {prioritiesEnabled && item.priority != null && item.priority !== DEFAULT_PRIORITY && (() => {
+                              const cfg = getPriorityConfig(item.priority);
+                              return <Badge className={`text-[11px] px-2 py-0.5 border ${cfg.badgeCls}`}>{cfg.label}</Badge>;
+                            })()}
                           </div>
                           {addr && mapsUrl ? (
                             <a

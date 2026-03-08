@@ -3,6 +3,7 @@ import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, Clock, User, Tag, CreditCard, DollarSign, ChevronRight, MessageSquare, Settings2 } from 'lucide-react';
+import { getPriorityConfig, DEFAULT_PRIORITY } from '@/lib/priorityUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
@@ -25,6 +26,7 @@ interface DashboardOverviewProps {
   onPaymentClick?: (itemId: string) => void;
   onViewNotifications?: () => void;
   remindersEnabled?: boolean;
+  prioritiesEnabled?: boolean;
 }
 
 interface CalendarItemRow {
@@ -47,6 +49,7 @@ interface CalendarItemRow {
   price: number | null;
   employee_names?: string[];
   overdue_days?: number;
+  priority?: number | null;
 }
 
 interface ReminderRow {
@@ -78,7 +81,7 @@ const getDayPill = (itemDate: string, endDate?: string | null) => {
   return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
-const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick, onViewNotifications, remindersEnabled = true }: DashboardOverviewProps) => {
+const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick, onViewNotifications, remindersEnabled = true, prioritiesEnabled = false }: DashboardOverviewProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [allPaymentItems, setAllPaymentItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
@@ -95,7 +98,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     setLoading(true);
     const today = format(new Date(), 'yyyy-MM-dd');
 
-    const selectFields = 'id, title, customer_name, customer_phone, item_date, end_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price';
+    const selectFields = 'id, title, customer_name, customer_phone, item_date, end_date, start_time, end_time, status, column_id, customer_address_id, assigned_employee_ids, payment_status, price, priority';
 
     const [itemsRes, paymentItemsRes, remindersRes, overdueInvoicesRes] = await Promise.all([
       supabase
@@ -238,6 +241,13 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
   const dashboardItems = items.filter(i => {
     const endDate = (i as any).end_date || i.item_date;
     return workingDays.some(day => i.item_date <= day && endDate >= day);
+  }).sort((a, b) => {
+    // Sort by date first (today first), then by priority (lower number = higher priority)
+    const dateCmp = a.item_date.localeCompare(b.item_date);
+    if (dateCmp !== 0) return dateCmp;
+    const aPri = a.priority ?? DEFAULT_PRIORITY;
+    const bPri = b.priority ?? DEFAULT_PRIORITY;
+    return aPri - bPri;
   });
 
   const todayReminders = reminders.filter(r => {
@@ -316,7 +326,11 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="text-lg font-bold leading-tight">{item.title}</div>
                       <div>
-                        <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+                      <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+                      {prioritiesEnabled && item.priority != null && item.priority !== DEFAULT_PRIORITY && (() => {
+                        const cfg = getPriorityConfig(item.priority);
+                        return <Badge className={`text-[11px] px-2 py-0.5 border ${cfg.badgeCls}`}>{cfg.label}</Badge>;
+                      })()}
                       </div>
                       {addr && mapsUrl ? (
                         <a
