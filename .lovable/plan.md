@@ -1,30 +1,32 @@
 
 
-## Plan: Nadpisanie ceny zlecenia kwotą netto z faktury
+## Plan: Badge priorytetu na kafelkach kalendarza
 
-### Problem
-Po wystawieniu faktury, cena w zleceniu (`calendar_items.price`) nie jest aktualizowana. Powinna zostać nadpisana wartością netto z faktury.
-
-### Rozwiązanie
-Po pomyślnym wystawieniu faktury, w `handleSubmit` w `useInvoiceForm.ts`, zaktualizować `calendar_items.price` wartością `totalNetto` (obliczaną już w hooku). Następnie wywołać `onSuccess` aby odświeżyć listę.
+Problem: `AdminCalendar` nie otrzymuje propa `prioritiesEnabled` i nie renderuje badge'a priorytetu na kafelkach.
 
 ### Zmiany
 
-**`src/components/invoicing/useInvoiceForm.ts`** — w `handleSubmit`, po pomyślnym utworzeniu faktury (linia ~227), dodać update:
+**1. `src/components/admin/AdminCalendar.tsx`**
+- Dodać prop `prioritiesEnabled?: boolean` do `AdminCalendarProps`
+- Zaimportować `getPriorityConfig` z `@/lib/priorityUtils`
+- W renderowaniu kafelka (linia ~654, obok tytułu) dodać badge priorytetu gdy `prioritiesEnabled && item.priority != null && item.priority !== 3`:
+  ```tsx
+  {prioritiesEnabled && item.priority != null && item.priority !== 3 && (
+    <span className={cn("inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold shrink-0", getPriorityConfig(item.priority).badgeCls)}>
+      {getPriorityConfig(item.priority).label}
+    </span>
+  )}
+  ```
 
-```typescript
-// Po: if (data?.error) throw new Error(data.error);
-// Nadpisz cenę zlecenia kwotą netto
-if (calendarItemId) {
-  await supabase
-    .from('calendar_items')
-    .update({ price: totalNetto })
-    .eq('id', calendarItemId);
-}
-```
+**2. `src/pages/Dashboard.tsx`**
+- Przekazać `prioritiesEnabled={prioritiesEnabled}` do `<AdminCalendar>`
 
-Wykorzystujemy `totalNetto` już obliczane w hooku (linia 151-166). Callback `onSuccess` (już wywoływany w linii 232) odświeża listę zleceń w komponencie nadrzędnym.
+**3. `src/pages/EmployeeCalendarPage.tsx`**
+- Przekazać `prioritiesEnabled={prioritiesEnabled}` do `<AdminCalendar>`
 
-### Pliki do zmiany
-- `src/components/invoicing/useInvoiceForm.ts` — 1 zmiana (dodanie update po create_invoice)
+| Plik | Zmiana |
+|---|---|
+| `AdminCalendar.tsx` | Nowy prop + badge na kafelku |
+| `Dashboard.tsx` | Przekazanie propa |
+| `EmployeeCalendarPage.tsx` | Przekazanie propa |
 
