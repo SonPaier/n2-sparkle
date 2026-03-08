@@ -33,7 +33,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 interface CalendarItemRow {
   id: string;
   title: string;
-  item_date: string;
+  item_date: string | null;
   customer_name: string | null;
   customer_id: string | null;
   customer_email: string | null;
@@ -44,8 +44,8 @@ interface CalendarItemRow {
   payment_status: string | null;
   price: number | null;
   admin_notes: string | null;
-  start_time: string;
-  end_time: string;
+  start_time: string | null;
+  end_time: string | null;
   column_id: string | null;
   assigned_employee_ids: string[] | null;
   photo_urls: unknown;
