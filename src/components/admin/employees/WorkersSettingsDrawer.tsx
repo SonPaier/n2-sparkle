@@ -99,7 +99,25 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
                   </div>
                 </RadioGroup>
               </div>
-            </>
+              <div className="space-y-3">
+                <Label>Typ rozliczenia</Label>
+                <RadioGroup value={settlementType} onValueChange={(v) => setSettlementType(v as 'hourly' | 'per_order')}>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="hourly" id="hourly-settlement" />
+                      <Label htmlFor="hourly-settlement" className="font-normal cursor-pointer">Godzinowe</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">Rozliczenie na podstawie przepracowanych godzin</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="per_order" id="per-order-settlement" />
+                      <Label htmlFor="per-order-settlement" className="font-normal cursor-pointer">Per zlecenie</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">Rozliczenie na podstawie wykonanych zleceń</p>
+                  </div>
+                </RadioGroup>
+              </div>
           )}
         </div>
         <div className="sticky bottom-0 bg-background border-t p-4 flex gap-3">
