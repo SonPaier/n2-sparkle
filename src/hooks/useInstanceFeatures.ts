@@ -1,32 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useInstanceFeature(instanceId: string | null, featureKey: string) {
-  const [enabled, setEnabled] = useState(true); // default: enabled
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetch = useCallback(async () => {
-    if (!instanceId) { setLoading(false); return; }
-    const { data, error } = await supabase
-      .from('instance_features')
-      .select('enabled')
-      .eq('instance_id', instanceId)
-      .eq('feature_key', featureKey)
-      .maybeSingle();
+  const { data: enabled = true, isLoading: loading } = useQuery({
+    queryKey: ['instance_feature', instanceId, featureKey],
+    queryFn: async () => {
+      if (!instanceId) return true;
+      const { data, error } = await supabase
+        .from('instance_features')
+        .select('enabled')
+        .eq('instance_id', instanceId)
+        .eq('feature_key', featureKey)
+        .maybeSingle();
 
-    if (!error && data) {
-      setEnabled(data.enabled);
-    } else {
-      setEnabled(true); // no row = enabled by default
-    }
-    setLoading(false);
-  }, [instanceId, featureKey]);
-
-  useEffect(() => { fetch(); }, [fetch]);
+      if (!error && data) return data.enabled;
+      return true; // no row = enabled by default
+    },
+    enabled: !!instanceId,
+    staleTime: 30_000,
+  });
 
   const toggle = useCallback(async (value: boolean) => {
     if (!instanceId) return;
-    setEnabled(value);
+    // Optimistic update
+    queryClient.setQueryData(['instance_feature', instanceId, featureKey], value);
+
     const { error } = await supabase
       .from('instance_features')
       .upsert(
@@ -35,9 +36,9 @@ export function useInstanceFeature(instanceId: string | null, featureKey: string
       );
     if (error) {
       console.error('Error toggling feature:', error);
-      setEnabled(!value); // rollback
+      queryClient.setQueryData(['instance_feature', instanceId, featureKey], !value); // rollback
     }
-  }, [instanceId, featureKey]);
+  }, [instanceId, featureKey, queryClient]);
 
   return { enabled, loading, toggle };
 }
