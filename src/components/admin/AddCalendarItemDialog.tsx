@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { supabase } from '@/integrations/supabase/client';
 import { createNotification } from '@/hooks/useNotifications';
 import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
+import { PRIORITY_OPTIONS, DEFAULT_PRIORITY } from '@/lib/priorityUtils';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
