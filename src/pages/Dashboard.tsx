@@ -651,16 +651,58 @@ const Dashboard = () => {
     }
 
     if (currentView === 'projekty' && instanceId && projectsEnabled) {
-      return <div className="max-w-[1000px] mx-auto"><ProjectsView instanceId={instanceId} onAddOrder={handleProjectAddOrder} onOpenCalendarItem={async (itemId) => {
-        const { data } = await (supabase.from('calendar_items') as any)
-          .select('*')
-          .eq('id', itemId)
-          .maybeSingle();
-        if (data) {
-          setSelectedItem(data as CalendarItem);
-          setDetailsOpen(true);
-        }
-      }} /></div>;
+      return (
+        <>
+          <div className="max-w-[1000px] mx-auto">
+            <ProjectsView
+              instanceId={instanceId}
+              onAddOrder={handleProjectAddOrder}
+              onOpenCalendarItem={async (itemId) => {
+                const { data } = await (supabase.from('calendar_items') as any)
+                  .select('*')
+                  .eq('id', itemId)
+                  .maybeSingle();
+                if (data) {
+                  setSelectedItem(data as CalendarItem);
+                  setDetailsOpen(true);
+                }
+              }}
+            />
+          </div>
+
+          <CalendarItemDetailsDrawer
+            item={selectedItem}
+            open={detailsOpen}
+            onClose={() => { setDetailsOpen(false); setSelectedItem(null); }}
+            columns={calendarColumns}
+            onDelete={handleDeleteItem}
+            onEdit={handleEditItem}
+            onStatusChange={handleStatusChange}
+            onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
+            onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
+            onAddProtocol={protocolsEnabled ? async (item) => {
+              setDetailsOpen(false);
+              const { data: existing } = await supabase
+                .from('protocols')
+                .select('id')
+                .eq('calendar_item_id', item.id)
+                .eq('instance_id', instanceId!)
+                .maybeSingle();
+              setProtocolEditId(existing?.id || null);
+              setProtocolPrefill({
+                customerId: item.customer_id,
+                customerName: item.customer_name || '',
+                customerPhone: item.customer_phone || '',
+                customerEmail: item.customer_email || '',
+                customerAddressId: item.customer_address_id,
+                calendarItemId: item.id,
+              });
+              setProtocolFormOpen(true);
+            } : undefined}
+            instanceId={instanceId || undefined}
+          />
+        </>
+      );
     }
 
     if (currentView === 'powiadomienia-sms') {

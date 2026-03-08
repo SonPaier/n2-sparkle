@@ -91,7 +91,7 @@ const SortableOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: ()
     <TableRow
       ref={setNodeRef}
       style={style}
-      className="!bg-white dark:!bg-card hover:bg-muted/30 cursor-pointer"
+      className="!bg-white hover:!bg-white cursor-pointer"
       onClick={onClick}
     >
       <TableCell className="w-[60px] py-1.5">
@@ -387,7 +387,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
                   </div>
                 </div>
                 {projectOrders.length > 0 && (
-                  <div className="border-t border-border bg-background px-3 py-2 space-y-1">
+                  <div className="border-t border-border !bg-white px-3 py-2 space-y-1">
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
