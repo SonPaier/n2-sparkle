@@ -540,6 +540,7 @@ const Dashboard = () => {
             selectedItemId={selectedItem?.id}
             onToggleMap={() => setMapOpen(prev => !prev)}
             mapOpen={mapOpen}
+            hideEmployeeChips={!employeesEnabled}
             workingHours={workingHours}
           />
 

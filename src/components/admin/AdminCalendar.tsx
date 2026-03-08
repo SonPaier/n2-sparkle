@@ -152,6 +152,7 @@ const AdminCalendar = ({
   onToggleMap,
   mapOpen,
   hideHours,
+  hideEmployeeChips,
   workingHours,
 }: AdminCalendarProps) => {
   const { startHour: DEFAULT_START_HOUR, endHour: DEFAULT_END_HOUR } = computeHourRange(workingHours);

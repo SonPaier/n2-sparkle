@@ -352,6 +352,17 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 disabled={activitiesLoading}
               />
             </div>
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Pracownicy</Label>
+                <p className="text-xs text-muted-foreground">Moduł zarządzania pracownikami i przypisywania do zleceń</p>
+              </div>
+              <Switch
+                checked={employeesEnabled}
+                onCheckedChange={toggleEmployees}
+                disabled={employeesLoading}
+              />
+            </div>
           </div>
         );
 

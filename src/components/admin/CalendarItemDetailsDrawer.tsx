@@ -974,6 +974,7 @@ const CalendarItemDetailsDrawer = ({
               )}
 
               {/* Assigned Employees */}
+              {employeesEnabled && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   Przypisani pracownicy
@@ -1015,6 +1016,7 @@ const CalendarItemDetailsDrawer = ({
                   )}
                 </div>
               </div>
+              )}
 
               {/* Notes */}
               <div className="space-y-1">

@@ -827,6 +827,7 @@ const AddCalendarItemDialog = ({
             </div>
 
             {/* Assigned Employees */}
+            {employeesEnabled && (
             <div className="space-y-2">
               <Label className="flex items-center gap-1">
                 <HardHat className="w-3.5 h-3.5" />
@@ -841,6 +842,7 @@ const AddCalendarItemDialog = ({
                 {assignedEmployeeIds.length > 0 ? 'Zmień pracowników' : 'Przypisz pracowników'}
               </Button>
             </div>
+            )}
 
             {/* Price */}
             <div className="space-y-2">
