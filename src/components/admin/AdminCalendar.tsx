@@ -86,6 +86,9 @@ interface AdminCalendarProps {
   hideEmployeeChips?: boolean;
   workingHours?: WorkingHoursMap;
   prioritiesEnabled?: boolean;
+  employeeViewActive?: boolean;
+  onToggleEmployeeView?: () => void;
+  conflictItemIds?: Set<string>;
 }
 
 const FALLBACK_START_HOUR = 6;
