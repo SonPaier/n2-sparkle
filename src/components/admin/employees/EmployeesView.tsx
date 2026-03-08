@@ -481,6 +481,16 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           dateTo={dateTo}
         />
       )}
+
+      {ordersEmployee && instanceId && (
+        <EmployeeOrdersDrawer
+          open={!!ordersEmployee}
+          onOpenChange={(open) => !open && setOrdersEmployee(null)}
+          employeeId={ordersEmployee.id}
+          employeeName={ordersEmployee.name}
+          instanceId={instanceId}
+        />
+      )}
     </div>
   );
 };
