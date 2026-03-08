@@ -58,8 +58,7 @@ const ProjectsView = ({ instanceId }: ProjectsViewProps) => {
     queryKey: ['projects', instanceId],
     enabled: !!instanceId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects' as any)
+      const { data, error } = await (supabase.from('projects' as any) as any)
         .select('id, title, description, customer_id, customer_address_id, status, notes, created_at')
         .eq('instance_id', instanceId)
         .order('created_at', { ascending: false });
