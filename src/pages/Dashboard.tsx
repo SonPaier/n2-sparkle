@@ -552,7 +552,11 @@ const Dashboard = () => {
     fetchItems();
     setEditingItem(null);
     setMapOrderPrefill({});
+    setInitialProjectId(undefined);
     queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['projects-stages', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['project-orders'] });
   };
 
   const handleDateChange = (date: Date) => {
