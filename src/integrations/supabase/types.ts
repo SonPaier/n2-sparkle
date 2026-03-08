@@ -177,6 +177,7 @@ export type Database = {
           payment_status: string | null
           photo_urls: Json | null
           price: number | null
+          priority: number
           start_time: string
           status: string
           title: string
@@ -203,6 +204,7 @@ export type Database = {
           payment_status?: string | null
           photo_urls?: Json | null
           price?: number | null
+          priority?: number
           start_time: string
           status?: string
           title: string
@@ -229,6 +231,7 @@ export type Database = {
           payment_status?: string | null
           photo_urls?: Json | null
           price?: number | null
+          priority?: number
           start_time?: string
           status?: string
           title?: string
