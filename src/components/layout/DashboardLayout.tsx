@@ -67,6 +67,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId ?? null, 'employees');
   const { enabled: protocolsEnabled } = useInstanceFeature(instanceId ?? null, 'protocols');
+  const { enabled: remindersEnabled } = useInstanceFeature(instanceId ?? null, 'reminders');
 
   const filteredNavItems = navItems
     .filter(i => activitiesEnabled || i.id !== 'aktywnosci')
