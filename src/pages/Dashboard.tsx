@@ -44,6 +44,7 @@ const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; des
   pracownicy: { label: 'Pracownicy', icon: HardHat, description: 'Zarządzaj pracownikami i czasem pracy' },
   protokoly: { label: 'Protokoły', icon: ClipboardCheck, description: 'Protokoły serwisowe zakończenia prac' },
   rozliczenia: { label: 'Rozliczenia', icon: Receipt, description: 'Rozliczenia i statusy płatności zleceń' },
+  projekty: { label: 'Projekty', icon: FolderKanban, description: 'Wieloetapowe projekty grupujące zlecenia' },
   przypomnienia: { label: 'Przypomnienia', icon: Bell, description: "Śledź ważne terminy i deadline'y" },
   uslugi: { label: 'Usługi', icon: BadgeDollarSign, description: 'Konfiguruj usługi i cennik' },
   'powiadomienia-sms': { label: 'Powiadomienia SMS', icon: MessageSquare, description: 'Szablony powiadomień SMS dla klientów' },
