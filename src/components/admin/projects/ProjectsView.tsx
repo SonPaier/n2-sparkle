@@ -86,8 +86,8 @@ const ProjectsView = ({ instanceId }: ProjectsViewProps) => {
     queryKey: ['projects-stages', instanceId, projectIds],
     enabled: projectIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase
-        .from('calendar_items')
+      const { data } = await (supabase
+        .from('calendar_items') as any)
         .select('id, project_id, status')
         .in('project_id', projectIds);
       
