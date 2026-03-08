@@ -490,6 +490,7 @@ const EmployeeCalendarPage = () => {
                   setDashboardMapOpen(true);
                 }}
                 remindersEnabled={remindersEnabled}
+                prioritiesEnabled={prioritiesEnabled}
               />
               <CalendarItemDetailsDrawer
                 item={selectedItem}
