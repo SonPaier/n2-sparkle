@@ -686,7 +686,7 @@ const AddCalendarItemDialog = ({
       }
 
       // Notify assigned employees about new/updated assignment
-      if (activitiesEnabled && assignedEmployeeIds.length > 0) {
+      if (activitiesEnabled && assignedEmployeeIds.length > 0 && hasDate) {
         const { data: emps } = await supabase
           .from('employees')
           .select('linked_user_id')
