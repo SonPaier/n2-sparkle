@@ -72,6 +72,7 @@ interface AddCalendarItemDialogProps {
   initialCustomerEmail?: string;
   initialCustomerAddressId?: string;
   initialServiceIds?: string[];
+  initialProjectId?: string;
   onCustomerClick?: (customerId: string) => void;
 }
 
