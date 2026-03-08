@@ -25,7 +25,7 @@ interface SettingsViewProps {
   instanceId: string | null;
 }
 
-type SettingsTab = 'company' | 'calendar' | 'employee-calendars' | 'users' | 'sms-templates' | 'integrations';
+type SettingsTab = 'company' | 'calendar' | 'employee-calendars' | 'users' | 'sms-templates' | 'integrations' | 'app';
 
 const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const isMobile = useIsMobile();
