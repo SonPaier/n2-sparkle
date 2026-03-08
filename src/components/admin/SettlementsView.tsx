@@ -641,7 +641,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                       <div className="leading-tight">
                         <div>{format(parseISO(order.created_at), 'dd.MM.yyyy')}</div>
                         {order.status === 'completed' &&
-                      <div>{format(parseISO(order.item_date), 'dd.MM.yyyy')}</div>
+                      <div>{order.item_date ? format(parseISO(order.item_date), 'dd.MM.yyyy') : 'Bez daty'}</div>
                       }
                       </div>
                     </TableCell>
