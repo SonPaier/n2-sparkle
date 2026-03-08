@@ -138,7 +138,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
           {/* Navigation */}
           <nav className={cn("flex-1 space-y-2", sidebarCollapsed ? "p-2" : "p-4")}>
-            {navItems.map(({ id, label, icon: Icon }) => {
+            {filteredNavItems.map(({ id, label, icon: Icon }) => {
               const displayLabel = id === 'dashboard' ? dashboardLabel : label;
               return (
                 <Button
