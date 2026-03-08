@@ -702,7 +702,7 @@ const AdminCalendar = ({
             {item.payment_status && item.payment_status !== 'not_invoiced' && (
               <InvoiceStatusBadge status={item.payment_status} size="sm" />
             )}
-            {item.assigned_employees && item.assigned_employees.length > 0 && (
+            {!hideEmployeeChips && item.assigned_employees && item.assigned_employees.length > 0 && (
               <>
                 {item.assigned_employees.slice(0, 3).map(emp => (
                   <span key={emp.id} className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-primary text-primary-foreground">
