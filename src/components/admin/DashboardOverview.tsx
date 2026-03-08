@@ -3,6 +3,7 @@ import { format, differenceInDays, isToday, isTomorrow } from 'date-fns';
 import { getNextWorkingDays } from '@/lib/workingDaysUtils';
 import { pl } from 'date-fns/locale';
 import { Calendar, Bell, Clock, User, Tag, CreditCard, DollarSign, ChevronRight, MessageSquare, Settings2 } from 'lucide-react';
+import { getPriorityConfig, DEFAULT_PRIORITY } from '@/lib/priorityUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useDashboardSettings } from '@/hooks/useDashboardSettings';
 import DashboardSettingsDrawer from '@/components/admin/DashboardSettingsDrawer';
