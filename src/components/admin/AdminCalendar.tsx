@@ -8,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getPriorityConfig } from '@/lib/priorityUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -84,6 +85,7 @@ interface AdminCalendarProps {
   hideHours?: boolean;
   hideEmployeeChips?: boolean;
   workingHours?: WorkingHoursMap;
+  prioritiesEnabled?: boolean;
 }
 
 const FALLBACK_START_HOUR = 6;
@@ -155,6 +157,7 @@ const AdminCalendar = ({
   hideHours,
   hideEmployeeChips,
   workingHours,
+  prioritiesEnabled,
 }: AdminCalendarProps) => {
   const { startHour: DEFAULT_START_HOUR, endHour: DEFAULT_END_HOUR } = computeHourRange(workingHours);
   const HOURS = Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR);
@@ -651,8 +654,13 @@ const AdminCalendar = ({
       >
         <div className="px-0.5 text-black space-y-[3px]">
           {/* Line 1: Title */}
-          <div className="flex items-center gap-1 text-[13px] md:text-[15px] min-w-0">
+           <div className="flex items-center gap-1 text-[13px] md:text-[15px] min-w-0">
             <span className="font-semibold truncate">{item.title}</span>
+            {prioritiesEnabled && item.priority != null && item.priority !== 3 && (
+              <span className={cn("inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold shrink-0", getPriorityConfig(item.priority).badgeCls)}>
+                {getPriorityConfig(item.priority).label}
+              </span>
+            )}
           </div>
           {/* Line 2: Time + notes indicator */}
           <div className="flex items-center justify-between gap-0.5">
