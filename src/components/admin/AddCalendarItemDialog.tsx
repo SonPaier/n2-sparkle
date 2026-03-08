@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { type DateRange } from 'react-day-picker';
-import { Loader2, CalendarIcon, HardHat, MessageSquare, X } from 'lucide-react';
+import { Loader2, CalendarIcon, HardHat, MessageSquare, X, FolderKanban } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
