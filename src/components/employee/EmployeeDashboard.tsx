@@ -33,6 +33,7 @@ interface EmployeeDashboardProps {
   workingHours?: WorkingHours;
   onOpenMap?: (items: CalendarItemRow[]) => void;
   viewModeLabel?: string;
+  remindersEnabled?: boolean;
 }
 
 export interface CalendarItemRow {
