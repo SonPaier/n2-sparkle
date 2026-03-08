@@ -25,6 +25,7 @@ import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDial
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNotifications, createNotification } from '@/hooks/useNotifications';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import type { CalendarItemRow } from '@/components/employee/EmployeeDashboard';

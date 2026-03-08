@@ -27,6 +27,7 @@ import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import DashboardOverview from '@/components/admin/DashboardOverview';
 import NotificationsView from '@/components/admin/NotificationsView';
 import { createNotification } from '@/hooks/useNotifications';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
