@@ -235,6 +235,7 @@ const AddCalendarItemDialog = ({
       setPrice(editingItem.price?.toString() || '');
       setPriority(editingItem.priority ?? DEFAULT_PRIORITY);
       setAssignedEmployeeIds(editingItem.assigned_employee_ids || []);
+      setProjectId(null); // Don't change project in edit mode for now
 
       // Load saved services from calendar_item_services
       const loadServices = async () => {
