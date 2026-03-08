@@ -326,7 +326,11 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="text-lg font-bold leading-tight">{item.title}</div>
                       <div>
-                        <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+                      <Badge className={`text-[11px] px-2 py-0.5 ${pill.cls}`}>{pill.label}</Badge>
+                      {prioritiesEnabled && item.priority != null && item.priority !== DEFAULT_PRIORITY && (() => {
+                        const cfg = getPriorityConfig(item.priority);
+                        return <Badge className={`text-[11px] px-2 py-0.5 border ${cfg.badgeCls}`}>{cfg.label}</Badge>;
+                      })()}
                       </div>
                       {addr && mapsUrl ? (
                         <a
