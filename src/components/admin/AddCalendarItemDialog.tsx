@@ -578,38 +578,52 @@ const AddCalendarItemDialog = ({
         return;
       }
     }
-    if (!columnId) {
-      toast.error('Wybierz kolumnę');
-      return;
-    }
-    if (!dateRange?.from) {
-      toast.error('Wybierz datę');
-      return;
-    }
-    if (startTime >= endTime) {
-      toast.error('Godzina końca musi być późniejsza niż początku');
-      return;
+
+    const hasDate = !!dateRange?.from;
+    // If dates are provided, validate them
+    if (hasDate) {
+      if (!columnId) {
+        toast.error('Wybierz kolumnę');
+        return;
+      }
+      if (startTime >= endTime) {
+        toast.error('Godzina końca musi być późniejsza niż początku');
+        return;
+      }
     }
 
     setLoading(true);
     try {
+      // Auto-calculate stage_number for project items
+      let stageNumber: number | null = null;
+      if (projectId && !isEditMode) {
+        const { count } = await supabase
+          .from('calendar_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('project_id', projectId)
+          .neq('status', 'cancelled');
+        stageNumber = (count || 0) + 1;
+      }
+
       const data: any = {
         instance_id: instanceId,
-        column_id: columnId,
+        column_id: hasDate ? columnId : null,
         title: finalTitle,
         customer_name: customerName.trim() || null,
         customer_phone: customerPhone.trim() || null,
         customer_email: customerEmail.trim() || null,
         customer_id: customerId || null,
         customer_address_id: customerAddressId || null,
-        item_date: format(dateRange!.from!, 'yyyy-MM-dd'),
-        end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
-        start_time: startTime,
-        end_time: endTime,
+        item_date: hasDate ? format(dateRange!.from!, 'yyyy-MM-dd') : null,
+        end_date: hasDate && dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
+        start_time: hasDate ? startTime : null,
+        end_time: hasDate ? endTime : null,
         admin_notes: adminNotes.trim() || null,
         price: price ? parseFloat(price) : null,
         priority: priority,
         assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
+        project_id: projectId || null,
+        ...(stageNumber ? { stage_number: stageNumber } : {}),
       };
 
       let calendarItemId: string;
