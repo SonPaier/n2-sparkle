@@ -548,6 +548,7 @@ const Dashboard = () => {
             mapOpen={mapOpen}
             hideEmployeeChips={!employeesEnabled}
             workingHours={workingHours}
+            prioritiesEnabled={prioritiesEnabled}
           />
 
           <CalendarItemDetailsDrawer

@@ -600,6 +600,7 @@ const EmployeeCalendarPage = () => {
                     onToggleMap={() => setMapOpen(prev => !prev)}
                     mapOpen={mapOpen}
                     hideHours={config?.visible_fields && (config.visible_fields as any).hours === false}
+                    prioritiesEnabled={prioritiesEnabled}
                   />
 
 
