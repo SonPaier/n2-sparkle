@@ -221,6 +221,7 @@ const AddCalendarItemDialog = ({
       setEndTime(editingItem.end_time || '09:00');
       setAdminNotes(editingItem.admin_notes || '');
       setPrice(editingItem.price?.toString() || '');
+      setPriority(editingItem.priority ?? DEFAULT_PRIORITY);
       setAssignedEmployeeIds(editingItem.assigned_employee_ids || []);
 
       // Load saved services from calendar_item_services
