@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { EmptyState } from '@/components/ui/empty-state';
+import EmptyState from '@/components/ui/empty-state';
 import AddEditProjectDrawer from './AddEditProjectDrawer';
 import ProjectDetailsDrawer from './ProjectDetailsDrawer';
 
