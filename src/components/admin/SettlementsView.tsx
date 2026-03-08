@@ -476,7 +476,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs text-muted-foreground">
-                        {format(parseISO(order.item_date), 'dd.MM.yyyy')}
+                        {order.item_date ? format(parseISO(order.item_date), 'dd.MM.yyyy') : 'Bez daty'}
                       </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
