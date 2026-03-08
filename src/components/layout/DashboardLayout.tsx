@@ -75,7 +75,8 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
     .filter(i => activitiesEnabled || i.id !== 'aktywnosci')
     .filter(i => employeesEnabled || i.id !== 'pracownicy')
     .filter(i => protocolsEnabled || i.id !== 'protokoly')
-    .filter(i => remindersEnabled || i.id !== 'przypomnienia');
+    .filter(i => remindersEnabled || i.id !== 'przypomnienia')
+    .filter(i => projectsEnabled || i.id !== 'projekty');
   const filteredBottomBarItems = activitiesEnabled ? bottomBarItems : bottomBarItems.filter(i => i.id !== 'aktywnosci');
 
   useEffect(() => {
