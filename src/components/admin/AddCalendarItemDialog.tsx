@@ -810,7 +810,9 @@ const AddCalendarItemDialog = ({
               />
             </div>
 
-            {/* Date - RadioGroup + Calendar */}
+            {/* Date - RadioGroup + Calendar (hidden when adding from project) */}
+            {!initialProjectId && (
+            <>
             <div className="space-y-2">
               <Label>Długość zlecenia</Label>
               <RadioGroup
@@ -923,6 +925,14 @@ const AddCalendarItemDialog = ({
                 </Select>
               </div>
             </div>
+            </>
+            )}
+
+            {initialProjectId && (
+              <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm text-muted-foreground">
+                Zlecenie zostanie dodane bez daty — możesz ją ustawić później z poziomu kalendarza.
+              </div>
+            )}
 
             {/* Assigned Employees */}
             {employeesEnabled && (
