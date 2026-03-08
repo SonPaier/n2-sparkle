@@ -164,6 +164,8 @@ const AddCalendarItemDialog = ({
   // Add new customer drawer state
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const [addCustomerPrefilledName, setAddCustomerPrefilledName] = useState('');
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [availableProjects, setAvailableProjects] = useState<{ id: string; title: string; customer_id: string | null; customer_address_id: string | null }[]>([]);
 
   // SMS notification state
   const [sendImmediateSms, setSendImmediateSms] = useState(false);
