@@ -220,7 +220,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
       {/* Mobile bottom bar */}
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border/50 flex items-center justify-around h-16 px-2 pb-2.5">
-          {bottomBarItems.map(({ id, label, icon: Icon }) => {
+          {filteredBottomBarItems.map(({ id, label, icon: Icon }) => {
             const displayLabel = id === 'dashboard' ? dashboardLabel : label;
             return (
               <button
