@@ -283,6 +283,7 @@ const AddCalendarItemDialog = ({
       setEndTime(halfClosest);
       setAdminNotes('');
       setPrice('');
+      setPriority(DEFAULT_PRIORITY);
       setAssignedEmployeeIds([]);
 
       // Pre-fill services if provided
