@@ -359,6 +359,7 @@ const CalendarItemDetailsDrawer = ({
   const [historyDetailOpen, setHistoryDetailOpen] = useState(false);
   const { data: allEmployees = [] } = useEmployees(instanceId || null);
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId || null, 'employees');
+  const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId || null, 'priorities');
   const { settings: invoicingSettings } = useInvoicingSettings(instanceId || null);
   const { data: itemInvoices = [], refetch: refetchInvoices } = useInvoices(instanceId || null, item?.id);
 
