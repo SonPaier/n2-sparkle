@@ -1,30 +1,47 @@
 
 
-## Plan: Nadpisanie ceny zlecenia kwotą netto z faktury
+## Plan: Feature toggle "Pracownicy" (employees module)
 
-### Problem
-Po wystawieniu faktury, cena w zleceniu (`calendar_items.price`) nie jest aktualizowana. Powinna zostać nadpisana wartością netto z faktury.
+### Co robimy
 
-### Rozwiązanie
-Po pomyślnym wystawieniu faktury, w `handleSubmit` w `useInvoiceForm.ts`, zaktualizować `calendar_items.price` wartością `totalNetto` (obliczaną już w hooku). Następnie wywołać `onSuccess` aby odświeżyć listę.
+Dodajemy nowy feature toggle `employees` w zakładce "Aplikacja" w ustawieniach. Gdy wyłączony, ukrywamy z UI:
 
-### Zmiany
+1. **Sidebar** — pozycja "Pracownicy"
+2. **Ustawienia** — zakładka "Kalendarze pracowników"
+3. **Formularz zlecenia (AddCalendarItemDialog)** — sekcja "Przypisani pracownicy" (label + chips + drawer)
+4. **Drawer zlecenia (CalendarItemDetailsDrawer)** — sekcja "Przypisani pracownicy" (chips + edycja + drawer)
+5. **Kafelki kalendarza (AdminCalendar)** — chipy z imionami pracowników na kafelkach zleceń
+6. **Dashboard karty (DashboardOverview)** — pomijamy fetch i wyświetlanie `employee_names`
 
-**`src/components/invoicing/useInvoiceForm.ts`** — w `handleSubmit`, po pomyślnym utworzeniu faktury (linia ~227), dodać update:
+### Seed danych
 
-```typescript
-// Po: if (data?.error) throw new Error(data.error);
-// Nadpisz cenę zlecenia kwotą netto
-if (calendarItemId) {
-  await supabase
-    .from('calendar_items')
-    .update({ price: totalNetto })
-    .eq('id', calendarItemId);
-}
-```
+Wstawiamy wiersz `instance_features` z `feature_key = 'employees'`, `enabled = true` dla instancji Water Grass (`c6300bdc-5070-4599-8143-06926578a424`), żeby mieli włączone domyślnie. Inne instancje też domyślnie mają `true` (brak wiersza = włączone).
 
-Wykorzystujemy `totalNetto` już obliczane w hooku (linia 151-166). Callback `onSuccess` (już wywoływany w linii 232) odświeża listę zleceń w komponencie nadrzędnym.
+### Zmiany w plikach
 
-### Pliki do zmiany
-- `src/components/invoicing/useInvoiceForm.ts` — 1 zmiana (dodanie update po create_invoice)
+**Baza danych (migracja)**
+- INSERT `instance_features` dla Water Grass z `feature_key = 'employees'`, `enabled = true`
+
+**`src/components/admin/SettingsView.tsx`**
+- Dodać `useInstanceFeature(instanceId, 'employees')` 
+- Dodać toggle "Pracownicy" w zakładce "Aplikacja"
+- Warunkowo ukryć zakładkę "Kalendarze pracowników" gdy `employeesEnabled === false`
+
+**`src/components/layout/DashboardLayout.tsx`**
+- Dodać `useInstanceFeature(instanceId, 'employees')`
+- Filtrować `navItems` — ukryć `'pracownicy'` gdy wyłączone
+
+**`src/components/admin/AddCalendarItemDialog.tsx`**
+- Przyjąć prop `employeesEnabled` lub pobrać z hooka
+- Warunkowo ukryć sekcję "Przypisani pracownicy" (label, chips, button otwierający drawer)
+
+**`src/components/admin/CalendarItemDetailsDrawer.tsx`**
+- Pobrać feature z hooka lub prop
+- Warunkowo ukryć sekcję "Przypisani pracownicy" i `EmployeeSelectionDrawer`
+
+**`src/components/admin/AdminCalendar.tsx`**
+- Prop `employeesEnabled` — warunkowo ukryć chipy pracowników na kafelkach zleceń
+
+**`src/pages/Dashboard.tsx`**
+- Przekazać `employeesEnabled` do komponentów
 
