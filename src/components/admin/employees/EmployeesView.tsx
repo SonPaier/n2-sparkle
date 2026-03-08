@@ -70,6 +70,44 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const { data: daysOff = [], isLoading: loadingDaysOff } = useEmployeeDaysOff(instanceId, null);
   const { data: workingHours } = useWorkingHours(instanceId);
 
+  // Fetch completed orders count per employee for per_order settlement
+  const [completedOrderCounts, setCompletedOrderCounts] = useState<Map<string, number>>(new Map());
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
+  useEffect(() => {
+    if (!isPerOrder || !instanceId) {
+      setCompletedOrderCounts(new Map());
+      return;
+    }
+    const fetchCompletedOrders = async () => {
+      setLoadingOrders(true);
+      try {
+        const { data } = await supabase
+          .from('calendar_items')
+          .select('id, assigned_employee_ids')
+          .eq('instance_id', instanceId)
+          .eq('status', 'completed')
+          .gte('item_date', dateFrom)
+          .lte('item_date', dateTo);
+
+        const counts = new Map<string, number>();
+        if (data) {
+          data.forEach(item => {
+            (item.assigned_employee_ids || []).forEach((empId: string) => {
+              counts.set(empId, (counts.get(empId) || 0) + 1);
+            });
+          });
+        }
+        setCompletedOrderCounts(counts);
+      } catch (err) {
+        console.error('Error fetching completed orders:', err);
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+    fetchCompletedOrders();
+  }, [isPerOrder, instanceId, dateFrom, dateTo]);
+
   const getOpeningTime = (dateStr: string): Date | null => {
     if (!workingHours) return null;
     const date = new Date(dateStr + 'T12:00:00');
