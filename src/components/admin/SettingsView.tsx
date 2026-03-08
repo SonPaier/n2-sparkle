@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Building2, Grid2X2, Monitor, Users, Loader2, Save, Upload, Trash2, Image as ImageIcon, ChevronDown, Plug, MessageSquare } from 'lucide-react';
+import { Building2, Grid2X2, Monitor, Users, Loader2, Save, Upload, Trash2, Image as ImageIcon, ChevronDown, Plug, MessageSquare, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { IntegrationsSettingsView } from '@/components/invoicing/IntegrationsSettingsView';
 import SmsPaymentTemplatesView from './settings/SmsPaymentTemplatesView';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import type { AddressSearchResult } from '@/lib/addressSearch';
 
 interface SettingsViewProps {
