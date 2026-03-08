@@ -91,7 +91,7 @@ const SortableOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: ()
     <TableRow
       ref={setNodeRef}
       style={style}
-      className="bg-background hover:bg-muted/30 cursor-pointer"
+      className="!bg-white dark:!bg-card hover:bg-muted/30 cursor-pointer"
       onClick={onClick}
     >
       <TableCell className="w-[60px] py-1.5">
