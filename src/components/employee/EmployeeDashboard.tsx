@@ -121,7 +121,7 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
 
     let itemsQuery = supabase
         .from('calendar_items')
-        .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, payment_status')
+        .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, payment_status, priority')
         .eq('instance_id', instanceId)
         .in('column_id', columnIds)
         .lte('item_date', dateEnd)
