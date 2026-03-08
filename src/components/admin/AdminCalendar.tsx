@@ -161,6 +161,9 @@ const AdminCalendar = ({
   hideEmployeeChips,
   workingHours,
   prioritiesEnabled,
+  employeeViewActive,
+  onToggleEmployeeView,
+  conflictItemIds,
 }: AdminCalendarProps) => {
   const { startHour: DEFAULT_START_HOUR, endHour: DEFAULT_END_HOUR } = computeHourRange(workingHours);
   const HOURS = Array.from({ length: DEFAULT_END_HOUR - DEFAULT_START_HOUR }, (_, i) => i + DEFAULT_START_HOUR);
