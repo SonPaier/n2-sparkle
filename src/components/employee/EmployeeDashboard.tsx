@@ -209,7 +209,13 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
       return notifyDate <= today;
     });
 
-    setItems(calItems);
+    setItems(calItems.sort((a, b) => {
+      const dateCmp = a.item_date.localeCompare(b.item_date);
+      if (dateCmp !== 0) return dateCmp;
+      const aPri = a.priority ?? DEFAULT_PRIORITY;
+      const bPri = b.priority ?? DEFAULT_PRIORITY;
+      return aPri - bPri;
+    }));
     setReminders(filteredReminders);
     setLoading(false);
   }, [instanceId, columnIds, dateStart, dateEnd, linkedEmployeeId]);
