@@ -926,23 +926,25 @@ const AdminCalendar = ({
                     </div>
                   )}
 
-                  {/* Column visibility */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm">Kolumny</h4>
-                      {hasHiddenColumns && (
-                        <Button variant="ghost" size="sm" onClick={showAllColumns} className="h-7 text-xs">Pokaż wszystkie</Button>
-                      )}
-                    </div>
+                  {/* Column visibility - hide in employee view */}
+                  {!employeeViewActive && (
                     <div className="space-y-2">
-                      {columns.map((col) => (
-                        <div key={col.id} className="flex items-center gap-2">
-                          <Checkbox id={`col-${col.id}`} checked={!hiddenColumnIds.has(col.id)} onCheckedChange={() => toggleColumnVisibility(col.id)} />
-                          <Label htmlFor={`col-${col.id}`} className="text-sm cursor-pointer flex-1">{col.name}</Label>
-                        </div>
-                      ))}
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">Kolumny</h4>
+                        {hasHiddenColumns && (
+                          <Button variant="ghost" size="sm" onClick={showAllColumns} className="h-7 text-xs">Pokaż wszystkie</Button>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        {columns.map((col) => (
+                          <div key={col.id} className="flex items-center gap-2">
+                            <Checkbox id={`col-${col.id}`} checked={!hiddenColumnIds.has(col.id)} onCheckedChange={() => toggleColumnVisibility(col.id)} />
+                            <Label htmlFor={`col-${col.id}`} className="text-sm cursor-pointer flex-1">{col.name}</Label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Compact mode */}
                   {!isMobile && (
