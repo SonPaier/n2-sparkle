@@ -62,6 +62,7 @@ export interface CalendarItemRow {
   address_lat?: number | null;
   address_lng?: number | null;
   employee_names?: string[];
+  priority?: number | null;
 }
 
 interface ReminderRow {
