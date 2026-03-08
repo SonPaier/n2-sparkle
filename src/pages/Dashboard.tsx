@@ -347,7 +347,7 @@ const Dashboard = () => {
     if (error) { toast.error('Błąd usuwania'); return; }
 
     // Notify assigned employees about deletion
-    if (item?.assigned_employee_ids?.length && instanceId) {
+    if (activitiesEnabled && item?.assigned_employee_ids?.length && instanceId) {
       const { data: emps } = await supabase
         .from('employees')
         .select('linked_user_id')
