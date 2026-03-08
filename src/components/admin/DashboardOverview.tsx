@@ -280,7 +280,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     );
   }
 
-  const visibleCount = [settings.visibleSections.orders, settings.visibleSections.reminders, settings.visibleSections.payments].filter(Boolean).length;
+  const visibleCount = [settings.visibleSections.orders, remindersEnabled && settings.visibleSections.reminders, settings.visibleSections.payments].filter(Boolean).length;
   const gridCols = visibleCount === 1 ? 'md:grid-cols-1' : visibleCount === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3';
 
   return (

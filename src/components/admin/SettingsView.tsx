@@ -376,6 +376,17 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 disabled={protocolsLoading}
               />
             </div>
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Przypomnienia</Label>
+                <p className="text-xs text-muted-foreground">Moduł przypomnień i śledzenia terminów</p>
+              </div>
+              <Switch
+                checked={remindersEnabled}
+                onCheckedChange={toggleReminders}
+                disabled={remindersLoading}
+              />
+            </div>
           </div>
         );
 

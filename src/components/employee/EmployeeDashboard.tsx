@@ -356,8 +356,8 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
           </CardContent>
         </Card>
 
-        {/* Przypomnienia - hide entire section when count = 0 */}
-        {reminders.length > 0 && (
+        {/* Przypomnienia - hide entire section when count = 0 or reminders disabled */}
+        {remindersEnabled && reminders.length > 0 && (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
