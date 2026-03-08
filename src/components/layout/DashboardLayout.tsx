@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard, FolderKanban } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
