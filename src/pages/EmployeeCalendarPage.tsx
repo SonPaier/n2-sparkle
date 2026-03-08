@@ -415,7 +415,7 @@ const EmployeeCalendarPage = () => {
   const navItems = [
     { id: 'dashboard' as EmployeeView, label: dashboardSettings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień', icon: LayoutDashboard },
     { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
-    { id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck },
+    ...(protocolsEnabled ? [{ id: 'protokoly' as EmployeeView, label: 'Protokoły', icon: ClipboardCheck }] : []),
   ];
 
   return (
