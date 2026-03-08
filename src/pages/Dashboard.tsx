@@ -498,7 +498,7 @@ const Dashboard = () => {
       return <div className="max-w-[1000px] mx-auto"><EmployeesView instanceId={instanceId} /></div>;
     }
 
-    if (currentView === 'protokoly' && instanceId) {
+    if (currentView === 'protokoly' && instanceId && protocolsEnabled) {
       return <div className="max-w-[1000px] mx-auto"><ProtocolsView instanceId={instanceId} /></div>;
     }
 
