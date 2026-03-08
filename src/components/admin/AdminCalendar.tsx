@@ -812,7 +812,7 @@ const AdminCalendar = ({
       <div key={hour} style={{ height: HOUR_HEIGHT }}>
         {Array.from({ length: SLOTS_PER_HOUR }, (_, i) => {
           const isDropTarget = dragOverColumn === columnId && dragOverDate === dateStr && dragOverSlot?.hour === hour && dragOverSlot?.slotIndex === i;
-          const isDisabled = isPastDay;
+          const isDisabled = isPastDay || !!employeeViewActive;
 
           return (
             <div
@@ -822,7 +822,7 @@ const AdminCalendar = ({
                 i === SLOTS_PER_HOUR - 1 ? "border-border" : "border-border/40",
                 isDropTarget && !isDisabled && "bg-primary/30 border-primary",
                 !isDropTarget && !isDisabled && "hover:bg-primary/10 hover:z-50 cursor-pointer",
-                isDisabled && "cursor-not-allowed"
+                isDisabled && !employeeViewActive && "cursor-not-allowed"
               )}
               style={{ height: SLOT_HEIGHT }}
               onClick={() => !isDisabled && handleSlotClick(columnId, hour, i, dateStr)}
