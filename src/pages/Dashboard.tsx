@@ -406,6 +406,7 @@ const Dashboard = () => {
       column_id: item.column_id,
       admin_notes: item.admin_notes,
       price: item.price,
+      priority: (item as any).priority,
     });
     setDetailsOpen(false);
     setDashboardDetailsOpen(false);
