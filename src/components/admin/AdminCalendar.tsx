@@ -656,11 +656,6 @@ const AdminCalendar = ({
           {/* Line 1: Title */}
            <div className="flex items-center gap-1 text-[13px] md:text-[15px] min-w-0">
             <span className="font-semibold truncate">{item.title}</span>
-            {prioritiesEnabled && item.priority != null && item.priority !== 3 && (
-              <span className={cn("inline-flex items-center rounded-full border px-1.5 py-0 text-[10px] font-semibold shrink-0", getPriorityConfig(item.priority).badgeCls)}>
-                {getPriorityConfig(item.priority).label}
-              </span>
-            )}
           </div>
           {/* Line 2: Time + notes indicator */}
           <div className="flex items-center justify-between gap-0.5">
@@ -710,6 +705,11 @@ const AdminCalendar = ({
           )}
           {/* Line 5: Payment status + Assigned employees chips */}
           <div className="flex items-center gap-0.5 mt-[4px] flex-wrap">
+            {prioritiesEnabled && item.priority != null && item.priority !== 3 && (
+              <span className={cn("inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-semibold shrink-0", getPriorityConfig(item.priority).badgeCls)}>
+                {getPriorityConfig(item.priority).label}
+              </span>
+            )}
             {item.payment_status && item.payment_status !== 'not_invoiced' && (
               <InvoiceStatusBadge status={item.payment_status} size="sm" />
             )}
