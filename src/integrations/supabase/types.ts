@@ -168,17 +168,19 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           end_date: string | null
-          end_time: string
+          end_time: string | null
           id: string
           instance_id: string
-          item_date: string
+          item_date: string | null
           media_items: Json | null
           order_number: string | null
           payment_status: string | null
           photo_urls: Json | null
           price: number | null
           priority: number
-          start_time: string
+          project_id: string | null
+          stage_number: number | null
+          start_time: string | null
           status: string
           title: string
           updated_at: string
@@ -195,17 +197,19 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           end_date?: string | null
-          end_time: string
+          end_time?: string | null
           id?: string
           instance_id: string
-          item_date: string
+          item_date?: string | null
           media_items?: Json | null
           order_number?: string | null
           payment_status?: string | null
           photo_urls?: Json | null
           price?: number | null
           priority?: number
-          start_time: string
+          project_id?: string | null
+          stage_number?: number | null
+          start_time?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -222,17 +226,19 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           end_date?: string | null
-          end_time?: string
+          end_time?: string | null
           id?: string
           instance_id?: string
-          item_date?: string
+          item_date?: string | null
           media_items?: Json | null
           order_number?: string | null
           payment_status?: string | null
           photo_urls?: Json | null
           price?: number | null
           priority?: number
-          start_time?: string
+          project_id?: string | null
+          stage_number?: number | null
+          start_time?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -264,6 +270,13 @@ export type Database = {
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1175,6 +1188,67 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          customer_address_id: string | null
+          customer_id: string | null
+          description: string | null
+          id: string
+          instance_id: string
+          notes: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_address_id?: string | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          instance_id: string
+          notes?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_address_id?: string | null
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          instance_id?: string
+          notes?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_customer_address_id_fkey"
+            columns: ["customer_address_id"]
+            isOneToOne: false
+            referencedRelation: "customer_addresses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_instance_id_fkey"
             columns: ["instance_id"]
             isOneToOne: false
             referencedRelation: "instances"

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard, FolderKanban } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
@@ -19,12 +19,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-type ViewType = 'dashboard' | 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'przypomnienia' | 'powiadomienia-sms' | 'ustawienia' | 'aktywnosci';
+type ViewType = 'dashboard' | 'kalendarz' | 'klienci' | 'uslugi' | 'pracownicy' | 'protokoly' | 'rozliczenia' | 'projekty' | 'przypomnienia' | 'powiadomienia-sms' | 'ustawienia' | 'aktywnosci';
 
 const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
   { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
+  { id: 'projekty', label: 'Projekty', icon: FolderKanban },
   { id: 'klienci', label: 'Klienci', icon: Users },
   { id: 'pracownicy', label: 'Pracownicy', icon: HardHat },
   { id: 'protokoly', label: 'Protokoły', icon: ClipboardCheck },
@@ -54,6 +55,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const { signOut, username, user } = useAuth();
   const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId ?? null, 'activities');
+  const { enabled: projectsEnabled } = useInstanceFeature(instanceId ?? null, 'projects');
   const { unreadCount } = useNotifications(activitiesEnabled ? (instanceId ?? null) : null);
   const { currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -73,7 +75,8 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
     .filter(i => activitiesEnabled || i.id !== 'aktywnosci')
     .filter(i => employeesEnabled || i.id !== 'pracownicy')
     .filter(i => protocolsEnabled || i.id !== 'protokoly')
-    .filter(i => remindersEnabled || i.id !== 'przypomnienia');
+    .filter(i => remindersEnabled || i.id !== 'przypomnienia')
+    .filter(i => projectsEnabled || i.id !== 'projekty');
   const filteredBottomBarItems = activitiesEnabled ? bottomBarItems : bottomBarItems.filter(i => i.id !== 'aktywnosci');
 
   useEffect(() => {

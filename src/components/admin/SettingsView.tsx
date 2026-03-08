@@ -98,6 +98,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const { enabled: remindersEnabled, loading: remindersLoading, toggle: toggleReminders } = useInstanceFeature(instanceId, 'reminders');
   const { enabled: prioritiesEnabled, loading: prioritiesLoading, toggle: togglePriorities } = useInstanceFeature(instanceId, 'priorities');
   const { enabled: employeeCalendarViewEnabled, loading: employeeCalendarViewLoading, toggle: toggleEmployeeCalendarView } = useInstanceFeature(instanceId, 'employee_calendar_view');
+  const { enabled: projectsEnabled, loading: projectsLoading, toggle: toggleProjects } = useInstanceFeature(instanceId, 'projects');
 
   const allTabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
@@ -413,6 +414,17 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 />
               </div>
             )}
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Projekty</Label>
+                <p className="text-xs text-muted-foreground">Grupuj zlecenia w wieloetapowe projekty</p>
+              </div>
+              <Switch
+                checked={projectsEnabled}
+                onCheckedChange={toggleProjects}
+                disabled={projectsLoading}
+              />
+            </div>
           </div>
         );
 

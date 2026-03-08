@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { format, subDays, addDays } from 'date-fns';
-import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell, LayoutDashboard } from 'lucide-react';
+import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell, LayoutDashboard, FolderKanban } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import SettingsView from '@/components/admin/SettingsView';
@@ -20,6 +20,7 @@ import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDial
 import { EmployeesView } from '@/components/admin/employees';
 import ProtocolsView from '@/components/protocols/ProtocolsView';
 import SettlementsView from '@/components/admin/SettlementsView';
+import ProjectsView from '@/components/admin/projects/ProjectsView';
 import CreateProtocolForm from '@/components/protocols/CreateProtocolForm';
 import RemindersView from '@/components/admin/reminders/RemindersView';
 import AddEditReminderDrawer from '@/components/admin/reminders/AddEditReminderDrawer';
@@ -35,7 +36,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useReminders, useReminderTypes } from '@/hooks/useReminders';
 import type { Reminder } from '@/hooks/useReminders';
 
-const validViews: ViewType[] = ['dashboard', 'kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'przypomnienia', 'powiadomienia-sms', 'ustawienia', 'aktywnosci'];
+const validViews: ViewType[] = ['dashboard', 'kalendarz', 'klienci', 'uslugi', 'pracownicy', 'protokoly', 'rozliczenia', 'projekty', 'przypomnienia', 'powiadomienia-sms', 'ustawienia', 'aktywnosci'];
 
 const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; description: string }> = {
   dashboard: { label: 'Twój dzień', icon: LayoutDashboard, description: 'Przegląd zadań na ten tydzień' },
@@ -44,6 +45,7 @@ const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; des
   pracownicy: { label: 'Pracownicy', icon: HardHat, description: 'Zarządzaj pracownikami i czasem pracy' },
   protokoly: { label: 'Protokoły', icon: ClipboardCheck, description: 'Protokoły serwisowe zakończenia prac' },
   rozliczenia: { label: 'Rozliczenia', icon: Receipt, description: 'Rozliczenia i statusy płatności zleceń' },
+  projekty: { label: 'Projekty', icon: FolderKanban, description: 'Wieloetapowe projekty grupujące zlecenia' },
   przypomnienia: { label: 'Przypomnienia', icon: Bell, description: "Śledź ważne terminy i deadline'y" },
   uslugi: { label: 'Usługi', icon: BadgeDollarSign, description: 'Konfiguruj usługi i cennik' },
   'powiadomienia-sms': { label: 'Powiadomienia SMS', icon: MessageSquare, description: 'Szablony powiadomień SMS dla klientów' },
@@ -88,6 +90,7 @@ const Dashboard = () => {
   const { enabled: remindersEnabled } = useInstanceFeature(instanceId, 'reminders');
   const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId, 'priorities');
   const { enabled: employeeCalendarViewEnabled } = useInstanceFeature(instanceId, 'employee_calendar_view');
+  const { enabled: projectsEnabled } = useInstanceFeature(instanceId, 'projects');
 
   const hostname = window.location.hostname;
   const isSubdomain = hostname.endsWith('.n2service.com');
@@ -614,6 +617,10 @@ const Dashboard = () => {
 
     if (currentView === 'rozliczenia' && instanceId) {
       return <div className="max-w-[1000px] mx-auto"><SettlementsView instanceId={instanceId} /></div>;
+    }
+
+    if (currentView === 'projekty' && instanceId && projectsEnabled) {
+      return <div className="max-w-[1000px] mx-auto"><ProjectsView instanceId={instanceId} /></div>;
     }
 
     if (currentView === 'powiadomienia-sms') {
