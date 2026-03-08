@@ -42,9 +42,10 @@ const ITEMS_PER_PAGE = 10;
 
 interface ProjectsViewProps {
   instanceId: string;
+  onAddOrder?: (projectId: string, customerId: string | null, customerAddressId: string | null) => void;
 }
 
-const ProjectsView = ({ instanceId }: ProjectsViewProps) => {
+const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -290,6 +291,10 @@ const ProjectsView = ({ instanceId }: ProjectsViewProps) => {
         instanceId={instanceId}
         onEdit={(project) => { setDetailsOpen(false); handleEdit(project); }}
         onOrdersChanged={invalidate}
+        onAddOrder={onAddOrder ? (projectId, customerId, customerAddressId) => {
+          setDetailsOpen(false);
+          onAddOrder(projectId, customerId, customerAddressId);
+        } : undefined}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
 import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin, DollarSign, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin, DollarSign, Users, FolderKanban } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { InvoiceStatusBadge } from '@/components/invoicing/InvoiceStatusBadge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -56,6 +56,8 @@ export interface CalendarItem {
   payment_status?: string | null;
   order_number?: string | null;
   priority?: number | null;
+  project_id?: string | null;
+  project_name?: string | null;
 }
 
 export interface Break {
@@ -662,6 +664,13 @@ const AdminCalendar = ({
         onClick={(e) => { e.stopPropagation(); onItemClick?.(item); }}
       >
         <div className="px-0.5 text-black space-y-[3px]">
+          {/* Project tag */}
+          {item.project_name && (
+            <div className="flex items-center gap-0.5 text-[9px] md:text-[10px] truncate">
+              <FolderKanban className="w-2.5 h-2.5 shrink-0" />
+              <span className="truncate font-medium">{item.project_name}</span>
+            </div>
+          )}
           {/* Line 1: Title */}
            <div className="flex items-center gap-1 text-[13px] md:text-[15px] min-w-0">
             <span className="font-semibold truncate">{item.title}</span>

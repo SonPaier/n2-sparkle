@@ -110,6 +110,7 @@ const Dashboard = () => {
   const [editingItem, setEditingItem] = useState<EditingCalendarItem | null>(null);
   const [addBreakOpen, setAddBreakOpen] = useState(false);
   const [newItemData, setNewItemData] = useState({ columnId: '', date: '', time: '' });
+  const [initialProjectId, setInitialProjectId] = useState<string | undefined>(undefined);
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [mapOpen, setMapOpen] = useState(false);
@@ -173,8 +174,9 @@ const Dashboard = () => {
     const rangeEnd = format(addDays(currentCalendarDate, mapOpen ? 30 : 14), 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('calendar_items')
-      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number, priority')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number, priority, project_id')
       .eq('instance_id', instanceId)
+      .not('item_date', 'is', null)
       .gte('item_date', rangeStart)
       .lte('item_date', rangeEnd);
     if (error) { console.error('Error fetching items:', error); return; }
@@ -219,6 +221,22 @@ const Dashboard = () => {
             (item as any).assigned_employees = item.assigned_employee_ids
               .map(id => empMap.get(id))
               .filter(Boolean) as AssignedEmployee[];
+          }
+        });
+      }
+    }
+
+    // Fetch project names for items with project_id
+    const projectIds = [...new Set(items.filter(i => i.project_id).map(i => i.project_id!))];
+    if (projectIds.length > 0) {
+      const { data: projectsData } = await (supabase.from('projects' as any) as any)
+        .select('id, title')
+        .in('id', projectIds);
+      if (projectsData) {
+        const projMap = new Map(projectsData.map((p: any) => [p.id, p.title]));
+        items.forEach(item => {
+          if (item.project_id) {
+            (item as any).project_name = projMap.get(item.project_id) || null;
           }
         });
       }
@@ -363,7 +381,16 @@ const Dashboard = () => {
   const handleAddItem = (columnId: string, date: string, time: string) => {
     setEditingItem(null);
     setMapOrderPrefill({});
+    setInitialProjectId(undefined);
     setNewItemData({ columnId, date, time });
+    setAddItemOpen(true);
+  };
+
+  const handleProjectAddOrder = (projectId: string, customerId: string | null, customerAddressId: string | null) => {
+    setEditingItem(null);
+    setMapOrderPrefill({});
+    setInitialProjectId(projectId);
+    setNewItemData({ columnId: '', date: '', time: '' });
     setAddItemOpen(true);
   };
 
@@ -525,7 +552,11 @@ const Dashboard = () => {
     fetchItems();
     setEditingItem(null);
     setMapOrderPrefill({});
+    setInitialProjectId(undefined);
     queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['projects-stages', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['project-orders'] });
   };
 
   const handleDateChange = (date: Date) => {
@@ -620,7 +651,7 @@ const Dashboard = () => {
     }
 
     if (currentView === 'projekty' && instanceId && projectsEnabled) {
-      return <div className="max-w-[1000px] mx-auto"><ProjectsView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><ProjectsView instanceId={instanceId} onAddOrder={handleProjectAddOrder} /></div>;
     }
 
     if (currentView === 'powiadomienia-sms') {
@@ -773,7 +804,7 @@ const Dashboard = () => {
       {instanceId && (
         <AddCalendarItemDialog
           open={addItemOpen}
-          onClose={() => { setAddItemOpen(false); setEditingItem(null); setMapOrderPrefill({}); }}
+          onClose={() => { setAddItemOpen(false); setEditingItem(null); setMapOrderPrefill({}); setInitialProjectId(undefined); }}
           instanceId={instanceId}
           columns={calendarColumns}
           onSuccess={handleItemSuccess}
@@ -786,6 +817,7 @@ const Dashboard = () => {
           initialCustomerPhone={mapOrderPrefill.customerPhone}
           initialCustomerEmail={mapOrderPrefill.customerEmail}
           initialCustomerAddressId={mapOrderPrefill.customerAddressId}
+          initialProjectId={initialProjectId}
         />
       )}
 

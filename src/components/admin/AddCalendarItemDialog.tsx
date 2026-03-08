@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { type DateRange } from 'react-day-picker';
-import { Loader2, CalendarIcon, HardHat, MessageSquare, X } from 'lucide-react';
+import { Loader2, CalendarIcon, HardHat, MessageSquare, X, FolderKanban } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
@@ -72,6 +72,7 @@ interface AddCalendarItemDialogProps {
   initialCustomerEmail?: string;
   initialCustomerAddressId?: string;
   initialServiceIds?: string[];
+  initialProjectId?: string;
   onCustomerClick?: (customerId: string) => void;
 }
 
@@ -104,6 +105,7 @@ const AddCalendarItemDialog = ({
   initialCustomerEmail,
   initialCustomerAddressId,
   initialServiceIds,
+  initialProjectId,
   onCustomerClick,
 }: AddCalendarItemDialogProps) => {
   const isEditMode = !!editingItem?.id;
@@ -111,6 +113,7 @@ const AddCalendarItemDialog = ({
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
   const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId, 'priorities');
+  const { enabled: projectsEnabled } = useInstanceFeature(instanceId, 'projects');
   const { data: allEmployees = [] } = useEmployees(instanceId);
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
@@ -161,6 +164,8 @@ const AddCalendarItemDialog = ({
   // Add new customer drawer state
   const [addCustomerOpen, setAddCustomerOpen] = useState(false);
   const [addCustomerPrefilledName, setAddCustomerPrefilledName] = useState('');
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [availableProjects, setAvailableProjects] = useState<{ id: string; title: string; customer_id: string | null; customer_address_id: string | null }[]>([]);
 
   // SMS notification state
   const [sendImmediateSms, setSendImmediateSms] = useState(false);
@@ -181,6 +186,13 @@ const AddCalendarItemDialog = ({
     };
     fetchInstance();
   }, [instanceId]);
+
+  // Fetch available projects
+  useEffect(() => {
+    if (!instanceId || !projectsEnabled) { setAvailableProjects([]); return; }
+    supabase.from('projects' as any).select('id, title, customer_id, customer_address_id').eq('instance_id', instanceId).eq('status', 'active').order('created_at', { ascending: false })
+      .then(({ data }: any) => setAvailableProjects(data || []));
+  }, [instanceId, projectsEnabled]);
 
   // Check for existing SMS notification in edit mode
   useEffect(() => {
@@ -223,6 +235,7 @@ const AddCalendarItemDialog = ({
       setPrice(editingItem.price?.toString() || '');
       setPriority(editingItem.priority ?? DEFAULT_PRIORITY);
       setAssignedEmployeeIds(editingItem.assigned_employee_ids || []);
+      setProjectId(null); // Don't change project in edit mode for now
 
       // Load saved services from calendar_item_services
       const loadServices = async () => {
@@ -286,6 +299,30 @@ const AddCalendarItemDialog = ({
       setPriority(DEFAULT_PRIORITY);
       setAssignedEmployeeIds([]);
 
+      // Handle initial project
+      if (initialProjectId) {
+        setProjectId(initialProjectId);
+        // Auto-fill customer/address from project
+        const proj = availableProjects.find(p => p.id === initialProjectId);
+        if (proj) {
+          if (proj.customer_id) {
+            supabase.from('customers').select('id, name, phone, email').eq('id', proj.customer_id).single().then(({ data }) => {
+              if (data) {
+                setCustomerId(data.id);
+                setCustomerName(data.name);
+                setCustomerPhone(data.phone);
+                setCustomerEmail(data.email || '');
+              }
+            });
+          }
+          if (proj.customer_address_id) {
+            setCustomerAddressId(proj.customer_address_id);
+          }
+        }
+      } else {
+        setProjectId(null);
+      }
+
       // Pre-fill services if provided
       if (initialServiceIds && initialServiceIds.length > 0) {
         const loadInitialServices = async () => {
@@ -328,7 +365,26 @@ const AddCalendarItemDialog = ({
     setSendImmediateSms(false);
     setImmediateSmsTemplate(null);
     setImmediateSmsTemplateId(null);
-  }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns, initialCustomerId, initialCustomerName, initialCustomerPhone, initialCustomerEmail, initialCustomerAddressId, initialServiceIds]);
+  }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns, initialCustomerId, initialCustomerName, initialCustomerPhone, initialCustomerEmail, initialCustomerAddressId, initialServiceIds, initialProjectId, availableProjects]);
+
+  const handleSelectProject = async (selectedProjectId: string | null) => {
+    setProjectId(selectedProjectId);
+    if (!selectedProjectId) return;
+    const proj = availableProjects.find(p => p.id === selectedProjectId);
+    if (!proj) return;
+    if (proj.customer_id) {
+      const { data } = await supabase.from('customers').select('id, name, phone, email').eq('id', proj.customer_id).single();
+      if (data) {
+        setCustomerId(data.id);
+        setCustomerName(data.name);
+        setCustomerPhone(data.phone);
+        setCustomerEmail(data.email || '');
+      }
+    }
+    if (proj.customer_address_id) {
+      setCustomerAddressId(proj.customer_address_id);
+    }
+  };
 
   const handleSelectCustomer = (customer: SelectedCustomer) => {
     setCustomerId(customer.id);
@@ -522,38 +578,52 @@ const AddCalendarItemDialog = ({
         return;
       }
     }
-    if (!columnId) {
-      toast.error('Wybierz kolumnę');
-      return;
-    }
-    if (!dateRange?.from) {
-      toast.error('Wybierz datę');
-      return;
-    }
-    if (startTime >= endTime) {
-      toast.error('Godzina końca musi być późniejsza niż początku');
-      return;
+
+    const hasDate = !!dateRange?.from;
+    // If dates are provided, validate them
+    if (hasDate) {
+      if (!columnId) {
+        toast.error('Wybierz kolumnę');
+        return;
+      }
+      if (startTime >= endTime) {
+        toast.error('Godzina końca musi być późniejsza niż początku');
+        return;
+      }
     }
 
     setLoading(true);
     try {
+      // Auto-calculate stage_number for project items
+      let stageNumber: number | null = null;
+      if (projectId && !isEditMode) {
+        const { count } = await supabase
+          .from('calendar_items')
+          .select('id', { count: 'exact', head: true })
+          .eq('project_id', projectId)
+          .neq('status', 'cancelled');
+        stageNumber = (count || 0) + 1;
+      }
+
       const data: any = {
         instance_id: instanceId,
-        column_id: columnId,
+        column_id: hasDate ? columnId : null,
         title: finalTitle,
         customer_name: customerName.trim() || null,
         customer_phone: customerPhone.trim() || null,
         customer_email: customerEmail.trim() || null,
         customer_id: customerId || null,
         customer_address_id: customerAddressId || null,
-        item_date: format(dateRange!.from!, 'yyyy-MM-dd'),
-        end_date: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
-        start_time: startTime,
-        end_time: endTime,
+        item_date: hasDate ? format(dateRange!.from!, 'yyyy-MM-dd') : null,
+        end_date: hasDate && dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
+        start_time: hasDate ? startTime : null,
+        end_time: hasDate ? endTime : null,
         admin_notes: adminNotes.trim() || null,
         price: price ? parseFloat(price) : null,
         priority: priority,
         assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
+        project_id: projectId || null,
+        ...(stageNumber ? { stage_number: stageNumber } : {}),
       };
 
       let calendarItemId: string;
@@ -670,6 +740,25 @@ const AddCalendarItemDialog = ({
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {/* Project selector */}
+            {projectsEnabled && availableProjects.length > 0 && !isEditMode && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <FolderKanban className="w-3.5 h-3.5" />
+                  Projekt
+                </Label>
+                <Select value={projectId || '_none'} onValueChange={(v) => handleSelectProject(v === '_none' ? null : v)}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="Bez projektu" /></SelectTrigger>
+                  <SelectContent className="z-[1200]">
+                    <SelectItem value="_none">Bez projektu</SelectItem>
+                    {availableProjects.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Title */}
             <div className="space-y-2">
               <Label>Tytuł zlecenia</Label>

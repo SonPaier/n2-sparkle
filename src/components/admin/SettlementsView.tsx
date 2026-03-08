@@ -33,7 +33,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 interface CalendarItemRow {
   id: string;
   title: string;
-  item_date: string;
+  item_date: string | null;
   customer_name: string | null;
   customer_id: string | null;
   customer_email: string | null;
@@ -44,8 +44,8 @@ interface CalendarItemRow {
   payment_status: string | null;
   price: number | null;
   admin_notes: string | null;
-  start_time: string;
-  end_time: string;
+  start_time: string | null;
+  end_time: string | null;
   column_id: string | null;
   assigned_employee_ids: string[] | null;
   photo_urls: unknown;
@@ -241,7 +241,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         (o) =>
         (o.customer_name || '').toLowerCase().includes(q) ||
         (o.title || '').toLowerCase().includes(q) ||
-        o.item_date.includes(q)
+        (o.item_date || '').includes(q)
       );
     }
     if (sortColumn) {
@@ -476,7 +476,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs text-muted-foreground">
-                        {format(parseISO(order.item_date), 'dd.MM.yyyy')}
+                        {order.item_date ? format(parseISO(order.item_date), 'dd.MM.yyyy') : 'Bez daty'}
                       </span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -641,7 +641,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
                       <div className="leading-tight">
                         <div>{format(parseISO(order.created_at), 'dd.MM.yyyy')}</div>
                         {order.status === 'completed' &&
-                      <div>{format(parseISO(order.item_date), 'dd.MM.yyyy')}</div>
+                      <div>{order.item_date ? format(parseISO(order.item_date), 'dd.MM.yyyy') : 'Bez daty'}</div>
                       }
                       </div>
                     </TableCell>
