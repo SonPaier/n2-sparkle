@@ -24,6 +24,7 @@ interface DashboardOverviewProps {
   onReminderClick?: (reminderId: string) => void;
   onPaymentClick?: (itemId: string) => void;
   onViewNotifications?: () => void;
+  remindersEnabled?: boolean;
 }
 
 interface CalendarItemRow {
@@ -77,7 +78,7 @@ const getDayPill = (itemDate: string, endDate?: string | null) => {
   return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
-const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick, onViewNotifications }: DashboardOverviewProps) => {
+const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderClick, onPaymentClick, onViewNotifications, remindersEnabled = true }: DashboardOverviewProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [allPaymentItems, setAllPaymentItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
@@ -279,7 +280,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
     );
   }
 
-  const visibleCount = [settings.visibleSections.orders, settings.visibleSections.reminders, settings.visibleSections.payments].filter(Boolean).length;
+  const visibleCount = [settings.visibleSections.orders, remindersEnabled && settings.visibleSections.reminders, settings.visibleSections.payments].filter(Boolean).length;
   const gridCols = visibleCount === 1 ? 'md:grid-cols-1' : visibleCount === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3';
 
   return (
@@ -368,7 +369,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
             })}
           </DashboardColumn>
         )}
-        {settings.visibleSections.reminders && (
+        {remindersEnabled && settings.visibleSections.reminders && (
           <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={todayReminders.length} emptyText="Brak przypomnień">
             {todayReminders.map((r, idx) => (
               <ReminderCard key={r.id} reminder={r} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />

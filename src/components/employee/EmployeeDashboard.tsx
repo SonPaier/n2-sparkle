@@ -33,6 +33,7 @@ interface EmployeeDashboardProps {
   workingHours?: WorkingHours;
   onOpenMap?: (items: CalendarItemRow[]) => void;
   viewModeLabel?: string;
+  remindersEnabled?: boolean;
 }
 
 export interface CalendarItemRow {
@@ -90,7 +91,7 @@ const getDayPill = (itemDate: string, endDate?: string | null) => {
   return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
-const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours, onOpenMap }: EmployeeDashboardProps) => {
+const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours, onOpenMap, remindersEnabled = true }: EmployeeDashboardProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -355,8 +356,8 @@ const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onIte
           </CardContent>
         </Card>
 
-        {/* Przypomnienia - hide entire section when count = 0 */}
-        {reminders.length > 0 && (
+        {/* Przypomnienia - hide entire section when count = 0 or reminders disabled */}
+        {remindersEnabled && reminders.length > 0 && (
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">

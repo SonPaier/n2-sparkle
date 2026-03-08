@@ -95,6 +95,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const { enabled: activitiesEnabled, loading: activitiesLoading, toggle: toggleActivities } = useInstanceFeature(instanceId, 'activities');
   const { enabled: employeesEnabled, loading: employeesLoading, toggle: toggleEmployees } = useInstanceFeature(instanceId, 'employees');
   const { enabled: protocolsEnabled, loading: protocolsLoading, toggle: toggleProtocols } = useInstanceFeature(instanceId, 'protocols');
+  const { enabled: remindersEnabled, loading: remindersLoading, toggle: toggleReminders } = useInstanceFeature(instanceId, 'reminders');
 
   const allTabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
@@ -373,6 +374,17 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
                 checked={protocolsEnabled}
                 onCheckedChange={toggleProtocols}
                 disabled={protocolsLoading}
+              />
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Przypomnienia</Label>
+                <p className="text-xs text-muted-foreground">Moduł przypomnień i śledzenia terminów</p>
+              </div>
+              <Switch
+                checked={remindersEnabled}
+                onCheckedChange={toggleReminders}
+                disabled={remindersLoading}
               />
             </div>
           </div>

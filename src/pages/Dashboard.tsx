@@ -65,6 +65,7 @@ const Dashboard = () => {
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
   const { enabled: protocolsEnabled } = useInstanceFeature(instanceId, 'protocols');
+  const { enabled: remindersEnabled } = useInstanceFeature(instanceId, 'reminders');
 
   const hostname = window.location.hostname;
   const isSubdomain = hostname.endsWith('.n2service.com');
@@ -477,6 +478,7 @@ const Dashboard = () => {
             onReminderClick={handleDashboardReminderClick}
             onPaymentClick={handleDashboardPaymentClick}
             onViewNotifications={() => handleViewChange('aktywnosci')}
+            remindersEnabled={remindersEnabled}
           />
         </div>
       );
@@ -510,7 +512,7 @@ const Dashboard = () => {
       return <div className="max-w-[1000px] mx-auto"><SmsNotificationsView instanceId={instanceId} /></div>;
     }
 
-    if (currentView === 'przypomnienia' && instanceId) {
+    if (currentView === 'przypomnienia' && instanceId && remindersEnabled) {
       return <div className="max-w-[1000px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
     }
 
