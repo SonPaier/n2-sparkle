@@ -54,6 +54,7 @@ const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; des
 const Dashboard = () => {
   const { view } = useParams<{ view?: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { roles } = useAuth();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
