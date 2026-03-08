@@ -555,7 +555,7 @@ const Dashboard = () => {
             onStatusChange={handleStatusChange}
             onStartWork={(itemId) => handleStatusChange(itemId, 'in_progress')}
             onEndWork={(itemId) => handleStatusChange(itemId, 'completed')}
-            onAddProtocol={async (item) => {
+            onAddProtocol={protocolsEnabled ? async (item) => {
               setDetailsOpen(false);
               const { data: existing } = await supabase
                 .from('protocols')
@@ -573,7 +573,7 @@ const Dashboard = () => {
                 calendarItemId: item.id,
               });
               setProtocolFormOpen(true);
-            }}
+            } : undefined}
             instanceId={instanceId || undefined}
           />
 
