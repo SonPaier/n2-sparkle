@@ -45,7 +45,7 @@ interface ProjectsViewProps {
   onAddOrder?: (projectId: string, customerId: string | null, customerAddressId: string | null) => void;
 }
 
-const ProjectsView = ({ instanceId }: ProjectsViewProps) => {
+const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
