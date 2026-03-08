@@ -144,6 +144,7 @@ const AddCalendarItemDialog = ({
   };
   const [adminNotes, setAdminNotes] = useState('');
   const [price, setPrice] = useState('');
+  const [priority, setPriority] = useState<number>(DEFAULT_PRIORITY);
 
 
   // Service selection state
