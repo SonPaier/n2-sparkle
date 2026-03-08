@@ -107,6 +107,7 @@ const AddCalendarItemDialog = ({
   const isEditMode = !!editingItem?.id;
   const isMobile = useIsMobile();
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
+  const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
   const { data: allEmployees = [] } = useEmployees(instanceId);
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
