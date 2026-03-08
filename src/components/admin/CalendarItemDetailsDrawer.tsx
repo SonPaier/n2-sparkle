@@ -28,6 +28,7 @@ import { useInvoicingSettings } from '@/components/invoicing/useInvoicingSetting
 import { useInvoices } from '@/components/invoicing/useInvoices';
 import CustomerOrderCard from './CustomerOrderCard';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import type { CalendarItem, CalendarColumn, AssignedEmployee } from './AdminCalendar';
 
 interface SmsNotificationInfo {
