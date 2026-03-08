@@ -55,6 +55,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const { signOut, username, user } = useAuth();
   const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId ?? null, 'activities');
+  const { enabled: projectsEnabled } = useInstanceFeature(instanceId ?? null, 'projects');
   const { unreadCount } = useNotifications(activitiesEnabled ? (instanceId ?? null) : null);
   const { currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
