@@ -740,6 +740,25 @@ const AddCalendarItemDialog = ({
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {/* Project selector */}
+            {projectsEnabled && availableProjects.length > 0 && !isEditMode && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <FolderKanban className="w-3.5 h-3.5" />
+                  Projekt
+                </Label>
+                <Select value={projectId || '_none'} onValueChange={(v) => handleSelectProject(v === '_none' ? null : v)}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="Bez projektu" /></SelectTrigger>
+                  <SelectContent className="z-[1200]">
+                    <SelectItem value="_none">Bez projektu</SelectItem>
+                    {availableProjects.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Title */}
             <div className="space-y-2">
               <Label>Tytuł zlecenia</Label>
