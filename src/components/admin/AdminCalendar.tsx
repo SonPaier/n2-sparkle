@@ -958,7 +958,7 @@ const AdminCalendar = ({
             </Popover>
 
             {/* Map toggle */}
-            {onToggleMap && (
+            {onToggleMap && !employeeViewActive && (
               <Button
                 variant={mapOpen ? 'secondary' : 'outline'}
                 size="sm"
@@ -968,6 +968,20 @@ const AdminCalendar = ({
               >
                 <MapPin className="w-4 h-4" />
                 {!isMobile && <span>Mapa</span>}
+              </Button>
+            )}
+
+            {/* Employee calendar view toggle */}
+            {onToggleEmployeeView && (
+              <Button
+                variant={employeeViewActive ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={onToggleEmployeeView}
+                className="gap-1"
+                title={employeeViewActive ? 'Widok kolumn' : 'Widok pracowników'}
+              >
+                <Users className="w-4 h-4" />
+                {!isMobile && <span>Pracownicy</span>}
               </Button>
             )}
 
