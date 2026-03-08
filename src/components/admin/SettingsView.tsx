@@ -94,6 +94,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
 
   const { enabled: activitiesEnabled, loading: activitiesLoading, toggle: toggleActivities } = useInstanceFeature(instanceId, 'activities');
   const { enabled: employeesEnabled, loading: employeesLoading, toggle: toggleEmployees } = useInstanceFeature(instanceId, 'employees');
+  const { enabled: protocolsEnabled, loading: protocolsLoading, toggle: toggleProtocols } = useInstanceFeature(instanceId, 'protocols');
 
   const allTabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
