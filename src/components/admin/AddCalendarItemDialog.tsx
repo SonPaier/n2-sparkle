@@ -105,6 +105,7 @@ const AddCalendarItemDialog = ({
   initialCustomerEmail,
   initialCustomerAddressId,
   initialServiceIds,
+  initialProjectId,
   onCustomerClick,
 }: AddCalendarItemDialogProps) => {
   const isEditMode = !!editingItem?.id;
