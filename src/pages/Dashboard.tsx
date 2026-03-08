@@ -110,6 +110,7 @@ const Dashboard = () => {
   const [editingItem, setEditingItem] = useState<EditingCalendarItem | null>(null);
   const [addBreakOpen, setAddBreakOpen] = useState(false);
   const [newItemData, setNewItemData] = useState({ columnId: '', date: '', time: '' });
+  const [initialProjectId, setInitialProjectId] = useState<string | undefined>(undefined);
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [mapOpen, setMapOpen] = useState(false);
