@@ -241,6 +241,13 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
   const dashboardItems = items.filter(i => {
     const endDate = (i as any).end_date || i.item_date;
     return workingDays.some(day => i.item_date <= day && endDate >= day);
+  }).sort((a, b) => {
+    // Sort by date first (today first), then by priority (lower number = higher priority)
+    const dateCmp = a.item_date.localeCompare(b.item_date);
+    if (dateCmp !== 0) return dateCmp;
+    const aPri = a.priority ?? DEFAULT_PRIORITY;
+    const bPri = b.priority ?? DEFAULT_PRIORITY;
+    return aPri - bPri;
   });
 
   const todayReminders = reminders.filter(r => {
