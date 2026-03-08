@@ -52,7 +52,8 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: DashboardLayoutProps) => {
   const { signOut, username, user } = useAuth();
   const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
-  const { unreadCount } = useNotifications(instanceId ?? null);
+  const { enabled: activitiesEnabled } = useInstanceFeature(instanceId ?? null, 'activities');
+  const { unreadCount } = useNotifications(activitiesEnabled ? (instanceId ?? null) : null);
   const { currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
