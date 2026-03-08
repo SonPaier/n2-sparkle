@@ -478,6 +478,7 @@ const Dashboard = () => {
             onReminderClick={handleDashboardReminderClick}
             onPaymentClick={handleDashboardPaymentClick}
             onViewNotifications={() => handleViewChange('aktywnosci')}
+            remindersEnabled={remindersEnabled}
           />
         </div>
       );
