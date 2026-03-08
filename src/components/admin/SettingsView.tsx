@@ -331,6 +331,27 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
       case 'integrations':
         return <IntegrationsSettingsView instanceId={instanceId} />;
 
+      case 'app':
+        return (
+          <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
+            <div>
+              <h3 className="text-base font-semibold mb-1">Moduły aplikacji</h3>
+              <p className="text-sm text-muted-foreground">Włączaj i wyłączaj funkcjonalności dostępne w panelu.</p>
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Aktywności</Label>
+                <p className="text-xs text-muted-foreground">Moduł powiadomień i aktywności w aplikacji</p>
+              </div>
+              <Switch
+                checked={activitiesEnabled}
+                onCheckedChange={toggleActivities}
+                disabled={activitiesLoading}
+              />
+            </div>
+          </div>
+        );
+
       default:
         return null;
     }
