@@ -94,7 +94,7 @@ const getDayPill = (itemDate: string, endDate?: string | null) => {
   return { label: capitalize(dayName), cls: 'bg-purple-500 text-white border-transparent' };
 };
 
-const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours, onOpenMap, remindersEnabled = true }: EmployeeDashboardProps) => {
+const EmployeeDashboard = ({ instanceId, columnIds, hidePrices, hideHours, onItemClick, linkedEmployeeId, workingHours, onOpenMap, remindersEnabled = true, prioritiesEnabled = false }: EmployeeDashboardProps) => {
   const [items, setItems] = useState<CalendarItemRow[]>([]);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
