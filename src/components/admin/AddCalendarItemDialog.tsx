@@ -367,6 +367,25 @@ const AddCalendarItemDialog = ({
     setImmediateSmsTemplateId(null);
   }, [open, isEditMode, editingItem, initialDate, initialTime, initialColumnId, columns, initialCustomerId, initialCustomerName, initialCustomerPhone, initialCustomerEmail, initialCustomerAddressId, initialServiceIds, initialProjectId, availableProjects]);
 
+  const handleSelectProject = async (selectedProjectId: string | null) => {
+    setProjectId(selectedProjectId);
+    if (!selectedProjectId) return;
+    const proj = availableProjects.find(p => p.id === selectedProjectId);
+    if (!proj) return;
+    if (proj.customer_id) {
+      const { data } = await supabase.from('customers').select('id, name, phone, email').eq('id', proj.customer_id).single();
+      if (data) {
+        setCustomerId(data.id);
+        setCustomerName(data.name);
+        setCustomerPhone(data.phone);
+        setCustomerEmail(data.email || '');
+      }
+    }
+    if (proj.customer_address_id) {
+      setCustomerAddressId(proj.customer_address_id);
+    }
+  };
+
   const handleSelectCustomer = (customer: SelectedCustomer) => {
     setCustomerId(customer.id);
     setCustomerName(customer.name);
