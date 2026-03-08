@@ -637,7 +637,7 @@ const Dashboard = () => {
     }
 
     if (currentView === 'projekty' && instanceId && projectsEnabled) {
-      return <div className="max-w-[1000px] mx-auto"><ProjectsView instanceId={instanceId} /></div>;
+      return <div className="max-w-[1000px] mx-auto"><ProjectsView instanceId={instanceId} onAddOrder={handleProjectAddOrder} /></div>;
     }
 
     if (currentView === 'powiadomienia-sms') {
