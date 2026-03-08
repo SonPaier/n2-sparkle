@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Building2, Grid2X2, Monitor, Users, Loader2, Save, Upload, Trash2, Image as ImageIcon, ChevronDown, Plug, MessageSquare } from 'lucide-react';
+import { Building2, Grid2X2, Monitor, Users, Loader2, Save, Upload, Trash2, Image as ImageIcon, ChevronDown, Plug, MessageSquare, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,13 +18,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { IntegrationsSettingsView } from '@/components/invoicing/IntegrationsSettingsView';
 import SmsPaymentTemplatesView from './settings/SmsPaymentTemplatesView';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import type { AddressSearchResult } from '@/lib/addressSearch';
 
 interface SettingsViewProps {
   instanceId: string | null;
 }
 
-type SettingsTab = 'company' | 'calendar' | 'employee-calendars' | 'users' | 'sms-templates' | 'integrations';
+type SettingsTab = 'company' | 'calendar' | 'employee-calendars' | 'users' | 'sms-templates' | 'integrations' | 'app';
 
 const SettingsView = ({ instanceId }: SettingsViewProps) => {
   const isMobile = useIsMobile();
@@ -90,6 +92,8 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
       });
   }, [instanceId]);
 
+  const { enabled: activitiesEnabled, loading: activitiesLoading, toggle: toggleActivities } = useInstanceFeature(instanceId, 'activities');
+
   const tabs: { key: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { key: 'company', label: 'Dane firmy', icon: <Building2 className="w-4 h-4" /> },
     { key: 'calendar', label: 'Kalendarz', icon: <Grid2X2 className="w-4 h-4" /> },
@@ -97,6 +101,7 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
     { key: 'users', label: 'Użytkownicy', icon: <Users className="w-4 h-4" /> },
     { key: 'sms-templates', label: 'Szablony SMS', icon: <MessageSquare className="w-4 h-4" /> },
     { key: 'integrations', label: 'Integracje', icon: <Plug className="w-4 h-4" /> },
+    { key: 'app', label: 'Aplikacja', icon: <Smartphone className="w-4 h-4" /> },
   ];
 
   const handleInputChange = (field: string, value: string) => {
@@ -325,6 +330,27 @@ const SettingsView = ({ instanceId }: SettingsViewProps) => {
 
       case 'integrations':
         return <IntegrationsSettingsView instanceId={instanceId} />;
+
+      case 'app':
+        return (
+          <div className="bg-card rounded-lg border border-border shadow-sm p-6 space-y-6">
+            <div>
+              <h3 className="text-base font-semibold mb-1">Moduły aplikacji</h3>
+              <p className="text-sm text-muted-foreground">Włączaj i wyłączaj funkcjonalności dostępne w panelu.</p>
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-border">
+              <div className="space-y-0.5">
+                <Label className="text-sm font-medium">Aktywności</Label>
+                <p className="text-xs text-muted-foreground">Moduł powiadomień i aktywności w aplikacji</p>
+              </div>
+              <Switch
+                checked={activitiesEnabled}
+                onCheckedChange={toggleActivities}
+                disabled={activitiesLoading}
+              />
+            </div>
+          </div>
+        );
 
       default:
         return null;

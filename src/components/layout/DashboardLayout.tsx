@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Users, BadgeDollarSign, Settings, LogOut, Menu, PanelLeftClose, PanelLeft, ChevronUp, X, HardHat, ClipboardCheck, MessageSquare, Receipt, Bell, LayoutDashboard } from 'lucide-react';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { UpdateBanner } from '@/components/pwa/UpdateBanner';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,7 +52,8 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: DashboardLayoutProps) => {
   const { signOut, username, user } = useAuth();
   const { settings: dashboardSettings } = useDashboardSettings(instanceId ?? null);
-  const { unreadCount } = useNotifications(instanceId ?? null);
+  const { enabled: activitiesEnabled } = useInstanceFeature(instanceId ?? null, 'activities');
+  const { unreadCount } = useNotifications(activitiesEnabled ? (instanceId ?? null) : null);
   const { currentVersion } = useAppUpdate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -61,6 +63,9 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const [instanceName, setInstanceName] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const dashboardLabel = dashboardSettings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień';
+
+  const filteredNavItems = activitiesEnabled ? navItems : navItems.filter(i => i.id !== 'aktywnosci');
+  const filteredBottomBarItems = activitiesEnabled ? bottomBarItems : bottomBarItems.filter(i => i.id !== 'aktywnosci');
 
   useEffect(() => {
     if (!instanceId) return;
@@ -133,7 +138,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
 
           {/* Navigation */}
           <nav className={cn("flex-1 space-y-2", sidebarCollapsed ? "p-2" : "p-4")}>
-            {navItems.map(({ id, label, icon: Icon }) => {
+            {filteredNavItems.map(({ id, label, icon: Icon }) => {
               const displayLabel = id === 'dashboard' ? dashboardLabel : label;
               return (
                 <Button
@@ -215,7 +220,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
       {/* Mobile bottom bar */}
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 z-[110] bg-card border-t border-border/50 flex items-center justify-around h-16 px-2 pb-2.5">
-          {bottomBarItems.map(({ id, label, icon: Icon }) => {
+          {filteredBottomBarItems.map(({ id, label, icon: Icon }) => {
             const displayLabel = id === 'dashboard' ? dashboardLabel : label;
             return (
               <button

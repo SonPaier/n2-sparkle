@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { createNotification } from '@/hooks/useNotifications';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ServiceSelectionDrawer, { type ServiceWithCategory } from './ServiceSelectionDrawer';
@@ -105,6 +106,7 @@ const AddCalendarItemDialog = ({
 }: AddCalendarItemDialogProps) => {
   const isEditMode = !!editingItem?.id;
   const isMobile = useIsMobile();
+  const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
   const { data: allEmployees = [] } = useEmployees(instanceId);
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
@@ -604,7 +606,7 @@ const AddCalendarItemDialog = ({
       }
 
       // Notify assigned employees about new/updated assignment
-      if (assignedEmployeeIds.length > 0) {
+      if (activitiesEnabled && assignedEmployeeIds.length > 0) {
         const { data: emps } = await supabase
           .from('employees')
           .select('linked_user_id')

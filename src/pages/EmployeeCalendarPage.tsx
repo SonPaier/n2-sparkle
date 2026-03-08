@@ -25,6 +25,7 @@ import type { EditingCalendarItem } from '@/components/admin/AddCalendarItemDial
 import { Loader2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useNotifications, createNotification } from '@/hooks/useNotifications';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import type { CalendarItemRow } from '@/components/employee/EmployeeDashboard';
@@ -63,7 +64,8 @@ const EmployeeCalendarPage = () => {
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
-  const { unreadCount } = useNotifications(instanceId);
+  const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
+  const { unreadCount } = useNotifications(activitiesEnabled ? instanceId : null);
   const { settings: dashboardSettings } = useDashboardSettings(instanceId);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -349,7 +351,7 @@ const EmployeeCalendarPage = () => {
     setDashboardRefreshKey(k => k + 1);
 
     // Notify admins when employee starts/completes a task
-    if (instanceId && (newStatus === 'in_progress' || newStatus === 'completed')) {
+    if (activitiesEnabled && instanceId && (newStatus === 'in_progress' || newStatus === 'completed')) {
       // Fetch item title directly from DB to ensure we have it regardless of view state
       let itemTitle = 'Zlecenie';
       const { data: itemData } = await supabase.from('calendar_items').select('title, customer_name').eq('id', itemId).single();
@@ -557,7 +559,7 @@ const EmployeeCalendarPage = () => {
             </>
           ) : currentView === 'czas-pracy' && instanceId ? (
             <EmployeeTimeTrackingView instanceId={instanceId} />
-          ) : currentView === 'aktywnosci' && instanceId ? (
+          ) : currentView === 'aktywnosci' && instanceId && activitiesEnabled ? (
             <NotificationsView
               instanceId={instanceId}
               onItemClick={(calendarItemId) => {
@@ -670,7 +672,7 @@ const EmployeeCalendarPage = () => {
           {[
             { id: 'dashboard' as EmployeeView, label: 'Mój dzień', icon: LayoutDashboard },
             { id: 'czas-pracy' as EmployeeView, label: 'Czas pracy', icon: Clock },
-            { id: 'aktywnosci' as EmployeeView, label: 'Aktywności', icon: Bell },
+            ...(activitiesEnabled ? [{ id: 'aktywnosci' as EmployeeView, label: 'Aktywności', icon: Bell }] : []),
           ].map(({ id, label, icon: Icon }) => (
             <button
               key={id}

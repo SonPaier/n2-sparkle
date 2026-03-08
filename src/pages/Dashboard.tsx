@@ -27,6 +27,7 @@ import SmsNotificationsView from '@/components/admin/SmsNotificationsView';
 import DashboardOverview from '@/components/admin/DashboardOverview';
 import NotificationsView from '@/components/admin/NotificationsView';
 import { createNotification } from '@/hooks/useNotifications';
+import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { MessageSquare } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -61,6 +62,7 @@ const Dashboard = () => {
 
   const adminRole = roles.find(r => (r.role === 'admin' || r.role === 'employee') && r.instance_id);
   const instanceId = adminRole?.instance_id ?? null;
+  const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
 
   const hostname = window.location.hostname;
   const isSubdomain = hostname.endsWith('.n2service.com');
@@ -308,7 +310,7 @@ const Dashboard = () => {
     if (error) {
       toast.error('Błąd przenoszenia');
       fetchItems(); // rollback
-    } else if (item.assigned_employee_ids?.length && instanceId) {
+    } else if (activitiesEnabled && item.assigned_employee_ids?.length && instanceId) {
       // Notify assigned employees about rescheduling
       const { data: emps } = await supabase
         .from('employees')
@@ -345,7 +347,7 @@ const Dashboard = () => {
     if (error) { toast.error('Błąd usuwania'); return; }
 
     // Notify assigned employees about deletion
-    if (item?.assigned_employee_ids?.length && instanceId) {
+    if (activitiesEnabled && item?.assigned_employee_ids?.length && instanceId) {
       const { data: emps } = await supabase
         .from('employees')
         .select('linked_user_id')
@@ -510,7 +512,7 @@ const Dashboard = () => {
       return <div className="max-w-[1000px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
     }
 
-    if (currentView === 'aktywnosci' && instanceId) {
+    if (currentView === 'aktywnosci' && instanceId && activitiesEnabled) {
       return (
         <div className="max-w-[1000px] mx-auto">
           <NotificationsView
