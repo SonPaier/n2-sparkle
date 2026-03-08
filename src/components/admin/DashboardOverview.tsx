@@ -369,7 +369,7 @@ const DashboardOverview = ({ instanceId, workingHours, onItemClick, onReminderCl
             })}
           </DashboardColumn>
         )}
-        {settings.visibleSections.reminders && (
+        {remindersEnabled && settings.visibleSections.reminders && (
           <DashboardColumn icon={<Bell className="w-5 h-5 text-primary" />} title="Przypomnienia" count={todayReminders.length} emptyText="Brak przypomnień">
             {todayReminders.map((r, idx) => (
               <ReminderCard key={r.id} reminder={r} isFirst={idx === 0} onDone={(e) => handleReminderDone(r.id, e)} onClick={() => onReminderClick?.(r.id)} />
