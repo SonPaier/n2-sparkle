@@ -310,7 +310,7 @@ const Dashboard = () => {
     if (error) {
       toast.error('Błąd przenoszenia');
       fetchItems(); // rollback
-    } else if (item.assigned_employee_ids?.length && instanceId) {
+    } else if (activitiesEnabled && item.assigned_employee_ids?.length && instanceId) {
       // Notify assigned employees about rescheduling
       const { data: emps } = await supabase
         .from('employees')
