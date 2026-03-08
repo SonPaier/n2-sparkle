@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { clearPersistedCache } from '@/lib/idbPersister';
 
 type AppRole = 'super_admin' | 'admin' | 'user' | 'employee' | 'hall' | 'sales';
 
