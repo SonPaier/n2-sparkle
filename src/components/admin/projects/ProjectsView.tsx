@@ -42,6 +42,7 @@ const ITEMS_PER_PAGE = 10;
 
 interface ProjectsViewProps {
   instanceId: string;
+  onAddOrder?: (projectId: string, customerId: string | null, customerAddressId: string | null) => void;
 }
 
 const ProjectsView = ({ instanceId }: ProjectsViewProps) => {
