@@ -1,14 +1,16 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useEmployees, Employee } from '@/hooks/useEmployees';
 import { useTimeEntriesForDateRange, calculateMonthlySummary, formatMinutesToTime, TimeEntry } from '@/hooks/useTimeEntries';
 import { useEmployeeDaysOff, DAY_OFF_TYPE_LABELS, DayOffType, EmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
 import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
-import { Plus, ChevronLeft, ChevronRight, Loader2, User, Settings2, CalendarOff, FileText } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, ChevronLeft, ChevronRight, Loader2, User, Settings2, CalendarOff, MoreVertical, FileText, ClipboardList } from 'lucide-react';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, getISOWeek, addWeeks, subWeeks, isWithinInterval, eachDayOfInterval, isSameMonth, isSameWeek, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
@@ -16,6 +18,7 @@ import WorkerTimeDialog from './WorkerTimeDialog';
 import AddEmployeeDayOffDialog from './AddEmployeeDayOffDialog';
 import WorkersSettingsDrawer from './WorkersSettingsDrawer';
 import TimeEntryAuditDrawer from './TimeEntryAuditDrawer';
+import EmployeeOrdersDrawer from './EmployeeOrdersDrawer';
 
 const WEEKDAY_TO_KEY: Record<number, string> = {
   0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
@@ -41,9 +44,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const [dayOffDialogOpen, setDayOffDialogOpen] = useState(false);
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
   const [auditEmployee, setAuditEmployee] = useState<Employee | null>(null);
+  const [ordersEmployee, setOrdersEmployee] = useState<Employee | null>(null);
 
   const { data: workersSettings, isLoading: loadingSettings } = useWorkersSettings(instanceId);
   const isWeeklyMode = workersSettings?.report_frequency === 'weekly';
+  const isPerOrder = workersSettings?.settlement_type === 'per_order';
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -64,6 +69,44 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const { data: timeEntries = [], isLoading: loadingEntries } = useTimeEntriesForDateRange(instanceId, dateFrom, dateTo);
   const { data: daysOff = [], isLoading: loadingDaysOff } = useEmployeeDaysOff(instanceId, null);
   const { data: workingHours } = useWorkingHours(instanceId);
+
+  // Fetch completed orders count per employee for per_order settlement
+  const [completedOrderCounts, setCompletedOrderCounts] = useState<Map<string, number>>(new Map());
+  const [loadingOrders, setLoadingOrders] = useState(false);
+
+  useEffect(() => {
+    if (!isPerOrder || !instanceId) {
+      setCompletedOrderCounts(new Map());
+      return;
+    }
+    const fetchCompletedOrders = async () => {
+      setLoadingOrders(true);
+      try {
+        const { data } = await supabase
+          .from('calendar_items')
+          .select('id, assigned_employee_ids')
+          .eq('instance_id', instanceId)
+          .eq('status', 'completed')
+          .gte('item_date', dateFrom)
+          .lte('item_date', dateTo);
+
+        const counts = new Map<string, number>();
+        if (data) {
+          data.forEach(item => {
+            (item.assigned_employee_ids || []).forEach((empId: string) => {
+              counts.set(empId, (counts.get(empId) || 0) + 1);
+            });
+          });
+        }
+        setCompletedOrderCounts(counts);
+      } catch (err) {
+        console.error('Error fetching completed orders:', err);
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+    fetchCompletedOrders();
+  }, [isPerOrder, instanceId, dateFrom, dateTo]);
 
   const getOpeningTime = (dateStr: string): Date | null => {
     if (!workingHours) return null;
@@ -278,10 +321,12 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
             <Table className="w-full" style={{ tableLayout: 'fixed' }}>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead style={{ width: '47%' }}>Imię</TableHead>
-                  <TableHead className="text-center" style={{ width: '23%' }}>Przepracowano</TableHead>
-                  <TableHead className="text-right" style={{ width: '25%' }}>Wypłata</TableHead>
-                  {isAdmin && <TableHead style={{ width: '5%' }} />}
+                  <TableHead style={{ width: isPerOrder ? '60%' : '47%' }}>Imię</TableHead>
+                  <TableHead className="text-center" style={{ width: isPerOrder ? '30%' : '23%' }}>
+                    {isPerOrder ? 'Wykonano zleceń' : 'Przepracowano'}
+                  </TableHead>
+                  {!isPerOrder && <TableHead className="text-right" style={{ width: '25%' }}>Wypłata</TableHead>}
+                  {isAdmin && <TableHead style={{ width: isPerOrder ? '10%' : '5%' }} />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -295,10 +340,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2) : null;
                   const hours = Math.floor(displayMinutes / 60);
                   const mins = displayMinutes % 60;
+                  const orderCount = completedOrderCounts.get(employee.id) || 0;
                   
                   return (
                     <TableRow key={employee.id} className="cursor-pointer" onClick={() => handleTileClick(employee)}>
-                      <TableCell className="py-3" style={{ width: '47%' }}>
+                      <TableCell className="py-3" style={{ width: isPerOrder ? '60%' : '47%' }}>
                         <div className="flex items-center gap-2 min-w-0">
                           <Avatar className="h-8 w-8 flex-shrink-0">
                             <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
@@ -309,31 +355,47 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                           <span className="font-medium truncate">{employee.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-center py-3" style={{ width: '23%' }}>
-                        <div className="text-sm leading-tight">
-                          {hours > 0 && <div>{hours}h</div>}
-                          <div>{mins}min</div>
-                        </div>
+                      <TableCell className="text-center py-3" style={{ width: isPerOrder ? '30%' : '23%' }}>
+                        {isPerOrder ? (
+                          <span className="text-sm font-medium">{orderCount}</span>
+                        ) : (
+                          <div className="text-sm leading-tight">
+                            {hours > 0 && <div>{hours}h</div>}
+                            <div>{mins}min</div>
+                          </div>
+                        )}
                       </TableCell>
-                      <TableCell className="text-right py-3 whitespace-nowrap font-medium" style={{ width: '25%' }}>
-                        {earnings ? `${earnings} zł` : '-'}
-                      </TableCell>
+                      {!isPerOrder && (
+                        <TableCell className="text-right py-3 whitespace-nowrap font-medium" style={{ width: '25%' }}>
+                          {earnings ? `${earnings} zł` : '-'}
+                        </TableCell>
+                      )}
                       {isAdmin && (
-                        <TableCell className="text-center py-3" style={{ width: '5%' }}>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setAuditEmployee(employee); }}
-                            className="p-1 rounded hover:bg-accent transition-colors"
-                            title="Historia zmian"
-                          >
-                            <FileText className="w-4 h-4 text-muted-foreground" />
-                          </button>
+                        <TableCell className="text-center py-3" style={{ width: isPerOrder ? '10%' : '5%' }}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                              <button className="p-1 rounded hover:bg-accent transition-colors">
+                                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setAuditEmployee(employee); }}>
+                                <FileText className="w-4 h-4 mr-2" />
+                                Historia zmian
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setOrdersEmployee(employee); }}>
+                                <ClipboardList className="w-4 h-4 mr-2" />
+                                Wykonane zlecenia
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       )}
                     </TableRow>
                   );
                 })}
               </TableBody>
-              {isAdmin && totalEarnings > 0 && (
+              {isAdmin && !isPerOrder && totalEarnings > 0 && (
                 <TableFooter className="bg-card">
                   <TableRow>
                     <TableCell colSpan={2} className="py-3 text-right text-xs text-muted-foreground">
@@ -417,6 +479,16 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           instanceId={instanceId}
           dateFrom={dateFrom}
           dateTo={dateTo}
+        />
+      )}
+
+      {ordersEmployee && instanceId && (
+        <EmployeeOrdersDrawer
+          open={!!ordersEmployee}
+          onOpenChange={(open) => !open && setOrdersEmployee(null)}
+          employeeId={ordersEmployee.id}
+          employeeName={ordersEmployee.name}
+          instanceId={instanceId}
         />
       )}
     </div>

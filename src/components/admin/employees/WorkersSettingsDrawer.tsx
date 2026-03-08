@@ -22,12 +22,14 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
   const [overtimeEnabled, setOvertimeEnabled] = useState(false);
   const [standardHours, setStandardHours] = useState('8');
   const [reportFrequency, setReportFrequency] = useState<'monthly' | 'weekly'>('monthly');
+  const [settlementType, setSettlementType] = useState<'hourly' | 'per_order'>('hourly');
 
   useEffect(() => {
     if (settings) {
       setOvertimeEnabled(settings.overtime_enabled ?? false);
       setStandardHours(settings.standard_hours_per_day?.toString() ?? '8');
       setReportFrequency(settings.report_frequency ?? 'monthly');
+      setSettlementType(settings.settlement_type ?? 'hourly');
     }
   }, [settings]);
 
@@ -39,6 +41,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
         overtime_enabled: overtimeEnabled,
         standard_hours_per_day: parseInt(standardHours) || 8,
         report_frequency: reportFrequency,
+        settlement_type: settlementType,
       });
       toast.success('Ustawienia zostały zapisane');
       handleClose();
@@ -93,6 +96,25 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
                       <Label htmlFor="weekly" className="font-normal cursor-pointer">Tygodniowo</Label>
                     </div>
                     <p className="text-xs text-muted-foreground ml-6">Podsumowanie co tydzień</p>
+                  </div>
+                </RadioGroup>
+              </div>
+              <div className="space-y-3">
+                <Label>Typ rozliczenia</Label>
+                <RadioGroup value={settlementType} onValueChange={(v) => setSettlementType(v as 'hourly' | 'per_order')}>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="hourly" id="hourly-settlement" />
+                      <Label htmlFor="hourly-settlement" className="font-normal cursor-pointer">Godzinowe</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">Rozliczenie na podstawie przepracowanych godzin</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="per_order" id="per-order-settlement" />
+                      <Label htmlFor="per-order-settlement" className="font-normal cursor-pointer">Per zlecenie</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">Rozliczenie na podstawie wykonanych zleceń</p>
                   </div>
                 </RadioGroup>
               </div>
