@@ -41,6 +41,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
         overtime_enabled: overtimeEnabled,
         standard_hours_per_day: parseInt(standardHours) || 8,
         report_frequency: reportFrequency,
+        settlement_type: settlementType,
       });
       toast.success('Ustawienia zostały zapisane');
       handleClose();
