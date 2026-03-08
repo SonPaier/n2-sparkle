@@ -8,6 +8,7 @@ export interface WorkersSettings {
   standard_hours_per_day: number;
   report_frequency: 'monthly' | 'weekly';
   time_calculation_mode: 'start_to_stop' | 'opening_to_stop';
+  settlement_type: 'hourly' | 'per_order';
 }
 
 export const useWorkersSettings = (instanceId: string | null) => {

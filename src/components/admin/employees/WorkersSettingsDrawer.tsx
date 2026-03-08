@@ -22,12 +22,14 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
   const [overtimeEnabled, setOvertimeEnabled] = useState(false);
   const [standardHours, setStandardHours] = useState('8');
   const [reportFrequency, setReportFrequency] = useState<'monthly' | 'weekly'>('monthly');
+  const [settlementType, setSettlementType] = useState<'hourly' | 'per_order'>('hourly');
 
   useEffect(() => {
     if (settings) {
       setOvertimeEnabled(settings.overtime_enabled ?? false);
       setStandardHours(settings.standard_hours_per_day?.toString() ?? '8');
       setReportFrequency(settings.report_frequency ?? 'monthly');
+      setSettlementType(settings.settlement_type ?? 'hourly');
     }
   }, [settings]);
 
