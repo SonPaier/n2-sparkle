@@ -64,6 +64,9 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   const isMobile = useIsMobile();
   const dashboardLabel = dashboardSettings.viewMode === 'week' ? 'Mój tydzień' : 'Mój dzień';
 
+  const filteredNavItems = activitiesEnabled ? navItems : navItems.filter(i => i.id !== 'aktywnosci');
+  const filteredBottomBarItems = activitiesEnabled ? bottomBarItems : bottomBarItems.filter(i => i.id !== 'aktywnosci');
+
   useEffect(() => {
     if (!instanceId) return;
     supabase
