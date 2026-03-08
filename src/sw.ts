@@ -19,16 +19,18 @@ const navigationHandler = new NetworkFirst({
   ],
 });
 
-registerRoute(new NavigationRoute(navigationHandler));
+registerRoute(new NavigationRoute(navigationHandler, {
+  denylist: [/^\/~oauth/, /^\/login/],
+}));
 
+// Supabase API — StaleWhileRevalidate for offline support (24h, 500 entries)
 registerRoute(
   ({ url }) => url.origin.includes('supabase'),
-  new NetworkFirst({
+  new StaleWhileRevalidate({
     cacheName: 'supabase-api-cache',
-    networkTimeoutSeconds: 10,
     plugins: [
       new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 5 * 60 }),
+      new ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 24 * 60 * 60 }),
     ],
   })
 );

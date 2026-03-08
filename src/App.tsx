@@ -1,8 +1,10 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, onlineManager } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { createIDBPersister } from "@/lib/idbPersister";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -12,15 +14,37 @@ import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import EmployeeCalendarPage from "./pages/EmployeeCalendarPage";
 import SmsNotificationTemplateEditPage from "./pages/SmsNotificationTemplateEditPage";
 
+// Mutations fail immediately when offline
+onlineManager.setEventListener((setOnline) => {
+  const onlineHandler = () => setOnline(true);
+  const offlineHandler = () => setOnline(false);
+  window.addEventListener('online', onlineHandler);
+  window.addEventListener('offline', offlineHandler);
+  return () => {
+    window.removeEventListener('online', onlineHandler);
+    window.removeEventListener('offline', offlineHandler);
+  };
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 60 * 25, // 25h > persister maxAge (24h)
       retry: 1,
+    },
+    mutations: {
+      networkMode: 'online', // fail immediately when offline
     },
   },
 });
+
+const persister = createIDBPersister();
+const persistOptions = {
+  persister,
+  maxAge: 1000 * 60 * 60 * 24, // 24h
+};
 
 // Subdomain detection for n2service.com
 const getSubdomainInfo = () => {
@@ -204,7 +228,7 @@ const App = () => {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
       <AuthProvider>
         <TooltipProvider>
           <Sonner />
@@ -213,7 +237,7 @@ const App = () => {
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 };
 

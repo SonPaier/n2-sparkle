@@ -4,6 +4,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { useInstanceFeature } from '@/hooks/useInstanceFeatures';
 import { useAppUpdate } from '@/hooks/useAppUpdate';
 import { UpdateBanner } from '@/components/pwa/UpdateBanner';
+import { OfflineBanner } from '@/components/pwa/OfflineBanner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -104,6 +105,7 @@ const DashboardLayout = ({ currentView, onViewChange, children, instanceId }: Da
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <UpdateBanner />
+      <OfflineBanner />
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-[115] bg-black/50 lg:hidden" onClick={() => setSidebarOpen(false)} />
