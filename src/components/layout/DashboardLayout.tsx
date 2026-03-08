@@ -25,6 +25,7 @@ const navItems: { id: ViewType; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Mój dzień', icon: LayoutDashboard },
   { id: 'kalendarz', label: 'Kalendarz', icon: Calendar },
   { id: 'rozliczenia', label: 'Zlecenia', icon: Receipt },
+  { id: 'projekty', label: 'Projekty', icon: FolderKanban },
   { id: 'klienci', label: 'Klienci', icon: Users },
   { id: 'pracownicy', label: 'Pracownicy', icon: HardHat },
   { id: 'protokoly', label: 'Protokoły', icon: ClipboardCheck },
