@@ -705,6 +705,11 @@ const AdminCalendar = ({
           )}
           {/* Line 5: Payment status + Assigned employees chips */}
           <div className="flex items-center gap-0.5 mt-[4px] flex-wrap">
+            {prioritiesEnabled && item.priority != null && item.priority !== 3 && (
+              <span className={cn("inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-semibold shrink-0", getPriorityConfig(item.priority).badgeCls)}>
+                {getPriorityConfig(item.priority).label}
+              </span>
+            )}
             {item.payment_status && item.payment_status !== 'not_invoiced' && (
               <InvoiceStatusBadge status={item.payment_status} size="sm" />
             )}
