@@ -51,6 +51,25 @@ const viewConfig: Record<ViewType, { label: string; icon: React.ElementType; des
   aktywnosci: { label: 'Aktywności', icon: Bell, description: 'Powiadomienia i aktywności' },
 };
 
+const parseTime = (time: string): number => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours + minutes / 60;
+};
+
+const getDateRange = (item: CalendarItem): string[] => {
+  const start = item.item_date;
+  const end = item.end_date || item.item_date;
+  if (start === end) return [start];
+  const dates: string[] = [];
+  let current = new Date(start + 'T00:00:00');
+  const endDate = new Date(end + 'T00:00:00');
+  while (current <= endDate) {
+    dates.push(format(current, 'yyyy-MM-dd'));
+    current = addDays(current, 1);
+  }
+  return dates;
+};
+
 const Dashboard = () => {
   const { view } = useParams<{ view?: string }>();
   const navigate = useNavigate();
