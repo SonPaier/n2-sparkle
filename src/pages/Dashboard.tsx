@@ -512,7 +512,7 @@ const Dashboard = () => {
       return <div className="max-w-[1000px] mx-auto"><RemindersView instanceId={instanceId} /></div>;
     }
 
-    if (currentView === 'aktywnosci' && instanceId) {
+    if (currentView === 'aktywnosci' && instanceId && activitiesEnabled) {
       return (
         <div className="max-w-[1000px] mx-auto">
           <NotificationsView
