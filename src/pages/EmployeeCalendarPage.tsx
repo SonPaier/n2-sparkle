@@ -65,6 +65,7 @@ const EmployeeCalendarPage = () => {
   const isMobile = useIsMobile();
   const { data: workingHours } = useWorkingHours(instanceId);
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
+  const { enabled: protocolsEnabled } = useInstanceFeature(instanceId, 'protocols');
   const { unreadCount } = useNotifications(activitiesEnabled ? instanceId : null);
   const { settings: dashboardSettings } = useDashboardSettings(instanceId);
   const mainRef = useRef<HTMLElement>(null);
