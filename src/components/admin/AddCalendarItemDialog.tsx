@@ -552,6 +552,7 @@ const AddCalendarItemDialog = ({
         end_time: endTime,
         admin_notes: adminNotes.trim() || null,
         price: price ? parseFloat(price) : null,
+        priority: priority,
         assigned_employee_ids: assignedEmployeeIds.length > 0 ? assignedEmployeeIds : null,
       };
 
