@@ -992,17 +992,22 @@ const CalendarItemDetailsDrawer = ({
                     })
                   ) : (
                     <>
-                      {item.assigned_employees && item.assigned_employees.map(emp => (
-                        <span key={emp.id} className="inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-medium">
-                          {emp.name}
-                          <button
-                            onClick={() => handleRemoveEmployee(emp.id)}
-                            className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
+                      {(() => {
+                        const emps = item.assigned_employees && item.assigned_employees.length > 0
+                          ? item.assigned_employees
+                          : (item.assigned_employee_ids || []).map(id => allEmployees.find(e => e.id === id)).filter(Boolean).map(e => ({ id: e!.id, name: e!.name }));
+                        return emps.map(emp => (
+                          <span key={emp.id} className="inline-flex items-center gap-1 bg-primary text-primary-foreground rounded-full px-3 py-1 text-xs font-medium">
+                            {emp.name}
+                            <button
+                              onClick={() => handleRemoveEmployee(emp.id)}
+                              className="ml-0.5 hover:bg-white/20 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ));
+                      })()}
                       {instanceId && (
                         <button
                           onClick={() => setEmployeeDrawerOpen(true)}
