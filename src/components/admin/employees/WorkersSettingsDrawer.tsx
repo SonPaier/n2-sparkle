@@ -118,6 +118,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
                   </div>
                 </RadioGroup>
               </div>
+            </>
           )}
         </div>
         <div className="sticky bottom-0 bg-background border-t p-4 flex gap-3">
