@@ -113,6 +113,7 @@ const AddCalendarItemDialog = ({
   const { enabled: activitiesEnabled } = useInstanceFeature(instanceId, 'activities');
   const { enabled: employeesEnabled } = useInstanceFeature(instanceId, 'employees');
   const { enabled: prioritiesEnabled } = useInstanceFeature(instanceId, 'priorities');
+  const { enabled: projectsEnabled } = useInstanceFeature(instanceId, 'projects');
   const { data: allEmployees = [] } = useEmployees(instanceId);
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState('');
