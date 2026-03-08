@@ -26,16 +26,28 @@ interface ProjectRow {
   created_at: string;
 }
 
-interface ProjectStageCount {
+interface ProjectOrder {
+  id: string;
   project_id: string;
-  total: number;
-  completed: number;
+  title: string;
+  item_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  status: string;
+  stage_number: number | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
   not_started: { label: 'Nierozpoczęty', badgeClass: 'bg-slate-100 text-slate-600 border-slate-300' },
   in_progress: { label: 'W trakcie', badgeClass: 'bg-blue-100 text-blue-700 border-blue-300' },
   completed: { label: 'Zakończony', badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-300' },
+};
+
+const ORDER_STATUS_CONFIG: Record<string, { label: string; dotClass: string }> = {
+  confirmed: { label: 'Do wykonania', dotClass: 'bg-amber-500' },
+  in_progress: { label: 'W realizacji', dotClass: 'bg-blue-500' },
+  completed: { label: 'Zakończony', dotClass: 'bg-emerald-500' },
+  cancelled: { label: 'Anulowany', dotClass: 'bg-red-400' },
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -81,39 +93,41 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
     },
   });
 
-  // Fetch stage counts per project
+  // Fetch all orders for all projects
   const projectIds = useMemo(() => projects.map(p => p.id), [projects]);
-  const { data: stageCounts = [] } = useQuery({
-    queryKey: ['projects-stages', instanceId, projectIds],
+  const { data: allOrders = [] } = useQuery({
+    queryKey: ['projects-orders', instanceId, projectIds],
     enabled: projectIds.length > 0,
     queryFn: async () => {
       const { data } = await (supabase
         .from('calendar_items') as any)
-        .select('id, project_id, status')
-        .in('project_id', projectIds);
-      
-      const countMap = new Map<string, { total: number; completed: number }>();
-      (data || []).forEach((item: any) => {
-        if (!item.project_id) return;
-        if (!countMap.has(item.project_id)) countMap.set(item.project_id, { total: 0, completed: 0 });
-        const entry = countMap.get(item.project_id)!;
-        if (item.status !== 'cancelled') {
-          entry.total++;
-          if (item.status === 'completed') entry.completed++;
-        }
-      });
-      return Array.from(countMap.entries()).map(([project_id, counts]) => ({
-        project_id,
-        ...counts,
-      })) as ProjectStageCount[];
+        .select('id, project_id, title, item_date, start_time, end_time, status, stage_number')
+        .in('project_id', projectIds)
+        .order('stage_number', { ascending: true });
+      return (data || []) as ProjectOrder[];
     },
   });
 
+  const ordersMap = useMemo(() => {
+    const map: Record<string, ProjectOrder[]> = {};
+    allOrders.forEach(o => {
+      if (!map[o.project_id]) map[o.project_id] = [];
+      map[o.project_id].push(o);
+    });
+    return map;
+  }, [allOrders]);
+
   const stageMap = useMemo(() => {
     const map: Record<string, { total: number; completed: number }> = {};
-    stageCounts.forEach(s => { map[s.project_id] = { total: s.total, completed: s.completed }; });
+    allOrders.forEach(o => {
+      if (!map[o.project_id]) map[o.project_id] = { total: 0, completed: 0 };
+      if (o.status !== 'cancelled') {
+        map[o.project_id].total++;
+        if (o.status === 'completed') map[o.project_id].completed++;
+      }
+    });
     return map;
-  }, [stageCounts]);
+  }, [allOrders]);
 
   const filteredProjects = useMemo(() => {
     if (!searchQuery.trim()) return projects;
@@ -149,7 +163,38 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
-    queryClient.invalidateQueries({ queryKey: ['projects-stages', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['projects-orders', instanceId] });
+  };
+
+  const renderOrderRows = (projectOrders: ProjectOrder[]) => {
+    if (projectOrders.length === 0) return null;
+    return projectOrders.map(order => {
+      const statusCfg = ORDER_STATUS_CONFIG[order.status] || ORDER_STATUS_CONFIG.confirmed;
+      return (
+        <TableRow key={order.id} className="bg-muted/20 hover:bg-muted/30">
+          <TableCell />
+          <TableCell colSpan={2} className="py-1.5">
+            <div className="flex items-center gap-2 pl-4">
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusCfg.dotClass}`} />
+              <span className="text-xs text-muted-foreground font-medium">
+                {order.stage_number ? `#${order.stage_number}` : '—'}
+              </span>
+              <span className="text-sm truncate">{order.title}</span>
+            </div>
+          </TableCell>
+          <TableCell className="py-1.5 text-xs text-muted-foreground">
+            {order.item_date
+              ? format(new Date(order.item_date + 'T00:00:00'), 'd MMM yyyy', { locale: pl })
+              : 'Bez daty'}
+          </TableCell>
+          <TableCell className="py-1.5">
+            <span className="text-xs text-muted-foreground">{statusCfg.label}</span>
+          </TableCell>
+          <TableCell />
+          <TableCell />
+        </TableRow>
+      );
+    });
   };
 
   return (
@@ -175,7 +220,7 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
       </div>
 
       {isMobile ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {isLoading ? (
             <p className="text-center text-muted-foreground py-8">Ładowanie...</p>
           ) : filteredProjects.length === 0 ? (
@@ -183,25 +228,49 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
           ) : paginatedProjects.map(project => {
             const stages = stageMap[project.id] || { total: 0, completed: 0 };
             const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
+            const projectOrders = ordersMap[project.id] || [];
             return (
               <div
                 key={project.id}
-                className="rounded-lg border border-border bg-card p-3 space-y-2 cursor-pointer active:bg-primary/5"
-                onClick={() => handleOpenDetails(project.id)}
+                className="rounded-lg border border-border bg-card overflow-hidden"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{project.title}</p>
-                    {project.customer_id && customerMap[project.customer_id] && (
-                      <p className="text-xs text-muted-foreground">{customerMap[project.customer_id]}</p>
-                    )}
+                <div
+                  className="p-3 space-y-2 cursor-pointer active:bg-primary/5"
+                  onClick={() => handleOpenDetails(project.id)}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{project.title}</p>
+                      {project.customer_id && customerMap[project.customer_id] && (
+                        <p className="text-xs text-muted-foreground">{customerMap[project.customer_id]}</p>
+                      )}
+                    </div>
+                    <Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge>
                   </div>
-                  <Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Etapy: {stages.completed}/{stages.total}</span>
+                    <span>{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Etapy: {stages.completed}/{stages.total}</span>
-                  <span>{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</span>
-                </div>
+                {projectOrders.length > 0 && (
+                  <div className="border-t border-border bg-muted/20 px-3 py-2 space-y-1">
+                    {projectOrders.map(order => {
+                      const osCfg = ORDER_STATUS_CONFIG[order.status] || ORDER_STATUS_CONFIG.confirmed;
+                      return (
+                        <div key={order.id} className="flex items-center gap-2 text-xs">
+                          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${osCfg.dotClass}`} />
+                          <span className="text-muted-foreground font-medium">{order.stage_number ? `#${order.stage_number}` : '—'}</span>
+                          <span className="truncate flex-1">{order.title}</span>
+                          <span className="text-muted-foreground shrink-0">
+                            {order.item_date
+                              ? format(new Date(order.item_date + 'T00:00:00'), 'd MMM', { locale: pl })
+                              : 'Bez daty'}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -214,7 +283,7 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
                 <TableHead className="w-[60px]">Nr</TableHead>
                 <TableHead>Tytuł</TableHead>
                 <TableHead>Klient</TableHead>
-                <TableHead>Data utworzenia</TableHead>
+                <TableHead>Data</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-center">Etapy</TableHead>
                 <TableHead className="w-[50px]" />
@@ -228,33 +297,37 @@ const ProjectsView = ({ instanceId, onAddOrder }: ProjectsViewProps) => {
               ) : paginatedProjects.map((project, idx) => {
                 const stages = stageMap[project.id] || { total: 0, completed: 0 };
                 const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
+                const projectOrders = ordersMap[project.id] || [];
                 return (
-                  <TableRow key={project.id} className="cursor-pointer" onClick={() => handleOpenDetails(project.id)}>
-                    <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
-                    <TableCell className="font-medium">{project.title}</TableCell>
-                    <TableCell className="text-muted-foreground">{project.customer_id ? customerMap[project.customer_id] || '—' : '—'}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
-                    <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
-                    <TableCell className="text-center font-medium">{stages.completed}/{stages.total}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenDetails(project.id); }}>
-                            <Eye className="w-4 h-4 mr-2" />Zobacz
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(project); }}>
-                            Edytuj
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} className="text-destructive">
-                            <Trash2 className="w-4 h-4 mr-2" />Usuń
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                  <>
+                    <TableRow key={project.id} className="cursor-pointer border-b-0 font-medium" onClick={() => handleOpenDetails(project.id)}>
+                      <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
+                      <TableCell className="font-medium">{project.title}</TableCell>
+                      <TableCell className="text-muted-foreground">{project.customer_id ? customerMap[project.customer_id] || '—' : '—'}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
+                      <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
+                      <TableCell className="text-center font-medium">{stages.completed}/{stages.total}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenDetails(project.id); }}>
+                              <Eye className="w-4 h-4 mr-2" />Zobacz
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(project); }}>
+                              Edytuj
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} className="text-destructive">
+                              <Trash2 className="w-4 h-4 mr-2" />Usuń
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                    {renderOrderRows(projectOrders)}
+                  </>
                 );
               })}
             </TableBody>
