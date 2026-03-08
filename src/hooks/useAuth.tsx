@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { clearPersistedCache } from '@/lib/idbPersister';
 
 type AppRole = 'super_admin' | 'admin' | 'user' | 'employee' | 'hall' | 'sales';
 
@@ -191,6 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsername(null);
     setFullName(null);
     previousUserIdRef.current = null;
+    // Clear persisted React Query cache to prevent data leak between users
+    await clearPersistedCache();
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error('[Auth] signOut error (forcing local cleanup):', error);
