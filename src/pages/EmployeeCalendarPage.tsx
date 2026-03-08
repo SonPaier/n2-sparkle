@@ -351,7 +351,7 @@ const EmployeeCalendarPage = () => {
     setDashboardRefreshKey(k => k + 1);
 
     // Notify admins when employee starts/completes a task
-    if (instanceId && (newStatus === 'in_progress' || newStatus === 'completed')) {
+    if (activitiesEnabled && instanceId && (newStatus === 'in_progress' || newStatus === 'completed')) {
       // Fetch item title directly from DB to ensure we have it regardless of view state
       let itemTitle = 'Zlecenie';
       const { data: itemData } = await supabase.from('calendar_items').select('title, customer_name').eq('id', itemId).single();
