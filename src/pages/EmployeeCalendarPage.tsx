@@ -559,7 +559,7 @@ const EmployeeCalendarPage = () => {
             </>
           ) : currentView === 'czas-pracy' && instanceId ? (
             <EmployeeTimeTrackingView instanceId={instanceId} />
-          ) : currentView === 'aktywnosci' && instanceId ? (
+          ) : currentView === 'aktywnosci' && instanceId && activitiesEnabled ? (
             <NotificationsView
               instanceId={instanceId}
               onItemClick={(calendarItemId) => {
