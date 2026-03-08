@@ -93,6 +93,21 @@ const Dashboard = () => {
   const [mapOpen, setMapOpen] = useState(false);
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [mapOrderPrefill, setMapOrderPrefill] = useState<{ customerId?: string; customerName?: string; customerPhone?: string; customerEmail?: string; customerAddressId?: string }>({});
+  const [employeesList, setEmployeesList] = useState<{ id: string; name: string; sort_order: number | null }[]>([]);
+
+  // Employee calendar view mode from URL
+  const employeeViewMode = searchParams.get('view') === 'employees';
+  const toggleEmployeeView = useCallback(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (next.get('view') === 'employees') {
+        next.delete('view');
+      } else {
+        next.set('view', 'employees');
+      }
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   // Protocol form state
   const [protocolFormOpen, setProtocolFormOpen] = useState(false);
