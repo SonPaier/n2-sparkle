@@ -173,8 +173,9 @@ const Dashboard = () => {
     const rangeEnd = format(addDays(currentCalendarDate, mapOpen ? 30 : 14), 'yyyy-MM-dd');
     const { data, error } = await supabase
       .from('calendar_items')
-      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number, priority')
+      .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number, priority, project_id')
       .eq('instance_id', instanceId)
+      .not('item_date', 'is', null)
       .gte('item_date', rangeStart)
       .lte('item_date', rangeEnd);
     if (error) { console.error('Error fetching items:', error); return; }
@@ -219,6 +220,22 @@ const Dashboard = () => {
             (item as any).assigned_employees = item.assigned_employee_ids
               .map(id => empMap.get(id))
               .filter(Boolean) as AssignedEmployee[];
+          }
+        });
+      }
+    }
+
+    // Fetch project names for items with project_id
+    const projectIds = [...new Set(items.filter(i => i.project_id).map(i => i.project_id!))];
+    if (projectIds.length > 0) {
+      const { data: projectsData } = await (supabase.from('projects' as any) as any)
+        .select('id, title')
+        .in('id', projectIds);
+      if (projectsData) {
+        const projMap = new Map(projectsData.map((p: any) => [p.id, p.title]));
+        items.forEach(item => {
+          if (item.project_id) {
+            (item as any).project_name = projMap.get(item.project_id) || null;
           }
         });
       }
