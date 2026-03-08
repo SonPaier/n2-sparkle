@@ -387,7 +387,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
                   </div>
                 </div>
                 {projectOrders.length > 0 && (
-                  <div className="border-t border-border bg-background px-3 py-2 space-y-1">
+                  <div className="border-t border-border !bg-white px-3 py-2 space-y-1">
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
