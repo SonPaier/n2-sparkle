@@ -299,6 +299,30 @@ const AddCalendarItemDialog = ({
       setPriority(DEFAULT_PRIORITY);
       setAssignedEmployeeIds([]);
 
+      // Handle initial project
+      if (initialProjectId) {
+        setProjectId(initialProjectId);
+        // Auto-fill customer/address from project
+        const proj = availableProjects.find(p => p.id === initialProjectId);
+        if (proj) {
+          if (proj.customer_id) {
+            supabase.from('customers').select('id, name, phone, email').eq('id', proj.customer_id).single().then(({ data }) => {
+              if (data) {
+                setCustomerId(data.id);
+                setCustomerName(data.name);
+                setCustomerPhone(data.phone);
+                setCustomerEmail(data.email || '');
+              }
+            });
+          }
+          if (proj.customer_address_id) {
+            setCustomerAddressId(proj.customer_address_id);
+          }
+        }
+      } else {
+        setProjectId(null);
+      }
+
       // Pre-fill services if provided
       if (initialServiceIds && initialServiceIds.length > 0) {
         const loadInitialServices = async () => {
