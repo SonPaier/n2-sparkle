@@ -751,7 +751,7 @@ const AddCalendarItemDialog = ({
           {/* Content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {/* Project selector */}
-            {projectsEnabled && availableProjects.length > 0 && (
+            {projectsEnabled && (
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
                   <FolderKanban className="w-3.5 h-3.5" />
