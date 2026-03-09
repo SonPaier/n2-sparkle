@@ -590,6 +590,16 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
           instanceId={instanceId}
         />
       )}
+
+      <AddEditTimeEntryDialog
+        open={timeEntryDialogOpen}
+        onOpenChange={setTimeEntryDialogOpen}
+        instanceId={instanceId}
+        employees={activeEmployees}
+        entry={editingTimeEntry}
+        defaultEmployeeId={prefilledEmployee}
+        defaultDate={prefilledDate}
+      />
     </div>
   );
 };
