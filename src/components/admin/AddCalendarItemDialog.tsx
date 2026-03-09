@@ -818,6 +818,21 @@ const AddCalendarItemDialog = ({
               />
             </div>
 
+            {/* Column (Typ) selector - always visible */}
+            {columns.length > 0 && (
+              <div className="space-y-2">
+                <Label>Typ</Label>
+                <Select value={columnId} onValueChange={setColumnId}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="Wybierz typ" /></SelectTrigger>
+                  <SelectContent className="z-[1200]">
+                    {columns.map(col => (
+                      <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Date - RadioGroup + Calendar (hidden when adding from project) */}
             {!initialProjectId && (
             <>
