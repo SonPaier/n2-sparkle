@@ -379,11 +379,11 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         </div>
       ) : (
         <>
-          <div className="rounded-lg border border-border bg-background overflow-x-auto">
+          <div className="rounded-lg border border-border bg-card overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b">
-                  <TableHead className="sticky left-0 bg-background z-10 min-w-[80px] text-foreground font-medium border-r">Data</TableHead>
+                  <TableHead className="sticky left-0 bg-card z-10 min-w-[80px] text-foreground font-medium border-r">Data</TableHead>
                   {activeEmployees.map(emp => (
                     <TableHead key={emp.id} className="text-center min-w-[100px] text-foreground font-medium border-r last:border-r-0">
                       <div className="flex flex-col items-center gap-0.5">
@@ -424,7 +424,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         const dateStr = format(day, 'yyyy-MM-dd');
                         return (
                           <TableRow key={dateStr}>
-                            <TableCell className="sticky left-0 bg-background z-10 font-medium whitespace-nowrap py-1.5 text-foreground border-r">
+                            <TableCell className="sticky left-0 bg-card z-10 font-medium whitespace-nowrap py-1.5 text-foreground border-r">
                               {format(day, 'EEE d', { locale: pl })}
                             </TableCell>
                             {activeEmployees.map(emp => {
@@ -451,7 +451,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         );
                       })}
                       <TableRow key={`week-${wi}`} className="border-b-2">
-                        <TableCell className="sticky left-0 bg-background z-10 font-bold whitespace-nowrap py-1.5 text-foreground border-r">
+                        <TableCell className="sticky left-0 bg-card z-10 font-bold whitespace-nowrap py-1.5 text-foreground border-r">
                           Tydzień {wi + 1}
                         </TableCell>
                         {activeEmployees.map(emp => {
@@ -468,7 +468,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                   );
                 })}
                 <TableRow className="border-t-2 border-foreground/20">
-                  <TableCell className="sticky left-0 bg-background z-10 font-bold text-sm py-2 text-foreground border-r">SUMA</TableCell>
+                  <TableCell className="sticky left-0 bg-card z-10 font-bold text-sm py-2 text-foreground border-r">SUMA</TableCell>
                   {activeEmployees.map(emp => {
                     const summary = periodSummary.get(emp.id);
                     const displayTime = summary && summary.total_minutes > 0 ? formatMinutesToTime(summary.total_minutes) : '-';
@@ -481,7 +481,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                 </TableRow>
                 {!isPerOrder && (
                   <TableRow>
-                    <TableCell className="sticky left-0 bg-background z-10 font-bold text-sm py-2 text-foreground border-r">WYPŁATA</TableCell>
+                    <TableCell className="sticky left-0 bg-card z-10 font-bold text-sm py-2 text-foreground border-r">WYPŁATA</TableCell>
                     {activeEmployees.map(emp => {
                       const summary = periodSummary.get(emp.id);
                       if (!summary || !emp.hourly_rate || summary.total_minutes === 0) {
