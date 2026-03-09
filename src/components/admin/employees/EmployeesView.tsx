@@ -318,7 +318,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       ) : (
         <>
           <div className="rounded-lg border border-border bg-card overflow-x-auto">
-            <Table className="w-full" style={{ tableLayout: 'fixed' }}>
+            <Table className="w-full">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead style={{ width: isPerOrder ? '60%' : '47%' }}>Imię</TableHead>
