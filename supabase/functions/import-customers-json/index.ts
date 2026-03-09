@@ -6,15 +6,20 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const INSTANCE_ID = "c6300bdc-5070-4599-8143-06926578a424";
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const items = await req.json();
+    const { instanceId, data: items } = await req.json();
+
+    if (!instanceId) {
+      return new Response(
+        JSON.stringify({ error: "instanceId is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -25,12 +30,10 @@ Deno.serve(async (req) => {
 
     for (const item of items) {
       const c = item.customer;
-      // Insert customer
       const customerData: Record<string, any> = {
-        instance_id: INSTANCE_ID,
+        instance_id: instanceId,
         name: c.name,
       };
-      // Add optional fields
       const optionalFields = [
         'short_name', 'phone', 'email', 'company', 'nip', 'vat_eu_number',
         'contact_person', 'contact_phone', 'contact_email', 'additional_contacts',
@@ -57,10 +60,9 @@ Deno.serve(async (req) => {
 
       const customerId = inserted.id;
 
-      // Insert addresses
       const addresses = (item.customer_addresses || []).map((a: any) => {
         const addr: Record<string, any> = {
-          instance_id: INSTANCE_ID,
+          instance_id: instanceId,
           customer_id: customerId,
           name: a.name || "Adres główny",
         };
