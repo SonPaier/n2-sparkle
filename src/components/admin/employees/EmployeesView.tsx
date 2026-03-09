@@ -371,7 +371,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         </TableCell>
                       )}
                       {isAdmin && (
-                        <TableCell className="text-center py-3" style={{ width: isPerOrder ? '10%' : '5%' }}>
+                        <TableCell className="text-center py-3 w-10" style={{ width: '40px', minWidth: '40px' }}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <button className="p-1 rounded hover:bg-accent transition-colors">
