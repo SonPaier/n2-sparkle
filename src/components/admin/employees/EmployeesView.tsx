@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableFooter } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, ChevronLeft, ChevronRight, Loader2, User, Settings2, CalendarOff, MoreVertical, FileText, ClipboardList } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, getISOWeek, addWeeks, subWeeks, isWithinInterval, eachDayOfInterval, isSameMonth, isSameWeek, getDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import AddEditEmployeeDialog from './AddEditEmployeeDialog';
@@ -36,6 +37,7 @@ interface EmployeesViewProps {
 const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin') || hasRole('super_admin');
+  const isMobile = useIsMobile();
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -317,7 +319,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         </div>
       ) : (
         <>
-          <div className="rounded-lg border border-border bg-card overflow-x-auto">
+          <div className="rounded-lg border border-border bg-card">
             <Table className="w-full">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
@@ -346,13 +348,15 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     <TableRow key={employee.id} className="cursor-pointer" onClick={() => handleTileClick(employee)}>
                       <TableCell className="py-3" style={{ width: isPerOrder ? '60%' : '47%' }}>
                         <div className="flex items-center gap-2 min-w-0">
-                          <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                              {employee.name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium truncate">{employee.name}</span>
+                          {!isMobile && (
+                            <Avatar className="h-8 w-8 flex-shrink-0">
+                              <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                                {employee.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <span className="font-medium truncate max-w-[120px] sm:max-w-none">{employee.name}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-center py-3" style={{ width: isPerOrder ? '30%' : '23%' }}>
