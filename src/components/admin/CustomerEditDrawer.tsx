@@ -133,7 +133,7 @@ const CustomerEditDrawer = ({
       } else if (customer) {
         setIsEditing(false);
         setEditName(customer.name);
-        setEditPhone(customer.phone);
+        setEditPhone(customer.phone || '');
         setEditEmail(customer.email || '');
         setEditNotes(customer.notes || '');
         fetchAddresses(customer.id);
