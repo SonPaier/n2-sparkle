@@ -13,7 +13,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import EmployeeCalendarPage from "./pages/EmployeeCalendarPage";
 import SmsNotificationTemplateEditPage from "./pages/SmsNotificationTemplateEditPage";
-import BulkImportPage from "./pages/BulkImportPage";
 
 // Mutations fail immediately when offline
 onlineManager.setEventListener((setOnline) => {
