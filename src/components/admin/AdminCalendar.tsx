@@ -158,6 +158,7 @@ const AdminCalendar = ({
   onDeleteBreak,
   onItemMove,
   onDateChange,
+  onViewModeChange,
   selectedItemId,
   onToggleMap,
   mapOpen,
