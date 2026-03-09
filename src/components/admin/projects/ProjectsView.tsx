@@ -121,7 +121,7 @@ const SortableOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onC
       <TableCell className="py-1.5">
         <span className="text-xs text-muted-foreground">{statusCfg.label}</span>
       </TableCell>
-      <TableCell />
+      
       <TableCell>
         {onMore && (
           <DropdownMenu>
