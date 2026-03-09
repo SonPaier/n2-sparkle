@@ -251,6 +251,22 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
     },
   });
 
+  // Fetch customer addresses for projects
+  const addressIds = useMemo(() => [...new Set(projects.map(p => p.customer_address_id).filter(Boolean))] as string[], [projects]);
+  const { data: addressMap = {} } = useQuery({
+    queryKey: ['projects-addresses', instanceId, addressIds],
+    enabled: addressIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds);
+      const map: Record<string, string> = {};
+      (data || []).forEach(a => {
+        const parts = [a.street, a.city].filter(Boolean);
+        map[a.id] = parts.length > 0 ? parts.join(', ') : a.name;
+      });
+      return map;
+    },
+  });
+
   const projectIds = useMemo(() => projects.map(p => p.id), [projects]);
   const { data: allOrders = [] } = useQuery({
     queryKey: ['projects-orders', instanceId],
