@@ -556,7 +556,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                                 <Eye className="w-4 h-4 mr-2" />Zobacz
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(project); }}>
-                                Edytuj
+                                <Pencil className="w-4 h-4 mr-2" />Edytuj
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} className="text-destructive">
                                 <Trash2 className="w-4 h-4 mr-2" />Usuń
