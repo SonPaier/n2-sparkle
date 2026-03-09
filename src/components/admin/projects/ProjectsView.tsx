@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Search, Plus, MoreHorizontal, Trash2, Eye, FolderKanban, GripVertical } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Search, Plus, MoreHorizontal, Trash2, Eye, FolderKanban, GripVertical, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
