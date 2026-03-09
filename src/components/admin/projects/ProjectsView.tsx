@@ -176,8 +176,7 @@ const SortableMobileOrderRow = ({ order, onClick, onMore }: { order: ProjectOrde
       >
         <GripVertical className="w-3 h-3" />
       </button>
-      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${osCfg.dotClass}`} />
-      <span className="text-muted-foreground font-medium">{order.stage_number ? `#${order.stage_number}` : '—'}</span>
+      <span className="font-medium">{order.stage_number ? `#${order.stage_number}` : '—'}</span>
       <span className="truncate flex-1">{order.title}</span>
       <span className="text-muted-foreground shrink-0">
         {order.item_date
