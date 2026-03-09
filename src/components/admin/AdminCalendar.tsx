@@ -872,7 +872,7 @@ const AdminCalendar = ({
   return (
     <div data-testid="admin-calendar" className="flex flex-col h-full bg-card rounded-xl relative">
       {/* Header */}
-      <div className="flex flex-col py-2 lg:py-3 bg-background sticky top-0 z-50 gap-2 mx-0 px-[16px]">
+      <div className="flex flex-col py-1.5 lg:py-2 bg-background sticky top-0 z-50 gap-1.5 mx-0 px-[16px]">
         <div className="flex items-center justify-between gap-2">
           {/* Navigation */}
           <div className="flex items-center gap-2">
