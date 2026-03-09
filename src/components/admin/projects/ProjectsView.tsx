@@ -347,6 +347,40 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
     }
   };
 
+  const handleOrderMore = async (orderId: string, action: 'edit' | 'delete') => {
+    if (action === 'edit') {
+      if (onEditOrder) {
+        onEditOrder(orderId);
+      } else if (onOpenCalendarItem) {
+        onOpenCalendarItem(orderId);
+      }
+    } else if (action === 'delete') {
+      // Remove order from project (unlink, don't delete the order itself)
+      const { error } = await (supabase.from('calendar_items') as any)
+        .update({ project_id: null, stage_number: null })
+        .eq('id', orderId);
+      if (error) { toast.error('Błąd usuwania zlecenia z projektu'); return; }
+      toast.success('Zlecenie usunięte z projektu');
+      invalidate();
+    }
+  };
+
+  // Auto-update project status based on orders
+  useEffect(() => {
+    if (!allOrders.length || !projects.length) return;
+    projects.forEach(async (project) => {
+      const projectOrders = ordersMap[project.id] || [];
+      if (projectOrders.length === 0) return;
+      const hasInProgress = projectOrders.some(o => o.status === 'in_progress');
+      if (hasInProgress && project.status !== 'in_progress') {
+        await (supabase.from('projects' as any) as any)
+          .update({ status: 'in_progress' })
+          .eq('id', project.id);
+        queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
+      }
+    });
+  }, [allOrders, projects, ordersMap, instanceId, queryClient]);
+
   const handleDragEnd = useCallback(async (event: DragEndEvent, projectId: string) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
