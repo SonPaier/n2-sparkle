@@ -8,7 +8,8 @@ import {
   addDays,
   isSameMonth,
   isSameDay,
-  differenceInCalendarDays,
+  isBefore,
+  startOfDay,
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -84,7 +85,7 @@ const MonthCalendarView = ({
     return map;
   }, [items]);
 
-  const today = new Date();
+  const today = startOfDay(new Date());
 
   const weeks = useMemo(() => {
     const result: Date[][] = [];
@@ -94,7 +95,6 @@ const MonthCalendarView = ({
     return result;
   }, [days]);
 
-  // Drag handlers
   const handleDragStart = useCallback((e: DragEvent, item: CalendarItem) => {
     setDraggedItemId(item.id);
     e.dataTransfer.effectAllowed = 'move';
@@ -108,7 +108,6 @@ const MonthCalendarView = ({
   }, []);
 
   const handleDragLeave = useCallback((e: DragEvent) => {
-    // Only clear if leaving the cell entirely
     const relatedTarget = e.relatedTarget as HTMLElement;
     if (relatedTarget && (e.currentTarget as HTMLElement).contains(relatedTarget)) return;
     setDragOverDateStr(null);
@@ -150,6 +149,7 @@ const MonthCalendarView = ({
               const dateStr = format(day, 'yyyy-MM-dd');
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isToday = isSameDay(day, today);
+              const isPast = isBefore(day, today) && !isToday;
               const dayItems = itemsByDate.get(dateStr) || [];
               const isDragOver = dragOverDateStr === dateStr;
 
@@ -158,7 +158,8 @@ const MonthCalendarView = ({
                   key={dateStr}
                   className={cn(
                     'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden overflow-y-auto transition-colors',
-                    !isCurrentMonth && 'bg-muted/20',
+                    !isCurrentMonth && 'bg-muted/10',
+                    isPast && isCurrentMonth && 'bg-muted/5',
                     isDragOver && 'bg-primary/10 ring-1 ring-inset ring-primary/30'
                   )}
                   onDragOver={(e) => handleDragOver(e, dateStr)}
@@ -171,13 +172,13 @@ const MonthCalendarView = ({
                     className={cn(
                       'text-xs font-medium mb-0.5 w-6 h-6 rounded-full flex items-center justify-center hover:bg-primary/10 transition-colors self-start shrink-0',
                       isToday && 'bg-primary text-primary-foreground hover:bg-primary/90',
-                      !isCurrentMonth && 'text-muted-foreground/50'
+                      !isCurrentMonth && 'text-muted-foreground/40'
                     )}
                   >
                     {format(day, 'd')}
                   </button>
 
-                  {/* Item tiles - show ALL */}
+                  {/* Item tiles */}
                   <div className="flex flex-col gap-0.5 min-h-0 flex-1">
                     {dayItems.map((item) => {
                       const colColor = item.column_id ? columnColorMap.get(item.column_id) : undefined;
@@ -192,39 +193,49 @@ const MonthCalendarView = ({
                           onDragEnd={handleDragEnd}
                           onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
                           className={cn(
-                            'text-left rounded px-1.5 py-0.5 hover:opacity-80 transition-opacity truncate border group cursor-grab active:cursor-grabbing shrink-0',
+                            'text-left rounded px-1.5 py-0.5 hover:opacity-80 transition-opacity border group cursor-grab active:cursor-grabbing shrink-0',
                             draggedItemId === item.id && 'opacity-40',
                             !colColor && 'bg-muted border-border/50'
                           )}
                           style={colColor ? {
-                            backgroundColor: `${colColor}44`,
-                            borderColor: `${colColor}66`,
+                            backgroundColor: colColor,
+                            borderColor: colColor,
                           } : undefined}
                         >
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className="text-[10px] md:text-[11px] font-medium tabular-nums shrink-0" style={colColor ? { color: colColor } : undefined}>
-                              {item.start_time?.slice(0, 5)}
-                            </span>
-                            <span className="text-[10px] md:text-[11px] font-semibold truncate text-foreground">
+                          {isMobile ? (
+                            /* Mobile: only title, black, max 2 lines with ellipsis */
+                            <div className="text-[10px] font-semibold text-white line-clamp-2">
                               {item.title}
-                            </span>
-                          </div>
-                          {address && !isMobile && (
-                            <div className="text-[9px] md:text-[10px] text-muted-foreground truncate">
-                              {address}
                             </div>
-                          )}
-                          {employees.length > 0 && !isMobile && (
-                            <div className="flex flex-wrap gap-0.5 mt-0.5">
-                              {employees.map((emp) => (
-                                <span
-                                  key={emp.id}
-                                  className="text-[8px] md:text-[9px] bg-primary/15 text-primary rounded px-1 py-px truncate max-w-[80px]"
-                                >
-                                  {emp.name.split(' ')[0]}
+                          ) : (
+                            /* Desktop: full info */
+                            <>
+                              <div className="flex items-center gap-1 min-w-0">
+                                <span className="text-[11px] font-bold tabular-nums shrink-0 text-white">
+                                  {item.start_time?.slice(0, 5)}
                                 </span>
-                              ))}
-                            </div>
+                                <span className="text-[11px] font-bold truncate text-white">
+                                  {item.title}
+                                </span>
+                              </div>
+                              {address && (
+                                <div className="text-[10px] text-white/80 truncate">
+                                  {address}
+                                </div>
+                              )}
+                              {employees.length > 0 && (
+                                <div className="flex flex-wrap gap-0.5 mt-0.5">
+                                  {employees.map((emp) => (
+                                    <span
+                                      key={emp.id}
+                                      className="text-[9px] bg-white/25 text-white rounded px-1 py-px truncate max-w-[80px]"
+                                    >
+                                      {emp.name.split(' ')[0]}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </>
                           )}
                         </button>
                       );
