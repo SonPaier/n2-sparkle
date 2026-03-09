@@ -535,7 +535,7 @@ export type Database = {
           name: string
           nip: string | null
           notes: string | null
-          phone: string
+          phone: string | null
           sales_notes: string | null
           short_name: string | null
           source: string | null
@@ -564,7 +564,7 @@ export type Database = {
           name: string
           nip?: string | null
           notes?: string | null
-          phone: string
+          phone?: string | null
           sales_notes?: string | null
           short_name?: string | null
           source?: string | null
@@ -593,7 +593,7 @@ export type Database = {
           name?: string
           nip?: string | null
           notes?: string | null
-          phone?: string
+          phone?: string | null
           sales_notes?: string | null
           short_name?: string | null
           source?: string | null
