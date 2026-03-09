@@ -244,6 +244,13 @@ const AdminCalendar = ({
     onDateChangeRef.current?.(currentDate);
   }, [currentDate]);
 
+  const onViewModeChangeRef = useRef(onViewModeChange);
+  onViewModeChangeRef.current = onViewModeChange;
+
+  useEffect(() => {
+    onViewModeChangeRef.current?.(viewMode);
+  }, [viewMode]);
+
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const gridScrollRef = useRef<HTMLDivElement>(null);
 
