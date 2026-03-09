@@ -9,6 +9,7 @@ import { useEmployeeDaysOff, useCreateEmployeeDayOff, useDeleteEmployeeDayOff } 
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const WEEKDAY_TO_KEY: Record<number, string> = {
   0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
