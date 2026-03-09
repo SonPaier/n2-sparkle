@@ -669,6 +669,15 @@ const Dashboard = () => {
                   setDetailsOpen(true);
                 }
               }}
+              onEditOrder={async (orderId) => {
+                const { data } = await (supabase.from('calendar_items') as any)
+                  .select('*')
+                  .eq('id', orderId)
+                  .maybeSingle();
+                if (data) {
+                  handleEditItem(data as CalendarItem);
+                }
+              }}
             />
           </div>
 
