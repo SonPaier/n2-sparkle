@@ -424,7 +424,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         const dateStr = format(day, 'yyyy-MM-dd');
                         return (
                           <TableRow key={dateStr}>
-                            <TableCell className="sticky left-0 bg-background z-10 font-medium whitespace-nowrap py-1.5 text-foreground border-r">
+                            <TableCell className="sticky left-0 bg-card z-10 font-medium whitespace-nowrap py-1.5 text-foreground border-r">
                               {format(day, 'EEE d', { locale: pl })}
                             </TableCell>
                             {activeEmployees.map(emp => {
