@@ -189,10 +189,10 @@ const AddCalendarItemDialog = ({
 
   // Fetch available projects
   useEffect(() => {
-    if (!instanceId || !projectsEnabled) { setAvailableProjects([]); return; }
+    if (!open || !instanceId || !projectsEnabled) { setAvailableProjects([]); return; }
     supabase.from('projects' as any).select('id, title, customer_id, customer_address_id').eq('instance_id', instanceId).in('status', ['not_started', 'in_progress', 'completed']).order('created_at', { ascending: false })
       .then(({ data }: any) => setAvailableProjects(data || []));
-  }, [instanceId, projectsEnabled]);
+  }, [open, instanceId, projectsEnabled]);
 
   // Check for existing SMS notification in edit mode
   useEffect(() => {
