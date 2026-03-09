@@ -100,10 +100,13 @@ const EmployeeSelectionDrawer = ({
 
   const content = (
     <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b border-border shrink-0">
+      <div className="px-6 py-4 border-b border-border shrink-0 flex items-center justify-between">
         <h2 className="text-lg font-semibold">
           {singleSelect ? 'Powiąż pracownika' : 'Przypisz pracowników'}
         </h2>
+        <button type="button" onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-md bg-background hover:bg-primary/5 transition-colors">
+          <X className="w-4 h-4" />
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
         {singleSelect && (
