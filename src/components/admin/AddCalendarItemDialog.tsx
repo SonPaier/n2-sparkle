@@ -617,7 +617,7 @@ const AddCalendarItemDialog = ({
 
       const data: any = {
         instance_id: instanceId,
-        column_id: hasDate ? columnId : null,
+        column_id: columnId || null,
         title: finalTitle,
         customer_name: customerName.trim() || null,
         customer_phone: customerPhone.trim() || null,
