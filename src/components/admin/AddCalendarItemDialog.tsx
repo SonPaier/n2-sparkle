@@ -946,8 +946,6 @@ const AddCalendarItemDialog = ({
                 </Select>
               </div>
             </div>
-            </>
-            )}
 
 
             {/* Assigned Employees */}
