@@ -383,7 +383,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b">
-                  <TableHead className="sticky left-0 bg-background z-10 min-w-[80px] text-foreground font-medium border-r">Data</TableHead>
+                  <TableHead className="sticky left-0 bg-card z-10 min-w-[80px] text-foreground font-medium border-r">Data</TableHead>
                   {activeEmployees.map(emp => (
                     <TableHead key={emp.id} className="text-center min-w-[100px] text-foreground font-medium border-r last:border-r-0">
                       <div className="flex flex-col items-center gap-0.5">
