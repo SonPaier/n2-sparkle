@@ -1,5 +1,5 @@
 import { useState, DragEvent, useRef, useCallback, useEffect } from 'react';
-import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay } from 'date-fns';
+import { format, addDays, subDays, isSameDay, startOfWeek, addWeeks, subWeeks, isBefore, startOfDay, addMonths, subMonths } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Clock, Plus, Calendar as CalendarIcon, CalendarDays, Phone, Columns2, Coffee, X, Settings2, Maximize2, Minimize2, ChevronsLeftRight, RefreshCw, FileText, User, MapPin, DollarSign, Users, FolderKanban } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -14,8 +14,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import MonthCalendarView from './MonthCalendarView';
 
-type ViewMode = 'day' | 'two-days' | 'week';
+type ViewMode = 'day' | 'two-days' | 'week' | 'month';
 
 export interface CalendarColumn {
   id: string;
@@ -81,6 +82,7 @@ interface AdminCalendarProps {
   onDeleteBreak?: (breakId: string) => void;
   onItemMove?: (itemId: string, newColumnId: string, newDate: string, newTime?: string) => void;
   onDateChange?: (date: Date) => void;
+  onViewModeChange?: (mode: string) => void;
   selectedItemId?: string | null;
   onToggleMap?: () => void;
   mapOpen?: boolean;
@@ -156,6 +158,7 @@ const AdminCalendar = ({
   onDeleteBreak,
   onItemMove,
   onDateChange,
+  onViewModeChange,
   selectedItemId,
   onToggleMap,
   mapOpen,
@@ -240,6 +243,13 @@ const AdminCalendar = ({
   useEffect(() => {
     onDateChangeRef.current?.(currentDate);
   }, [currentDate]);
+
+  const onViewModeChangeRef = useRef(onViewModeChange);
+  onViewModeChangeRef.current = onViewModeChange;
+
+  useEffect(() => {
+    onViewModeChangeRef.current?.(viewMode);
+  }, [viewMode]);
 
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const gridScrollRef = useRef<HTMLDivElement>(null);
@@ -390,12 +400,14 @@ const AdminCalendar = ({
 
   // Navigation
   const handlePrev = () => {
-    if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1));
+    if (viewMode === 'month') setCurrentDate(subMonths(currentDate, 1));
+    else if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1));
     else setCurrentDate(subDays(currentDate, 1));
   };
 
   const handleNext = () => {
-    if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1));
+    if (viewMode === 'month') setCurrentDate(addMonths(currentDate, 1));
+    else if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1));
     else setCurrentDate(addDays(currentDate, 1));
   };
 
@@ -404,7 +416,7 @@ const AdminCalendar = ({
 
   const handleToday = () => {
     setCurrentDate(new Date());
-    setViewMode('day');
+    if (viewMode !== 'month') setViewMode('day');
   };
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
@@ -893,7 +905,9 @@ const AdminCalendar = ({
           {/* Day name */}
           {!isMobile && (
             <h2 className={cn("text-lg font-semibold", isToday && "text-primary")}>
-              {viewMode === 'week'
+              {viewMode === 'month'
+                ? format(currentDate, 'LLLL yyyy', { locale: pl })
+                : viewMode === 'week'
                 ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
                 : viewMode === 'two-days'
                   ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
@@ -931,6 +945,7 @@ const AdminCalendar = ({
                         <Button variant={viewMode === 'day' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('day')} className="rounded-none border-0 flex-1 text-xs">Dzień</Button>
                         <Button variant={viewMode === 'two-days' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('two-days')} className="rounded-none border-0 flex-1 text-xs">2 dni</Button>
                         <Button variant={viewMode === 'week' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('week')} className="rounded-none border-0 flex-1 text-xs">Tydzień</Button>
+                        <Button variant={viewMode === 'month' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('month')} className="rounded-none border-0 flex-1 text-xs">Miesiąc</Button>
                       </div>
                     </div>
                   )}
@@ -1318,6 +1333,18 @@ const AdminCalendar = ({
           </div>
         </div>
       </>}
+
+      {/* MONTH VIEW */}
+      {viewMode === 'month' && (
+        <MonthCalendarView
+          items={items}
+          columns={employeeViewActive ? [] : columns}
+          currentDate={currentDate}
+          onMonthChange={(date) => setCurrentDate(date)}
+          onDayClick={(date) => { setCurrentDate(date); setViewMode('day'); }}
+          onItemClick={(item) => onItemClick?.(item)}
+        />
+      )}
 
       {/* Color Legend */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-4 pb-2 border-t border-border/50 mt-4">

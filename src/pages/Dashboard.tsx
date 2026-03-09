@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { format, subDays, addDays } from 'date-fns';
+import { format, subDays, addDays, startOfMonth, endOfMonth } from 'date-fns';
 import { Calendar, Users, BadgeDollarSign, Settings, HardHat, ClipboardCheck, Receipt, Bell, LayoutDashboard, FolderKanban } from 'lucide-react';
 import DashboardLayout, { type ViewType } from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
@@ -113,6 +113,7 @@ const Dashboard = () => {
   const [initialProjectId, setInitialProjectId] = useState<string | undefined>(undefined);
   const [newBreakData, setNewBreakData] = useState({ columnId: '', date: '', time: '' });
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+  const [calendarViewMode, setCalendarViewMode] = useState<string>('day');
   const [mapOpen, setMapOpen] = useState(false);
   const [hqLocation, setHqLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [mapOrderPrefill, setMapOrderPrefill] = useState<{ customerId?: string; customerName?: string; customerPhone?: string; customerEmail?: string; customerAddressId?: string }>({});
@@ -170,8 +171,15 @@ const Dashboard = () => {
   // Fetch items for date range
   const fetchItems = useCallback(async () => {
     if (!instanceId) return;
-    const rangeStart = format(subDays(currentCalendarDate, 7), 'yyyy-MM-dd');
-    const rangeEnd = format(addDays(currentCalendarDate, mapOpen ? 30 : 14), 'yyyy-MM-dd');
+    let rangeStart: string;
+    let rangeEnd: string;
+    if (calendarViewMode === 'month') {
+      rangeStart = format(subDays(startOfMonth(currentCalendarDate), 7), 'yyyy-MM-dd');
+      rangeEnd = format(addDays(endOfMonth(currentCalendarDate), 7), 'yyyy-MM-dd');
+    } else {
+      rangeStart = format(subDays(currentCalendarDate, 7), 'yyyy-MM-dd');
+      rangeEnd = format(addDays(currentCalendarDate, mapOpen ? 30 : 14), 'yyyy-MM-dd');
+    }
     const { data, error } = await supabase
       .from('calendar_items')
       .select('id, column_id, title, customer_name, customer_phone, customer_email, customer_id, customer_address_id, assigned_employee_ids, item_date, end_date, start_time, end_time, status, admin_notes, price, photo_urls, media_items, payment_status, order_number, priority, project_id')
@@ -243,7 +251,7 @@ const Dashboard = () => {
     }
     
     setCalendarItems(items as CalendarItem[]);
-  }, [instanceId, currentCalendarDate, mapOpen]);
+  }, [instanceId, currentCalendarDate, mapOpen, calendarViewMode]);
 
   // Fetch breaks
   const fetchBreaks = useCallback(async () => {
@@ -757,6 +765,7 @@ const Dashboard = () => {
             onDeleteBreak={employeeViewMode ? undefined : handleDeleteBreak}
             onItemMove={employeeViewMode ? undefined : handleItemMove}
             onDateChange={handleDateChange}
+            onViewModeChange={(mode) => setCalendarViewMode(mode)}
             selectedItemId={selectedItem?.id}
             onToggleMap={employeeViewMode ? undefined : (() => setMapOpen(prev => !prev))}
             mapOpen={employeeViewMode ? false : mapOpen}
