@@ -36,8 +36,8 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     date: format(new Date(), 'yyyy-MM-dd'),
     hours: '0',
     minutes: '0',
-    startTime: '08:00',
-    endTime: '16:00',
+    startTime: '',
+    endTime: '',
   }));
   const [isSaving, setIsSaving] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
