@@ -7,6 +7,7 @@ import { pl } from 'date-fns/locale';
 import { useTimeEntries, useTimeEntriesForDateRange, useCreateTimeEntry, useUpdateTimeEntry, TimeEntry } from '@/hooks/useTimeEntries';
 import { useEmployeeDaysOff, useCreateEmployeeDayOff, useDeleteEmployeeDayOff } from '@/hooks/useEmployeeDaysOff';
 import { useWorkingHours } from '@/hooks/useWorkingHours';
+import { useWorkersSettings } from '@/hooks/useWorkersSettings';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
