@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useMemo, DragEvent } from 'react';
 import {
   format,
   startOfMonth,
@@ -8,12 +8,7 @@ import {
   addDays,
   isSameMonth,
   isSameDay,
-  addMonths,
-  subMonths,
 } from 'date-fns';
-import { pl } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { CalendarItem, CalendarColumn } from './AdminCalendar';
@@ -25,6 +20,7 @@ interface MonthCalendarViewProps {
   onMonthChange: (date: Date) => void;
   onDayClick: (date: Date) => void;
   onItemClick: (item: CalendarItem) => void;
+  onItemMove?: (itemId: string, newColumnId: string, newDate: string) => void;
 }
 
 const DAY_NAMES = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
@@ -33,19 +29,21 @@ const MonthCalendarView = ({
   items,
   columns,
   currentDate,
-  onMonthChange,
   onDayClick,
   onItemClick,
+  onItemMove,
 }: MonthCalendarViewProps) => {
   const isMobile = useIsMobile();
   const MAX_TILES = isMobile ? 2 : 4;
+
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [dragOverDateStr, setDragOverDateStr] = useState<string | null>(null);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
   const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
   const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
 
-  // Build array of all days to display
   const days = useMemo(() => {
     const result: Date[] = [];
     let day = calendarStart;
@@ -56,7 +54,6 @@ const MonthCalendarView = ({
     return result;
   }, [calendarStart.getTime(), calendarEnd.getTime()]);
 
-  // Build column color map
   const columnColorMap = useMemo(() => {
     const map = new Map<string, string>();
     columns.forEach((col) => {
@@ -65,7 +62,6 @@ const MonthCalendarView = ({
     return map;
   }, [columns]);
 
-  // Build dateStr → items map (with multi-day expansion)
   const itemsByDate = useMemo(() => {
     const map = new Map<string, CalendarItem[]>();
     for (const item of items) {
@@ -82,7 +78,6 @@ const MonthCalendarView = ({
         current = addDays(current, 1);
       }
     }
-    // Sort each day's items by start_time
     for (const [, dayItems] of map) {
       dayItems.sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
     }
@@ -99,27 +94,41 @@ const MonthCalendarView = ({
     return result;
   }, [days]);
 
+  // Drag handlers
+  const handleDragStart = (e: DragEvent, item: CalendarItem) => {
+    setDraggedItemId(item.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.id);
+  };
+
+  const handleDragOver = (e: DragEvent, dateStr: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverDateStr(dateStr);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverDateStr(null);
+  };
+
+  const handleDrop = (e: DragEvent, dateStr: string) => {
+    e.preventDefault();
+    setDragOverDateStr(null);
+    const itemId = draggedItemId || e.dataTransfer.getData('text/plain');
+    setDraggedItemId(null);
+    if (!itemId || !onItemMove) return;
+    const item = items.find(i => i.id === itemId);
+    if (!item || item.item_date === dateStr) return;
+    onItemMove(itemId, item.column_id || '', dateStr);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItemId(null);
+    setDragOverDateStr(null);
+  };
+
   return (
     <div className="flex flex-col h-full">
-      {/* Navigation header */}
-      <div className="flex items-center justify-between py-2 px-4">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => onMonthChange(subMonths(currentDate, 1))} className="h-9 w-9">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => onMonthChange(addMonths(currentDate, 1))} className="h-9 w-9">
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onMonthChange(new Date())} className="ml-2">
-            Dziś
-          </Button>
-        </div>
-        <h2 className="text-lg font-semibold capitalize">
-          {format(currentDate, 'LLLL yyyy', { locale: pl })}
-        </h2>
-        <div /> {/* spacer */}
-      </div>
-
       {/* Day names header */}
       <div className="grid grid-cols-7 border-b border-border">
         {DAY_NAMES.map((name) => (
@@ -140,14 +149,19 @@ const MonthCalendarView = ({
               const dayItems = itemsByDate.get(dateStr) || [];
               const visibleItems = dayItems.slice(0, MAX_TILES);
               const overflowCount = dayItems.length - MAX_TILES;
+              const isDragOver = dragOverDateStr === dateStr;
 
               return (
                 <div
                   key={dateStr}
                   className={cn(
-                    'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden',
-                    !isCurrentMonth && 'bg-muted/30'
+                    'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden transition-colors',
+                    !isCurrentMonth && 'bg-muted/30',
+                    isDragOver && 'bg-primary/10 ring-1 ring-inset ring-primary/30'
                   )}
+                  onDragOver={(e) => handleDragOver(e, dateStr)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, dateStr)}
                 >
                   {/* Day number */}
                   <button
@@ -170,8 +184,18 @@ const MonthCalendarView = ({
                       return (
                         <button
                           key={`${item.id}-${dateStr}`}
+                          draggable={!!onItemMove}
+                          onDragStart={(e) => handleDragStart(e as any, item)}
+                          onDragEnd={handleDragEnd}
                           onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
-                          className="text-left rounded px-1 py-0.5 hover:opacity-80 transition-opacity truncate bg-muted/60 border border-border/50 group"
+                          className={cn(
+                            'text-left rounded px-1 py-0.5 hover:opacity-80 transition-opacity truncate border group cursor-grab active:cursor-grabbing',
+                            draggedItemId === item.id && 'opacity-40'
+                          )}
+                          style={{
+                            backgroundColor: colColor ? `${colColor}22` : undefined,
+                            borderColor: colColor ? `${colColor}55` : undefined,
+                          }}
                         >
                           <div className="flex items-center gap-1 min-w-0">
                             {colColor && (

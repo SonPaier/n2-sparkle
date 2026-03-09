@@ -1343,6 +1343,7 @@ const AdminCalendar = ({
           onMonthChange={(date) => setCurrentDate(date)}
           onDayClick={(date) => { setCurrentDate(date); setViewMode('day'); }}
           onItemClick={(item) => onItemClick?.(item)}
+          onItemMove={onItemMove ? (itemId, colId, newDate) => onItemMove(itemId, colId, newDate) : undefined}
         />
       )}
 
