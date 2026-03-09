@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Check, AlertTriangle, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { format, eachDayOfInterval, parseISO, isWithinInterval } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -43,14 +43,13 @@ function getOverlappingDaysOff(
   });
 }
 
-function formatDayOffRange(d: EmployeeDayOff): string {
+function formatDayOffLabel(d: EmployeeDayOff): string {
   const from = parseISO(d.date_from);
   const to = parseISO(d.date_to);
-  const label = DAY_OFF_TYPE_LABELS[d.day_off_type as keyof typeof DAY_OFF_TYPE_LABELS] || d.day_off_type;
   if (d.date_from === d.date_to) {
-    return `${label}: ${format(from, 'd MMM', { locale: pl })}`;
+    return `Nieobecny ${format(from, 'd MMMM', { locale: pl })}`;
   }
-  return `${label}: ${format(from, 'd MMM', { locale: pl })} – ${format(to, 'd MMM', { locale: pl })}`;
+  return `Nieobecny ${format(from, 'd MMM', { locale: pl })} – ${format(to, 'd MMM', { locale: pl })}`;
 }
 
 const EmployeeSelectionDrawer = ({
@@ -135,35 +134,29 @@ const EmployeeSelectionDrawer = ({
               type="button"
               onClick={() => toggle(emp.id)}
               className={cn(
-                "w-full flex flex-col gap-1 p-2.5 rounded-lg transition-colors text-left",
+                "w-full flex items-center gap-3 p-2.5 rounded-lg transition-colors text-left",
                 isSelected ? "bg-primary/10 border border-primary/30" : "hover:bg-primary/5 border border-transparent",
-                hasConflict && !isSelected && "border-red-200"
               )}
             >
-              <div className="flex items-center gap-3 w-full">
-                <Avatar className="w-8 h-8 shrink-0">
-                  {emp.photo_url && <AvatarImage src={emp.photo_url} />}
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">{emp.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <span className="flex-1 text-sm font-medium">{emp.name}</span>
-                {hasConflict && (
-                  <AlertTriangle className="w-4 h-4 text-red-500 shrink-0" />
-                )}
-                {singleSelect ? (
-                  <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center shrink-0">
-                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-                  </div>
-                ) : (
-                  isSelected && <Check className="w-4 h-4 text-primary shrink-0" />
-                )}
-              </div>
-              {hasConflict && overlaps!.map(d => (
-                <div key={d.id} className="ml-11 px-2 py-1 rounded bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-                  <span className="text-[11px] text-red-600 dark:text-red-400 font-medium">
-                    {formatDayOffRange(d)}
+              <Avatar className="w-8 h-8 shrink-0">
+                {emp.photo_url && <AvatarImage src={emp.photo_url} />}
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">{emp.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium block">{emp.name}</span>
+                {hasConflict && overlaps!.map(d => (
+                  <span key={d.id} className="text-[11px] text-destructive block">
+                    {formatDayOffLabel(d)}
                   </span>
+                ))}
+              </div>
+              {singleSelect ? (
+                <div className="w-5 h-5 rounded-full border-2 border-border flex items-center justify-center shrink-0">
+                  {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                 </div>
-              ))}
+              ) : (
+                isSelected && <Check className="w-4 h-4 text-primary shrink-0" />
+              )}
             </button>
           );
         })}
