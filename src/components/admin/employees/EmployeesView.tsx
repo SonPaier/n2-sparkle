@@ -468,7 +468,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                   );
                 })}
                 <TableRow className="border-t-2 border-foreground/20">
-                  <TableCell className="sticky left-0 bg-background z-10 font-bold text-sm py-2 text-foreground border-r">SUMA</TableCell>
+                  <TableCell className="sticky left-0 bg-card z-10 font-bold text-sm py-2 text-foreground border-r">SUMA</TableCell>
                   {activeEmployees.map(emp => {
                     const summary = periodSummary.get(emp.id);
                     const displayTime = summary && summary.total_minutes > 0 ? formatMinutesToTime(summary.total_minutes) : '-';
