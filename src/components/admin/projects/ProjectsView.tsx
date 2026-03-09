@@ -486,6 +486,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                             key={order.id}
                             order={order}
                             onClick={() => handleOrderClick(order.id)}
+                            onMore={(action) => handleOrderMore(order.id, action)}
                           />
                         ))}
                       </SortableContext>
