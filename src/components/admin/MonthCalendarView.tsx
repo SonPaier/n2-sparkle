@@ -190,7 +190,7 @@ const MonthCalendarView = ({
                       const employees = item.assigned_employees || [];
 
                       const tileStyle = colColor ? {
-                        backgroundColor: hexToRgba(colColor, 0.35),
+                        backgroundColor: colColor,
                         borderLeft: `3px solid ${colColor}`,
                       } : undefined;
 
