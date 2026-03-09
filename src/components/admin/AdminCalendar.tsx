@@ -82,6 +82,7 @@ interface AdminCalendarProps {
   onDeleteBreak?: (breakId: string) => void;
   onItemMove?: (itemId: string, newColumnId: string, newDate: string, newTime?: string) => void;
   onDateChange?: (date: Date) => void;
+  onViewModeChange?: (mode: string) => void;
   selectedItemId?: string | null;
   onToggleMap?: () => void;
   mapOpen?: boolean;
