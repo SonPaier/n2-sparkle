@@ -185,6 +185,21 @@ const SortableMobileOrderRow = ({ order, onClick, onMore }: { order: ProjectOrde
           ? format(new Date(order.item_date + 'T00:00:00'), 'd MMM', { locale: pl })
           : 'Bez daty'}
       </span>
+      {onMore && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <button className="shrink-0 p-0.5 text-muted-foreground hover:text-foreground"><MoreHorizontal className="w-3.5 h-3.5" /></button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMore('edit'); }}>
+              <Pencil className="w-4 h-4 mr-2" />Edytuj
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMore('delete'); }} className="text-destructive">
+              <Trash2 className="w-4 h-4 mr-2" />Usuń z projektu
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 };
