@@ -59,8 +59,8 @@ const AddEditTimeEntryDialog = ({ open, onOpenChange, instanceId, employees, ent
       setStartTime(entry.start_time?.slice(0, 5) || '08:00');
       setEndTime(entry.end_time?.slice(0, 5) || '16:00');
     } else {
-      setEmployeeId(employees[0]?.id || '');
-      setDate(new Date());
+      setEmployeeId(defaultEmployeeId || employees[0]?.id || '');
+      setDate(defaultDate ? new Date(defaultDate) : new Date());
       setStartTime('08:00');
       setEndTime('16:00');
     }
