@@ -521,6 +521,8 @@ const Dashboard = () => {
       fetchItems();
     } else {
       toast.success('Status zmieniony');
+      queryClient.invalidateQueries({ queryKey: ['projects-orders', instanceId] });
+      queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
     }
   };
 
