@@ -1325,6 +1325,18 @@ const AdminCalendar = ({
         </div>
       </>}
 
+      {/* MONTH VIEW */}
+      {viewMode === 'month' && (
+        <MonthCalendarView
+          items={employeeViewActive ? employeeViewItems : items}
+          columns={employeeViewActive ? [] : columns}
+          currentDate={currentDate}
+          onMonthChange={(date) => setCurrentDate(date)}
+          onDayClick={(date) => { setCurrentDate(date); setViewMode('day'); }}
+          onItemClick={(item) => onItemClick?.(item)}
+        />
+      )}
+
       {/* Color Legend */}
       <div className="flex flex-wrap items-center justify-center gap-3 pt-4 pb-2 border-t border-border/50 mt-4">
         <div className="flex items-center gap-1.5">
