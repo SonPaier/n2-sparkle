@@ -379,8 +379,8 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         </div>
       ) : (
         <>
-          <div className="rounded-lg border border-border bg-card overflow-x-auto">
-            <Table className="[&>div]:overflow-visible">
+           <div className="rounded-lg border border-border bg-card overflow-x-auto -mx-4 px-0 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <Table className="min-w-max [&>div]:overflow-visible">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b">
                   <TableHead className="sticky left-0 bg-card z-10 min-w-[80px] text-foreground font-medium border-r">Data</TableHead>
