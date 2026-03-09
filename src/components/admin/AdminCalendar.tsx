@@ -407,7 +407,7 @@ const AdminCalendar = ({
 
   const handleToday = () => {
     setCurrentDate(new Date());
-    setViewMode('day');
+    if (viewMode !== 'month') setViewMode('day');
   };
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
