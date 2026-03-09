@@ -738,7 +738,7 @@ const AddCalendarItemDialog = ({
           side="right"
           hideCloseButton
           hideOverlay
-          className="flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[400px] sm:max-w-[400px] h-full"
+          className="flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[550px] sm:max-w-[550px] h-full"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Header */}
