@@ -523,9 +523,9 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
                 ) : filteredProjects.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
                 ) : paginatedProjects.map((project, idx) => {
                   const stages = stageMap[project.id] || { total: 0, completed: 0 };
                   const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
