@@ -69,7 +69,7 @@ const ORDER_STATUS_CONFIG: Record<string, { label: string; dotClass: string }> =
 const ITEMS_PER_PAGE = 10;
 
 // Sortable order row component
-const SortableOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: () => void }) => {
+const SortableOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onClick: () => void; onMore?: (action: 'edit' | 'delete') => void }) => {
   const {
     attributes,
     listeners,
