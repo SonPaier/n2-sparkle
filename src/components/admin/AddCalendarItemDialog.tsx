@@ -312,23 +312,28 @@ const AddCalendarItemDialog = ({
         setProjectId(initialProjectId);
         // Force no dates when adding from project view
         setDateRange(undefined);
-        // Auto-fill customer/address from project
-        const proj = availableProjects.find(p => p.id === initialProjectId);
-        if (proj) {
-          if (proj.customer_id) {
-            supabase.from('customers').select('id, name, phone, email').eq('id', proj.customer_id).single().then(({ data }) => {
-              if (data) {
-                setCustomerId(data.id);
-                setCustomerName(data.name);
-                setCustomerPhone(data.phone);
-                setCustomerEmail(data.email || '');
+        // Auto-fill customer/address from project - fetch directly to avoid race condition
+        const fillFromProject = async () => {
+          const { data: proj } = await (supabase.from('projects' as any) as any)
+            .select('customer_id, customer_address_id')
+            .eq('id', initialProjectId)
+            .single();
+          if (proj) {
+            if (proj.customer_address_id) {
+              setCustomerAddressId(proj.customer_address_id);
+            }
+            if (proj.customer_id) {
+              const { data: cust } = await supabase.from('customers').select('id, name, phone, email').eq('id', proj.customer_id).single();
+              if (cust) {
+                setCustomerId(cust.id);
+                setCustomerName(cust.name);
+                setCustomerPhone(cust.phone || '');
+                setCustomerEmail(cust.email || '');
               }
-            });
+            }
           }
-          if (proj.customer_address_id) {
-            setCustomerAddressId(proj.customer_address_id);
-          }
-        }
+        };
+        fillFromProject();
       } else {
         setProjectId(null);
       }
