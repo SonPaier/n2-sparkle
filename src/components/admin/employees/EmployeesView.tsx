@@ -434,8 +434,8 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                               const totalMin = hasEntry ? entries.reduce((s, e) => s + (e.total_minutes || 0), 0) : 0;
                               const displayTime = totalMin > 0 ? formatMinutesToTime(totalMin) : '';
                               const firstEntry = hasEntry ? entries[0] : null;
-                              const startT = firstEntry?.start_time?.slice(0, 5);
-                              const endT = firstEntry?.end_time?.slice(0, 5);
+                               const startT = firstEntry?.start_time ? new Date(firstEntry.start_time).toTimeString().slice(0, 5) : undefined;
+                               const endT = firstEntry?.end_time ? new Date(firstEntry.end_time).toTimeString().slice(0, 5) : undefined;
                               const hasStartEnd = startT && endT;
                               return (
                                 <TableCell
