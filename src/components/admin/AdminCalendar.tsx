@@ -896,7 +896,9 @@ const AdminCalendar = ({
           {/* Day name */}
           {!isMobile && (
             <h2 className={cn("text-lg font-semibold", isToday && "text-primary")}>
-              {viewMode === 'week'
+              {viewMode === 'month'
+                ? format(currentDate, 'LLLL yyyy', { locale: pl })
+                : viewMode === 'week'
                 ? `${format(weekStart, 'd MMM', { locale: pl })} - ${format(addDays(weekStart, 6), 'd MMM', { locale: pl })}`
                 : viewMode === 'two-days'
                   ? `${format(currentDate, 'd MMM', { locale: pl })} - ${format(addDays(currentDate, 1), 'd MMM', { locale: pl })}`
