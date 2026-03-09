@@ -1078,6 +1078,9 @@ const AddCalendarItemDialog = ({
         employees={allEmployees}
         selectedIds={assignedEmployeeIds}
         onConfirm={setAssignedEmployeeIds}
+        instanceId={instanceId}
+        orderDateFrom={dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : null}
+        orderDateTo={dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null}
       />
 
       {/* Customer Detail Drawer */}
