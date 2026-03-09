@@ -37,6 +37,7 @@ interface EmployeesViewProps {
 const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin') || hasRole('super_admin');
+  const isMobile = useIsMobile();
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
