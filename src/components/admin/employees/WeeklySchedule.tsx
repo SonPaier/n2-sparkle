@@ -156,7 +156,7 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   };
 
   const saveStartEndEntry = async (start: string, end: string) => {
-    if (!editingCell || isSaving || !start || !end || start >= end) return;
+    if (!editingCell || isSaving || !start || !end || start.length < 5 || end.length < 5 || start >= end) return;
     const existing = minutesByDate.get(editingCell.date);
     const startTimestamp = `${editingCell.date}T${start}:00`;
     const endTimestamp = `${editingCell.date}T${end}:00`;
