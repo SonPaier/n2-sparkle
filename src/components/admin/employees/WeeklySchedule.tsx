@@ -55,6 +55,8 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
   const { data: monthTimeEntries = [] } = useTimeEntriesForDateRange(instanceId, monthFrom, monthTo);
   const { data: daysOff = [] } = useEmployeeDaysOff(instanceId, employee.id);
   const { data: workingHours } = useWorkingHours(instanceId);
+  const { data: workersSettings } = useWorkersSettings(instanceId);
+  const timeInputMode = workersSettings?.time_input_mode ?? 'total';
   const createTimeEntry = useCreateTimeEntry(instanceId);
   const updateTimeEntry = useUpdateTimeEntry(instanceId);
   const createDayOff = useCreateEmployeeDayOff(instanceId);
