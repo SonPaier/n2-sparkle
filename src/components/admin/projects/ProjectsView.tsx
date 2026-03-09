@@ -144,7 +144,7 @@ const SortableOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onC
 };
 
 // Mobile sortable order row
-const SortableMobileOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: () => void }) => {
+const SortableMobileOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onClick: () => void; onMore?: (action: 'edit' | 'delete') => void }) => {
   const {
     attributes,
     listeners,
