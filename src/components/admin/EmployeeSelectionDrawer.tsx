@@ -43,14 +43,13 @@ function getOverlappingDaysOff(
   });
 }
 
-function formatDayOffRange(d: EmployeeDayOff): string {
+function formatDayOffLabel(d: EmployeeDayOff): string {
   const from = parseISO(d.date_from);
   const to = parseISO(d.date_to);
-  const label = DAY_OFF_TYPE_LABELS[d.day_off_type as keyof typeof DAY_OFF_TYPE_LABELS] || d.day_off_type;
   if (d.date_from === d.date_to) {
-    return `${label}: ${format(from, 'd MMM', { locale: pl })}`;
+    return `Nieobecny ${format(from, 'd MMMM', { locale: pl })}`;
   }
-  return `${label}: ${format(from, 'd MMM', { locale: pl })} – ${format(to, 'd MMM', { locale: pl })}`;
+  return `Nieobecny ${format(from, 'd MMM', { locale: pl })} – ${format(to, 'd MMM', { locale: pl })}`;
 }
 
 const EmployeeSelectionDrawer = ({
