@@ -264,7 +264,7 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
       });
     }
     return result;
-  }, [items, searchQuery, sortColumn, sortDirection]);
+  }, [items, searchQuery, sortColumn, sortDirection, addressMap]);
 
   const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE);
   const paginatedOrders = useMemo(() => {
