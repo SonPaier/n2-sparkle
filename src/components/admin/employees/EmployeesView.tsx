@@ -379,20 +379,20 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         </div>
       ) : (
         <>
-          <div className="rounded-lg border border-border bg-card overflow-x-auto">
+          <div className="rounded-lg border border-border bg-background overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="sticky left-0 bg-card z-10 min-w-[80px]">Data</TableHead>
+                <TableRow className="hover:bg-transparent border-b">
+                  <TableHead className="sticky left-0 bg-background z-10 min-w-[80px] text-foreground font-medium border-r">Data</TableHead>
                   {activeEmployees.map(emp => (
-                    <TableHead key={emp.id} className="text-center min-w-[100px]">
+                    <TableHead key={emp.id} className="text-center min-w-[100px] text-foreground font-medium border-r last:border-r-0">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="truncate block max-w-[100px] text-xs">{emp.name}</span>
+                        <span className="truncate block max-w-[100px]">{emp.name}</span>
                         {isAdmin && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="p-0.5 rounded hover:bg-accent transition-colors">
-                                <MoreVertical className="w-3 h-3 text-muted-foreground" />
+                              <button className="p-0.5 rounded hover:bg-primary/5 transition-colors">
+                                <MoreVertical className="w-3 h-3 text-foreground" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="center">
@@ -414,91 +414,85 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {weeks.map((week, wi) => (
-                  <>
-                    {week.days.map(day => {
-                      const dateStr = format(day, 'yyyy-MM-dd');
-                      const weekend = isWeekend(day);
-                      return (
-                        <TableRow key={dateStr} className={cn(weekend && 'bg-muted/30')}>
-                          <TableCell className={cn("sticky left-0 z-10 text-xs font-medium whitespace-nowrap py-1.5", weekend ? 'bg-muted/30' : 'bg-card')}>
-                            <span className={cn(weekend && 'text-muted-foreground')}>
-                              {format(day, 'EEE d', { locale: pl })}
-                            </span>
-                          </TableCell>
-                          {activeEmployees.map(emp => {
-                            const empMap = entriesByEmployeeAndDate.get(emp.id);
-                            const entries = empMap?.get(dateStr);
-                            const hasEntry = entries && entries.length > 0;
-                            const entry = hasEntry ? entries[0] : null;
-                            const totalMin = hasEntry ? entries.reduce((s, e) => s + (e.total_minutes || 0), 0) : 0;
-                            return (
-                              <TableCell
-                                key={emp.id}
-                                className="text-center cursor-pointer hover:bg-primary/5 transition-colors p-1"
-                                onClick={() => handleCellClick(emp.id, day)}
-                              >
-                                {hasEntry ? (
-                                  <div>
-                                    {entry?.start_time && entry?.end_time ? (
-                                      <div className="text-[11px] font-medium">
-                                        {String(entry.start_time).slice(0, 5)}-{String(entry.end_time).slice(0, 5)}
-                                      </div>
-                                    ) : null}
-                                    <div className="text-[10px] text-muted-foreground">{formatMinutesToTime(totalMin)}</div>
-                                  </div>
-                                ) : (
-                                  <span className="text-muted-foreground/30 text-xs">-</span>
-                                )}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      );
-                    })}
-                    {/* Week subtotal */}
-                    <TableRow key={`week-${wi}`} className="bg-muted/50 border-b-2">
-                      <TableCell className="sticky left-0 bg-muted/50 z-10 text-xs font-bold whitespace-nowrap py-1.5">
-                        Tydzień {wi + 1}
-                      </TableCell>
-                      {activeEmployees.map(emp => {
-                        const weekMin = getWeekMinutes(emp.id, week.days);
+                {weeks.map((week, wi) => {
+                  const today = format(new Date(), 'yyyy-MM-dd');
+                  const visibleDays = week.days.filter(day => format(day, 'yyyy-MM-dd') <= today);
+                  if (visibleDays.length === 0) return null;
+                  return (
+                    <>
+                      {visibleDays.map(day => {
+                        const dateStr = format(day, 'yyyy-MM-dd');
                         return (
-                          <TableCell key={emp.id} className="text-center text-xs font-bold py-1.5">
-                            {weekMin > 0 ? formatMinutesToTime(weekMin) : '-'}
-                          </TableCell>
+                          <TableRow key={dateStr}>
+                            <TableCell className="sticky left-0 bg-background z-10 font-medium whitespace-nowrap py-1.5 text-foreground border-r">
+                              {format(day, 'EEE d', { locale: pl })}
+                            </TableCell>
+                            {activeEmployees.map(emp => {
+                              const empMap = entriesByEmployeeAndDate.get(emp.id);
+                              const entries = empMap?.get(dateStr);
+                              const hasEntry = entries && entries.length > 0;
+                              const totalMin = hasEntry ? entries.reduce((s, e) => s + (e.total_minutes || 0), 0) : 0;
+                              const displayTime = totalMin > 0 ? formatMinutesToTime(totalMin) : '';
+                              return (
+                                <TableCell
+                                  key={emp.id}
+                                  className="text-center cursor-pointer hover:bg-primary/5 transition-colors p-1 border-r last:border-r-0"
+                                  onClick={() => handleCellClick(emp.id, day)}
+                                >
+                                  {displayTime ? (
+                                    <span className="text-sm font-medium text-foreground">{displayTime}</span>
+                                  ) : (
+                                    <span className="text-foreground/20 text-xs">-</span>
+                                  )}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
                         );
                       })}
-                    </TableRow>
-                  </>
-                ))}
-                {/* Monthly total */}
+                      <TableRow key={`week-${wi}`} className="border-b-2">
+                        <TableCell className="sticky left-0 bg-background z-10 font-bold whitespace-nowrap py-1.5 text-foreground border-r">
+                          Tydzień {wi + 1}
+                        </TableCell>
+                        {activeEmployees.map(emp => {
+                          const weekMin = getWeekMinutes(emp.id, visibleDays);
+                          const displayTime = weekMin > 0 ? formatMinutesToTime(weekMin) : '-';
+                          return (
+                            <TableCell key={emp.id} className="text-center font-bold py-1.5 text-foreground border-r last:border-r-0">
+                              {displayTime}
+                            </TableCell>
+                          );
+                        })}
+                      </TableRow>
+                    </>
+                  );
+                })}
                 <TableRow className="border-t-2 border-foreground/20">
-                  <TableCell className="sticky left-0 bg-card z-10 font-bold text-sm py-2">SUMA</TableCell>
+                  <TableCell className="sticky left-0 bg-background z-10 font-bold text-sm py-2 text-foreground border-r">SUMA</TableCell>
                   {activeEmployees.map(emp => {
                     const summary = periodSummary.get(emp.id);
+                    const displayTime = summary && summary.total_minutes > 0 ? formatMinutesToTime(summary.total_minutes) : '-';
                     return (
-                      <TableCell key={emp.id} className="text-center font-bold text-sm py-2">
-                        {summary ? formatMinutesToTime(summary.total_minutes) : '-'}
+                      <TableCell key={emp.id} className="text-center font-bold text-sm py-2 text-foreground border-r last:border-r-0">
+                        {displayTime}
                       </TableCell>
                     );
                   })}
                 </TableRow>
-                {/* Wypłata row */}
                 {!isPerOrder && (
-                  <TableRow className="bg-muted/30">
-                    <TableCell className="sticky left-0 bg-muted/30 z-10 font-bold text-sm py-2">WYPŁATA</TableCell>
+                  <TableRow>
+                    <TableCell className="sticky left-0 bg-background z-10 font-bold text-sm py-2 text-foreground border-r">WYPŁATA</TableCell>
                     {activeEmployees.map(emp => {
                       const summary = periodSummary.get(emp.id);
-                      if (!summary || !emp.hourly_rate) {
-                        return <TableCell key={emp.id} className="text-center text-sm text-muted-foreground py-2">-</TableCell>;
+                      if (!summary || !emp.hourly_rate || summary.total_minutes === 0) {
+                        return <TableCell key={emp.id} className="text-center text-sm text-foreground py-2 border-r last:border-r-0">-</TableCell>;
                       }
                       const preOpeningMinutes = preOpeningByEmployee.get(emp.id) || 0;
                       const displayMinutes = timeCalculationMode === 'opening_to_stop'
                         ? Math.max(0, summary.total_minutes - preOpeningMinutes) : summary.total_minutes;
                       const earnings = ((displayMinutes / 60) * emp.hourly_rate).toFixed(2);
                       return (
-                        <TableCell key={emp.id} className="text-center font-bold text-sm py-2">
+                        <TableCell key={emp.id} className="text-center font-bold text-sm py-2 text-foreground border-r last:border-r-0">
                           {earnings} zł
                         </TableCell>
                       );
