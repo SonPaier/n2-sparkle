@@ -16,6 +16,7 @@ interface ProjectDetailsDrawerProps {
   onEdit: (project: any) => void;
   onOrdersChanged: () => void;
   onAddOrder?: (projectId: string, customerId: string | null, customerAddressId: string | null) => void;
+  onOrderClick?: (orderId: string) => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
@@ -31,7 +32,7 @@ const ORDER_STATUS_CONFIG: Record<string, { label: string; badgeClass: string }>
   cancelled: { label: 'Anulowany', badgeClass: 'bg-red-600 text-white' },
 };
 
-const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, onOrdersChanged, onAddOrder }: ProjectDetailsDrawerProps) => {
+const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, onOrdersChanged, onAddOrder, onOrderClick }: ProjectDetailsDrawerProps) => {
   const { data: project } = useQuery({
     queryKey: ['project-detail', projectId],
     enabled: !!projectId && open,
@@ -168,7 +169,11 @@ const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, on
                 {orders.map((order: any) => {
                   const orderStatus = ORDER_STATUS_CONFIG[order.status] || ORDER_STATUS_CONFIG.confirmed;
                   return (
-                    <div key={order.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-1">
+                    <div
+                      key={order.id}
+                      className="rounded-lg border border-border bg-white p-3 space-y-1 cursor-pointer hover:shadow-sm transition-shadow active:bg-muted/20"
+                      onClick={() => onOrderClick?.(order.id)}
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           {order.stage_number && (
