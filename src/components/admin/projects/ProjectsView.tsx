@@ -208,9 +208,10 @@ interface ProjectsViewProps {
   instanceId: string;
   onAddOrder?: (projectId: string, customerId: string | null, customerAddressId: string | null) => void;
   onOpenCalendarItem?: (itemId: string) => void;
+  onEditOrder?: (orderId: string) => void;
 }
 
-const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsViewProps) => {
+const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder }: ProjectsViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
