@@ -215,7 +215,7 @@ const MonthCalendarView = ({
                           ) : (
                             <>
                               <div className="flex items-center gap-1 min-w-0">
-                                <span className="text-[11px] font-bold tabular-nums shrink-0" style={{ color: colColor || 'hsl(var(--foreground))' }}>
+                                <span className="text-[11px] font-bold tabular-nums shrink-0 text-foreground">
                                   {item.start_time?.slice(0, 5)}
                                 </span>
                                 <span className="text-[11px] font-bold truncate text-foreground">
