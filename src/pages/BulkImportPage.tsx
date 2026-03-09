@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 const TARGET_INSTANCE_ID = 'c32aa6e2-d63b-4707-a483-18cf36bec8ce';
-const BATCH_SIZE = 100;
+const BATCH_SIZE = 30;
 
 export default function BulkImportPage() {
   const [status, setStatus] = useState('idle');
