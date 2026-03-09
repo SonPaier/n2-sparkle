@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Check, AlertTriangle, X } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { format, eachDayOfInterval, parseISO, isWithinInterval } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
