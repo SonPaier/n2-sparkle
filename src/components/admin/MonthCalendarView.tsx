@@ -138,7 +138,7 @@ const MonthCalendarView = ({
   }, []);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {/* Day names header */}
       <div className="grid grid-cols-7 border-b border-border">
         {DAY_NAMES.map((name) => (
@@ -149,9 +149,9 @@ const MonthCalendarView = ({
       </div>
 
       {/* Calendar grid */}
-      <div className="flex-1 grid auto-rows-fr" style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}>
+      <div>
         {weeks.map((week, weekIdx) => (
-          <div key={weekIdx} className="grid grid-cols-7 border-b border-border last:border-b-0">
+          <div key={weekIdx} className="grid grid-cols-7 border-b border-border last:border-b-0 min-h-[80px]">
             {week.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd');
               const isCurrentMonth = isSameMonth(day, currentDate);
@@ -190,7 +190,7 @@ const MonthCalendarView = ({
                       const employees = item.assigned_employees || [];
 
                       const tileStyle = colColor ? {
-                        backgroundColor: hexToRgba(colColor, 0.35),
+                        backgroundColor: colColor,
                         borderLeft: `3px solid ${colColor}`,
                       } : undefined;
 
@@ -215,7 +215,7 @@ const MonthCalendarView = ({
                           ) : (
                             <>
                               <div className="flex items-center gap-1 min-w-0">
-                                <span className="text-[11px] font-bold tabular-nums shrink-0" style={{ color: colColor || 'hsl(var(--foreground))' }}>
+                                <span className="text-[11px] font-bold tabular-nums shrink-0 text-foreground">
                                   {item.start_time?.slice(0, 5)}
                                 </span>
                                 <span className="text-[11px] font-bold truncate text-foreground">
@@ -223,7 +223,7 @@ const MonthCalendarView = ({
                                 </span>
                               </div>
                               {address && (
-                                <div className="text-[10px] text-muted-foreground truncate pl-0.5">
+                                <div className="text-[10px] text-foreground/70 truncate pl-0.5">
                                   {address}
                                 </div>
                               )}
@@ -232,11 +232,7 @@ const MonthCalendarView = ({
                                   {employees.map((emp) => (
                                     <span
                                       key={emp.id}
-                                      className="text-[9px] rounded px-1 py-px truncate max-w-[80px] font-medium"
-                                      style={colColor ? {
-                                        backgroundColor: hexToRgba(colColor, 0.25),
-                                        color: colColor,
-                                      } : undefined}
+                                      className="text-[9px] rounded px-1 py-px truncate max-w-[80px] font-medium bg-foreground/10 text-foreground/80"
                                     >
                                       {emp.name.split(' ')[0]}
                                     </span>
