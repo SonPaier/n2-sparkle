@@ -221,16 +221,18 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
 
   const projectIds = useMemo(() => projects.map(p => p.id), [projects]);
   const { data: allOrders = [] } = useQuery({
-    queryKey: ['projects-orders', instanceId, projectIds],
+    queryKey: ['projects-orders', instanceId],
     enabled: projectIds.length > 0,
     queryFn: async () => {
       const { data } = await (supabase
         .from('calendar_items') as any)
         .select('id, project_id, title, item_date, start_time, end_time, status, stage_number')
         .in('project_id', projectIds)
-        .order('stage_number', { ascending: true });
+        .order('stage_number', { ascending: true, nullsFirst: false });
       return (data || []) as ProjectOrder[];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const ordersMap = useMemo(() => {
