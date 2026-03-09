@@ -106,8 +106,7 @@ const SortableOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onC
       </TableCell>
       <TableCell colSpan={2} className="py-1.5">
         <div className="flex items-center gap-2 pl-4">
-          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusCfg.dotClass}`} />
-          <span className="text-xs text-muted-foreground font-medium">
+          <span className="text-xs font-medium">
             {order.stage_number ? `#${order.stage_number}` : '—'}
           </span>
           <span className="text-sm truncate">{order.title}</span>
