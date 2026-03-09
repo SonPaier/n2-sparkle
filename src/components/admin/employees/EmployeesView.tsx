@@ -481,7 +481,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                 </TableRow>
                 {!isPerOrder && (
                   <TableRow>
-                    <TableCell className="sticky left-0 bg-background z-10 font-bold text-sm py-2 text-foreground border-r">WYPŁATA</TableCell>
+                    <TableCell className="sticky left-0 bg-card z-10 font-bold text-sm py-2 text-foreground border-r">WYPŁATA</TableCell>
                     {activeEmployees.map(emp => {
                       const summary = periodSummary.get(emp.id);
                       if (!summary || !emp.hourly_rate || summary.total_minutes === 0) {
