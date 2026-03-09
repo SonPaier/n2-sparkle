@@ -241,7 +241,8 @@ const SettlementsView = ({ instanceId }: SettlementsViewProps) => {
         (o) =>
         (o.customer_name || '').toLowerCase().includes(q) ||
         (o.title || '').toLowerCase().includes(q) ||
-        (o.item_date || '').includes(q)
+        (o.item_date || '').includes(q) ||
+        (o.customer_address_id && addressMap[o.customer_address_id] && addressMap[o.customer_address_id].toLowerCase().includes(q))
       );
     }
     if (sortColumn) {
