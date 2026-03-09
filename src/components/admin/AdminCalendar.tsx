@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-type ViewMode = 'day' | 'two-days' | 'week';
+type ViewMode = 'day' | 'two-days' | 'week' | 'month';
 
 export interface CalendarColumn {
   id: string;
