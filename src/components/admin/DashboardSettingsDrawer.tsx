@@ -36,7 +36,7 @@ const DashboardSettingsDrawer = ({ open, onClose, settings, onSave, isEmployee }
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full sm:w-[400px] sm:max-w-[400px] h-full p-0 flex flex-col" hideCloseButton hideOverlay>
+      <SheetContent side="right" className="w-full sm:w-[550px] sm:max-w-[550px] h-full p-0 flex flex-col" hideCloseButton hideOverlay>
         <SheetTitle className="sr-only">Ustawienia widoku</SheetTitle>
         <SheetDescription className="sr-only">Konfiguracja widoku dashboardu</SheetDescription>
 

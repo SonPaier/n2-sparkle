@@ -174,7 +174,7 @@ const EmployeeSelectionDrawer = ({
 
   return (
     <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <SheetContent side="right" className={cn("z-[1100] h-full p-0 flex flex-col", isMobile ? "w-full" : "w-full sm:w-[400px] sm:max-w-[400px]")} hideCloseButton>
+      <SheetContent side="right" className={cn("z-[1100] h-full p-0 flex flex-col", isMobile ? "w-full" : "w-full sm:w-[550px] sm:max-w-[550px]")} hideCloseButton>
         {content}
       </SheetContent>
     </Sheet>
