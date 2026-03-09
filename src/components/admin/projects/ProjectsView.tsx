@@ -533,17 +533,17 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                   return (
                     <SortableContext key={project.id} items={projectOrders.map(o => o.id)} strategy={verticalListSortingStrategy}>
                       <TableRow className="cursor-pointer border-b-0 font-medium" onClick={() => handleOpenDetails(project.id)}>
-                        <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
+                        <TableCell className="text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
                         <TableCell className="font-medium">{project.title}</TableCell>
-                        <TableCell className="text-muted-foreground">
+                        <TableCell>
                           <div>
                             {project.customer_id ? customerMap[project.customer_id] || '—' : '—'}
                             {project.customer_address_id && addressMap[project.customer_address_id] && (
-                              <p className="text-xs text-muted-foreground/70">{addressMap[project.customer_address_id]}</p>
+                              <p className="text-xs text-muted-foreground">{addressMap[project.customer_address_id]}</p>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
+                        <TableCell className="text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
                         <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
                         
                         <TableCell>
