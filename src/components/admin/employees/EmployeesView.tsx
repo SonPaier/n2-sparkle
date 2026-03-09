@@ -433,6 +433,10 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                               const hasEntry = entries && entries.length > 0;
                               const totalMin = hasEntry ? entries.reduce((s, e) => s + (e.total_minutes || 0), 0) : 0;
                               const displayTime = totalMin > 0 ? formatMinutesToTime(totalMin) : '';
+                              const firstEntry = hasEntry ? entries[0] : null;
+                              const startT = firstEntry?.start_time?.slice(0, 5);
+                              const endT = firstEntry?.end_time?.slice(0, 5);
+                              const hasStartEnd = startT && endT;
                               return (
                                 <TableCell
                                   key={emp.id}
@@ -440,7 +444,12 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                                   onClick={() => handleCellClick(emp.id, day)}
                                 >
                                   {displayTime ? (
-                                    <span className="text-sm font-medium text-foreground">{displayTime}</span>
+                                    <div className="flex flex-col items-center">
+                                      {hasStartEnd && (
+                                        <span className="text-[10px] text-muted-foreground leading-tight">{startT}-{endT}</span>
+                                      )}
+                                      <span className="text-sm font-medium text-foreground">{displayTime}</span>
+                                    </div>
                                   ) : (
                                     <span className="text-foreground/20 text-xs">-</span>
                                   )}
