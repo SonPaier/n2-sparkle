@@ -626,8 +626,8 @@ const AddCalendarItemDialog = ({
         customer_address_id: customerAddressId || null,
         item_date: hasDate ? format(dateRange!.from!, 'yyyy-MM-dd') : null,
         end_date: hasDate && dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : null,
-        start_time: hasDate ? startTime : null,
-        end_time: hasDate ? endTime : null,
+        start_time: startTime || null,
+        end_time: endTime || null,
         admin_notes: adminNotes.trim() || null,
         price: price ? parseFloat(price) : null,
         priority: priority,
@@ -833,9 +833,7 @@ const AddCalendarItemDialog = ({
               </div>
             )}
 
-            {/* Date - RadioGroup + Calendar (hidden when adding from project) */}
-            {!initialProjectId && (
-            <>
+            {/* Date - RadioGroup + Calendar */}
             <div className="space-y-2">
               <Label>Długość zlecenia</Label>
               <RadioGroup
@@ -948,8 +946,6 @@ const AddCalendarItemDialog = ({
                 </Select>
               </div>
             </div>
-            </>
-            )}
 
 
             {/* Assigned Employees */}
