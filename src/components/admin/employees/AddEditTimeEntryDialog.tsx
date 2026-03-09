@@ -29,23 +29,7 @@ const AddEditTimeEntryDialog = ({ open, onOpenChange, instanceId, employees, ent
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('16:00');
-  const [durationPreset, setDurationPreset] = useState('');
 
-  const WORK_DAY_MINUTES = 9 * 60; // 9h
-
-  const handleDurationPreset = (preset: string) => {
-    setDurationPreset(preset);
-    const fractions: Record<string, number> = { full: 1, half: 0.5, third: 1/3, quarter: 0.25 };
-    const fraction = fractions[preset];
-    if (!fraction) return;
-    const minutes = Math.round(WORK_DAY_MINUTES * fraction);
-    const [h, m] = startTime.split(':').map(Number);
-    const startMin = h * 60 + m;
-    const endMin = startMin + minutes;
-    const endH = Math.min(Math.floor(endMin / 60), 23);
-    const endM = endMin % 60;
-    setEndTime(`${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
-  };
 
   const createEntry = useCreateTimeEntry(instanceId);
   const updateEntry = useUpdateTimeEntry(instanceId);
