@@ -609,6 +609,10 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
           setDetailsOpen(false);
           onAddOrder(projectId, customerId, customerAddressId);
         } : undefined}
+        onOrderClick={onOpenCalendarItem ? (orderId) => {
+          setDetailsOpen(false);
+          onOpenCalendarItem(orderId);
+        } : undefined}
       />
     </div>
   );

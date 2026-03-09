@@ -169,7 +169,11 @@ const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, on
                 {orders.map((order: any) => {
                   const orderStatus = ORDER_STATUS_CONFIG[order.status] || ORDER_STATUS_CONFIG.confirmed;
                   return (
-                    <div key={order.id} className="rounded-lg border border-border bg-muted/30 p-3 space-y-1">
+                    <div
+                      key={order.id}
+                      className="rounded-lg border border-border bg-white p-3 space-y-1 cursor-pointer hover:shadow-sm transition-shadow active:bg-muted/20"
+                      onClick={() => onOrderClick?.(order.id)}
+                    >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           {order.stage_number && (
