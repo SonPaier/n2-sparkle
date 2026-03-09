@@ -391,12 +391,14 @@ const AdminCalendar = ({
 
   // Navigation
   const handlePrev = () => {
-    if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1));
+    if (viewMode === 'month') setCurrentDate(subMonths(currentDate, 1));
+    else if (viewMode === 'week') setCurrentDate(subWeeks(currentDate, 1));
     else setCurrentDate(subDays(currentDate, 1));
   };
 
   const handleNext = () => {
-    if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1));
+    if (viewMode === 'month') setCurrentDate(addMonths(currentDate, 1));
+    else if (viewMode === 'week') setCurrentDate(addWeeks(currentDate, 1));
     else setCurrentDate(addDays(currentDate, 1));
   };
 
