@@ -380,14 +380,14 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       ) : (
         <>
            <div className="rounded-lg border border-border bg-card overflow-x-auto -mx-4 px-0 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <Table className="min-w-max [&>div]:overflow-visible">
+            <Table className="w-full [&>div]:overflow-visible">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b">
-                  <TableHead className="sticky left-0 bg-card z-10 min-w-[80px] text-foreground font-medium border-r">Data</TableHead>
+                  <TableHead className="sticky left-0 bg-card z-10 w-[70px] min-w-[70px] text-foreground font-medium border-r text-xs sm:text-sm">Data</TableHead>
                   {activeEmployees.map(emp => (
-                    <TableHead key={emp.id} className="text-center min-w-[100px] text-foreground font-medium border-r last:border-r-0">
+                    <TableHead key={emp.id} className="text-center text-foreground font-medium border-r last:border-r-0 px-1">
                       <div className="flex flex-col items-center gap-0.5">
-                        <span className="truncate block max-w-[100px]">{emp.name}</span>
+                        <span className="truncate block max-w-[80px] sm:max-w-[100px] text-xs sm:text-sm">{emp.name}</span>
                         {isAdmin && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
