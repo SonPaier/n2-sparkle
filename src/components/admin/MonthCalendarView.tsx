@@ -8,8 +8,6 @@ import {
   addDays,
   isSameMonth,
   isSameDay,
-  isBefore,
-  startOfDay,
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -26,6 +24,15 @@ interface MonthCalendarViewProps {
 }
 
 const DAY_NAMES = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Niedz'];
+
+/** Convert hex color to rgba string */
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
 
 const MonthCalendarView = ({
   items,
@@ -85,7 +92,7 @@ const MonthCalendarView = ({
     return map;
   }, [items]);
 
-  const today = startOfDay(new Date());
+  const today = new Date();
 
   const weeks = useMemo(() => {
     const result: Date[][] = [];
@@ -149,7 +156,6 @@ const MonthCalendarView = ({
               const dateStr = format(day, 'yyyy-MM-dd');
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isToday = isSameDay(day, today);
-              const isPast = isBefore(day, today) && !isToday;
               const dayItems = itemsByDate.get(dateStr) || [];
               const isDragOver = dragOverDateStr === dateStr;
 
@@ -158,8 +164,7 @@ const MonthCalendarView = ({
                   key={dateStr}
                   className={cn(
                     'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden overflow-y-auto transition-colors',
-                    !isCurrentMonth && 'bg-muted/10',
-                    isPast && isCurrentMonth && 'bg-muted/5',
+                    !isCurrentMonth && 'bg-primary/[0.03]',
                     isDragOver && 'bg-primary/10 ring-1 ring-inset ring-primary/30'
                   )}
                   onDragOver={(e) => handleDragOver(e, dateStr)}
@@ -185,6 +190,11 @@ const MonthCalendarView = ({
                       const address = [item.address_city, item.address_street].filter(Boolean).join(', ') || item.address_name || '';
                       const employees = item.assigned_employees || [];
 
+                      const tileStyle = colColor ? {
+                        backgroundColor: hexToRgba(colColor, 0.18),
+                        borderLeft: `3px solid ${colColor}`,
+                      } : undefined;
+
                       return (
                         <button
                           key={`${item.id}-${dateStr}`}
@@ -193,33 +203,28 @@ const MonthCalendarView = ({
                           onDragEnd={handleDragEnd}
                           onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
                           className={cn(
-                            'text-left rounded px-1.5 py-0.5 hover:opacity-80 transition-opacity border group cursor-grab active:cursor-grabbing shrink-0',
+                            'text-left rounded-sm px-1.5 py-0.5 hover:opacity-80 transition-opacity group cursor-grab active:cursor-grabbing shrink-0',
                             draggedItemId === item.id && 'opacity-40',
-                            !colColor && 'bg-muted border-border/50'
+                            !colColor && 'bg-muted/60 border-l-[3px] border-muted-foreground/30'
                           )}
-                          style={colColor ? {
-                            backgroundColor: colColor,
-                            borderColor: colColor,
-                          } : undefined}
+                          style={tileStyle}
                         >
                           {isMobile ? (
-                            /* Mobile: only title, black, max 2 lines with ellipsis */
-                            <div className="text-[10px] font-semibold text-white line-clamp-2">
+                            <div className="text-[10px] font-semibold text-foreground line-clamp-2">
                               {item.title}
                             </div>
                           ) : (
-                            /* Desktop: full info */
                             <>
                               <div className="flex items-center gap-1 min-w-0">
-                                <span className="text-[11px] font-bold tabular-nums shrink-0 text-white">
+                                <span className="text-[11px] font-bold tabular-nums shrink-0" style={{ color: colColor || 'hsl(var(--foreground))' }}>
                                   {item.start_time?.slice(0, 5)}
                                 </span>
-                                <span className="text-[11px] font-bold truncate text-white">
+                                <span className="text-[11px] font-bold truncate text-foreground">
                                   {item.title}
                                 </span>
                               </div>
                               {address && (
-                                <div className="text-[10px] text-white/80 truncate">
+                                <div className="text-[10px] text-muted-foreground truncate pl-0.5">
                                   {address}
                                 </div>
                               )}
@@ -228,7 +233,11 @@ const MonthCalendarView = ({
                                   {employees.map((emp) => (
                                     <span
                                       key={emp.id}
-                                      className="text-[9px] bg-white/25 text-white rounded px-1 py-px truncate max-w-[80px]"
+                                      className="text-[9px] rounded px-1 py-px truncate max-w-[80px] font-medium"
+                                      style={colColor ? {
+                                        backgroundColor: hexToRgba(colColor, 0.25),
+                                        color: colColor,
+                                      } : undefined}
                                     >
                                       {emp.name.split(' ')[0]}
                                     </span>
