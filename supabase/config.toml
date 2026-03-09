@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.bulk-import-mapped]
 verify_jwt = false
+
+[functions.geocode-addresses]
+verify_jwt = false
