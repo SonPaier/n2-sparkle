@@ -173,6 +173,60 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const periodSummary = useMemo(() => calculateMonthlySummary(timeEntries), [timeEntries]);
   const timeCalculationMode = workersSettings?.time_calculation_mode ?? 'start_to_stop';
 
+  // Build entries lookup map by employee+date
+  const entriesByEmployeeAndDate = useMemo(() => {
+    const map = new Map<string, Map<string, TimeEntry[]>>();
+    timeEntries.forEach(entry => {
+      if (!map.has(entry.employee_id)) map.set(entry.employee_id, new Map());
+      const employeeMap = map.get(entry.employee_id)!;
+      if (!employeeMap.has(entry.entry_date)) employeeMap.set(entry.entry_date, []);
+      employeeMap.get(entry.entry_date)!.push(entry);
+    });
+    return map;
+  }, [timeEntries]);
+
+  // Compute weeks of the month
+  interface WeekGroup { weekNumber: number; days: Date[]; }
+  const weeks = useMemo((): WeekGroup[] => {
+    const mStart = startOfMonth(new Date(year, month));
+    const mEnd = endOfMonth(new Date(year, month));
+    const allDays = eachDayOfInterval({ start: mStart, end: mEnd });
+    const weekMap = new Map<number, Date[]>();
+    allDays.forEach(day => {
+      const wn = getWeek(day, { weekStartsOn: 1, locale: pl });
+      if (!weekMap.has(wn)) weekMap.set(wn, []);
+      weekMap.get(wn)!.push(day);
+    });
+    return Array.from(weekMap.entries()).map(([weekNumber, days]) => ({ weekNumber, days }));
+  }, [year, month]);
+
+  const getWeekMinutes = (employeeId: string, days: Date[]): number => {
+    const empMap = entriesByEmployeeAndDate.get(employeeId);
+    if (!empMap) return 0;
+    return days.reduce((sum, day) => {
+      const ds = format(day, 'yyyy-MM-dd');
+      const entries = empMap.get(ds);
+      if (!entries) return sum;
+      return sum + entries.reduce((s, e) => s + (e.total_minutes || 0), 0);
+    }, 0);
+  };
+
+  const handleCellClick = (employeeId: string, date: Date) => {
+    const ds = format(date, 'yyyy-MM-dd');
+    const empMap = entriesByEmployeeAndDate.get(employeeId);
+    const entries = empMap?.get(ds);
+    if (entries && entries.length > 0) {
+      setEditingTimeEntry(entries[0]);
+      setPrefilledEmployee(undefined);
+      setPrefilledDate(undefined);
+    } else {
+      setEditingTimeEntry(null);
+      setPrefilledEmployee(employeeId);
+      setPrefilledDate(ds);
+    }
+    setTimeEntryDialogOpen(true);
+  };
+
   const totalEarnings = useMemo(() => {
     return activeEmployees.reduce((sum, employee) => {
       const summary = periodSummary.get(employee.id);
