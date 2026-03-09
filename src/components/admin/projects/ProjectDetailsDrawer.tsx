@@ -32,7 +32,7 @@ const ORDER_STATUS_CONFIG: Record<string, { label: string; badgeClass: string }>
   cancelled: { label: 'Anulowany', badgeClass: 'bg-red-600 text-white' },
 };
 
-const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, onOrdersChanged, onAddOrder }: ProjectDetailsDrawerProps) => {
+const ProjectDetailsDrawer = ({ open, onClose, projectId, instanceId, onEdit, onOrdersChanged, onAddOrder, onOrderClick }: ProjectDetailsDrawerProps) => {
   const { data: project } = useQuery({
     queryKey: ['project-detail', projectId],
     enabled: !!projectId && open,
