@@ -204,8 +204,8 @@ const CustomerEditDrawer = ({
 
   const handleSaveCustomer = async () => {
     if (!instanceId) return;
-    if (!(editName || '').trim() || !(editPhone || '').trim()) {
-      toast.error('Imię i nazwisko oraz telefon są wymagane');
+    if (!(editName || '').trim()) {
+      toast.error('Imię i nazwisko jest wymagane');
       return;
     }
 
