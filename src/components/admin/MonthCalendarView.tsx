@@ -163,8 +163,7 @@ const MonthCalendarView = ({
                 <div
                   key={dateStr}
                   className={cn(
-                    'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden overflow-y-auto transition-colors',
-                    !isCurrentMonth && 'bg-primary/[0.03]',
+                    'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden overflow-y-auto transition-colors bg-background',
                     isDragOver && 'bg-primary/10 ring-1 ring-inset ring-primary/30'
                   )}
                   onDragOver={(e) => handleDragOver(e, dateStr)}
@@ -191,7 +190,7 @@ const MonthCalendarView = ({
                       const employees = item.assigned_employees || [];
 
                       const tileStyle = colColor ? {
-                        backgroundColor: hexToRgba(colColor, 0.18),
+                        backgroundColor: hexToRgba(colColor, 0.35),
                         borderLeft: `3px solid ${colColor}`,
                       } : undefined;
 
