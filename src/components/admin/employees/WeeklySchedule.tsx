@@ -296,15 +296,41 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
         <div className="border rounded-lg p-4 bg-card space-y-3">
           <div className="text-2xl font-semibold text-center capitalize">{editingDayLabel}</div>
           <div className="flex items-center justify-center gap-2">
-            <Select value={editingCell.hours} onValueChange={handleHoursChange}>
-              <SelectTrigger className="h-14 w-24 text-center text-xl font-medium"><SelectValue placeholder="0" /></SelectTrigger>
-              <SelectContent>{hourOptions.map(h => (<SelectItem key={h} value={h.toString()}>{h}</SelectItem>))}</SelectContent>
-            </Select>
-            <span className="text-2xl font-bold">:</span>
-            <Select value={editingCell.minutes} onValueChange={handleMinutesChange}>
-              <SelectTrigger className="h-14 w-24 text-center text-xl font-medium"><SelectValue placeholder="0" /></SelectTrigger>
-              <SelectContent>{minuteOptions.map(m => (<SelectItem key={m} value={m.toString()}>{m}</SelectItem>))}</SelectContent>
-            </Select>
+            {timeInputMode === 'start_end' ? (
+              <>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-muted-foreground font-medium">Od</span>
+                  <input
+                    type="time"
+                    value={editingCell.startTime}
+                    onChange={(e) => handleStartTimeChange(e.target.value)}
+                    className="h-14 w-28 text-center text-xl font-medium border rounded-md px-2 bg-background"
+                  />
+                </div>
+                <span className="text-2xl font-bold mt-5">-</span>
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs text-muted-foreground font-medium">Do</span>
+                  <input
+                    type="time"
+                    value={editingCell.endTime}
+                    onChange={(e) => handleEndTimeChange(e.target.value)}
+                    className="h-14 w-28 text-center text-xl font-medium border rounded-md px-2 bg-background"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <Select value={editingCell.hours} onValueChange={handleHoursChange}>
+                  <SelectTrigger className="h-14 w-24 text-center text-xl font-medium"><SelectValue placeholder="0" /></SelectTrigger>
+                  <SelectContent>{hourOptions.map(h => (<SelectItem key={h} value={h.toString()}>{h}</SelectItem>))}</SelectContent>
+                </Select>
+                <span className="text-2xl font-bold">:</span>
+                <Select value={editingCell.minutes} onValueChange={handleMinutesChange}>
+                  <SelectTrigger className="h-14 w-24 text-center text-xl font-medium"><SelectValue placeholder="0" /></SelectTrigger>
+                  <SelectContent>{minuteOptions.map(m => (<SelectItem key={m} value={m.toString()}>{m}</SelectItem>))}</SelectContent>
+                </Select>
+              </>
+            )}
             {editingCellIsDayOff ? (
               <Button onClick={handleRemoveDayOff} size="sm" variant="outline" className="h-14 bg-red-50 border-red-200 text-red-700 hover:bg-red-100 ml-2">
                 <Trash2 className="w-4 h-4 mr-1" />Usuń Wolne
