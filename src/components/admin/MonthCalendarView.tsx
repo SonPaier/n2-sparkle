@@ -163,7 +163,7 @@ const MonthCalendarView = ({
                 <div
                   key={dateStr}
                   className={cn(
-                    'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden overflow-y-auto transition-colors bg-background',
+                    'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden overflow-y-auto transition-colors bg-white dark:bg-card',
                     isDragOver && 'bg-primary/10 ring-1 ring-inset ring-primary/30'
                   )}
                   onDragOver={(e) => handleDragOver(e, dateStr)}
