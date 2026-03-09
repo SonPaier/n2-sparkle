@@ -9,6 +9,7 @@ import { useEmployeeDaysOff, useCreateEmployeeDayOff, useDeleteEmployeeDayOff } 
 import { useWorkingHours } from '@/hooks/useWorkingHours';
 import { Employee } from '@/hooks/useEmployees';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const WEEKDAY_TO_KEY: Record<number, string> = {
   0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
@@ -96,10 +97,29 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
         const startTime = new Date(`${editingCell.date}T08:00:00`);
         const endTime = new Date(startTime.getTime() + totalMinutes * 60000);
         await updateTimeEntry.mutateAsync({ id: firstEntry.id, start_time: startTime.toISOString(), end_time: endTime.toISOString() });
+        // Remove any duplicate entries for the same day
+        if (existing.entries.length > 1) {
+          const duplicateIds = existing.entries.slice(1).map(e => e.id);
+          await supabase.from('time_entries').delete().in('id', duplicateIds);
+        }
       } else if (totalMinutes > 0) {
+        // Double-check DB to prevent duplicate creation (race condition)
+        const { data: dbCheck } = await supabase
+          .from('time_entries')
+          .select('id')
+          .eq('instance_id', instanceId)
+          .eq('employee_id', employee.id)
+          .eq('entry_date', editingCell.date)
+          .limit(1);
+        
         const startTime = new Date(`${editingCell.date}T08:00:00`);
         const endTime = new Date(startTime.getTime() + totalMinutes * 60000);
-        await createTimeEntry.mutateAsync({ employee_id: employee.id, entry_date: editingCell.date, start_time: startTime.toISOString(), end_time: endTime.toISOString(), entry_type: 'manual' });
+        
+        if (dbCheck && dbCheck.length > 0) {
+          await updateTimeEntry.mutateAsync({ id: dbCheck[0].id, start_time: startTime.toISOString(), end_time: endTime.toISOString() });
+        } else {
+          await createTimeEntry.mutateAsync({ employee_id: employee.id, entry_date: editingCell.date, start_time: startTime.toISOString(), end_time: endTime.toISOString(), entry_type: 'manual' });
+        }
       }
       
     } catch (error) {
