@@ -769,7 +769,21 @@ const AddCalendarItemDialog = ({
               </div>
             )}
 
-            {/* Title */}
+            {/* Column (Typ) selector */}
+            {columns.length > 0 && (
+              <div className="space-y-2">
+                <Label>Typ</Label>
+                <Select value={columnId} onValueChange={setColumnId}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="Wybierz typ" /></SelectTrigger>
+                  <SelectContent className="z-[1200]">
+                    {columns.map(col => (
+                      <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label>Tytuł zlecenia</Label>
               <Input value={title} onChange={(e) => setTitle(e.target.value)} className="bg-white" />
