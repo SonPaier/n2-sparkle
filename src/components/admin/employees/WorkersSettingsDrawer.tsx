@@ -23,6 +23,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
   const [standardHours, setStandardHours] = useState('8');
   const [reportFrequency, setReportFrequency] = useState<'monthly' | 'weekly'>('monthly');
   const [settlementType, setSettlementType] = useState<'hourly' | 'per_order'>('hourly');
+  const [timeInputMode, setTimeInputMode] = useState<'total' | 'start_end'>('total');
 
   useEffect(() => {
     if (settings) {
@@ -30,6 +31,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
       setStandardHours(settings.standard_hours_per_day?.toString() ?? '8');
       setReportFrequency(settings.report_frequency ?? 'monthly');
       setSettlementType(settings.settlement_type ?? 'hourly');
+      setTimeInputMode(settings.time_input_mode ?? 'total');
     }
   }, [settings]);
 
@@ -42,6 +44,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
         standard_hours_per_day: parseInt(standardHours) || 8,
         report_frequency: reportFrequency,
         settlement_type: settlementType,
+        time_input_mode: timeInputMode,
       });
       toast.success('Ustawienia zostały zapisane');
       handleClose();
@@ -115,6 +118,25 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
                       <Label htmlFor="per-order-settlement" className="font-normal cursor-pointer">Per zlecenie</Label>
                     </div>
                     <p className="text-xs text-muted-foreground ml-6">Rozliczenie na podstawie wykonanych zleceń</p>
+                  </div>
+                </RadioGroup>
+              </div>
+              <div className="space-y-3">
+                <Label>Sposób raportowania czasu</Label>
+                <RadioGroup value={timeInputMode} onValueChange={(v) => setTimeInputMode(v as 'total' | 'start_end')}>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="total" id="time-total" />
+                      <Label htmlFor="time-total" className="font-normal cursor-pointer">Pracownik podaje łączny czas pracy</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">Wybiera liczbę godzin i minut</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="start_end" id="time-start-end" />
+                      <Label htmlFor="time-start-end" className="font-normal cursor-pointer">Pracownik podaje czas rozpoczęcia i zakończenia</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">Wybiera godzinę Od i Do</p>
                   </div>
                 </RadioGroup>
               </div>
