@@ -192,6 +192,7 @@ const AdminCalendar = ({
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [configPopoverOpen, setConfigPopoverOpen] = useState(false);
   const [weekViewColumnId, setWeekViewColumnId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isCompact, setIsCompact] = useState(() => {
