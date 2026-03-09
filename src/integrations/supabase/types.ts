@@ -1947,6 +1947,7 @@ export type Database = {
           standard_hours_per_day: number
           start_stop_enabled: boolean
           time_calculation_mode: string
+          time_input_mode: string
         }
         Insert: {
           instance_id: string
@@ -1956,6 +1957,7 @@ export type Database = {
           standard_hours_per_day?: number
           start_stop_enabled?: boolean
           time_calculation_mode?: string
+          time_input_mode?: string
         }
         Update: {
           instance_id?: string
@@ -1965,6 +1967,7 @@ export type Database = {
           standard_hours_per_day?: number
           start_stop_enabled?: boolean
           time_calculation_mode?: string
+          time_input_mode?: string
         }
         Relationships: [
           {
