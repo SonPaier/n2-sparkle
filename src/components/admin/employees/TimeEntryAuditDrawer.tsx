@@ -150,7 +150,7 @@ const TimeEntryAuditDrawer = ({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className={`${isMobile ? 'w-full' : 'w-[400px] sm:max-w-[400px]'} h-full flex flex-col p-0`}
+        className={`${isMobile ? 'w-full' : 'w-[550px] sm:max-w-[550px]'} h-full flex flex-col p-0`}
       >
         <SheetHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border">
           <SheetTitle className="text-left">{employee.name} — historia zmian</SheetTitle>

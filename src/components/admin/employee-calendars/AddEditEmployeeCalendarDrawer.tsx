@@ -226,7 +226,7 @@ const AddEditEmployeeCalendarDrawer = ({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[400px] sm:max-w-[400px] h-full overflow-y-auto z-[1000]" hideCloseButton>
+      <SheetContent side="right" className="w-full sm:w-[550px] sm:max-w-[550px] h-full overflow-y-auto z-[1000]" hideCloseButton onInteractOutside={(e) => e.preventDefault()}>
         <SheetHeader className="border-b pb-4 mb-4">
           <div className="flex items-center justify-between">
             <SheetTitle>

@@ -47,7 +47,7 @@ const NotificationSettingsDrawer = ({ open, onOpenChange, instanceId }: Notifica
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[400px] sm:max-w-[400px] h-full p-0 flex flex-col z-[1000]" hideCloseButton>
+      <SheetContent side="right" className="w-full sm:w-[550px] sm:max-w-[550px] h-full p-0 flex flex-col z-[1000]" hideCloseButton>
         <div className="sticky top-0 z-10 bg-background border-b p-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Ustawienia powiadomień</h2>

@@ -350,7 +350,7 @@ const CreateProtocolForm = ({ open, onClose, instanceId, onSuccess, editingProto
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side="right" className="w-full sm:max-w-lg p-0" hideOverlay hideCloseButton>
+        <SheetContent side="right" className="w-full sm:w-[550px] sm:max-w-[550px] p-0" hideOverlay hideCloseButton onInteractOutside={(e) => e.preventDefault()}>
           {formContent}
         </SheetContent>
       </Sheet>

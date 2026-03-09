@@ -620,8 +620,9 @@ export const ServiceFormDialog = ({
         side="right"
         hideCloseButton
         hideOverlay
-        className="flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[400px] sm:max-w-[400px] h-full bg-white"
+        className="flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[550px] sm:max-w-[550px] h-full bg-white"
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">

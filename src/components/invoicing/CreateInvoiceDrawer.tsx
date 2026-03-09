@@ -51,7 +51,8 @@ export function CreateInvoiceDrawer({
         side="right"
         hideCloseButton
         hideOverlay
-        className="flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[400px] sm:max-w-[400px] h-full"
+        className="flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[550px] sm:max-w-[550px] h-full"
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetTitle className="sr-only">Wystaw fakturę</SheetTitle>
         <SheetDescription className="sr-only">Formularz wystawiania faktury</SheetDescription>
