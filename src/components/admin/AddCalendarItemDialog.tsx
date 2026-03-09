@@ -833,9 +833,7 @@ const AddCalendarItemDialog = ({
               </div>
             )}
 
-            {/* Date - RadioGroup + Calendar (hidden when adding from project) */}
-            {!initialProjectId && (
-            <>
+            {/* Date - RadioGroup + Calendar */}
             <div className="space-y-2">
               <Label>Długość zlecenia</Label>
               <RadioGroup
