@@ -438,6 +438,14 @@ const Dashboard = () => {
     if (!item) return;
 
     const updateData: any = { column_id: newColumnId, item_date: newDate };
+    // Shift end_date by same delta for multi-day items
+    if (item.end_date && item.end_date !== item.item_date) {
+      const origStart = new Date(item.item_date + 'T00:00:00');
+      const newStart = new Date(newDate + 'T00:00:00');
+      const daysDiff = Math.round((newStart.getTime() - origStart.getTime()) / (1000 * 60 * 60 * 24));
+      const origEnd = new Date(item.end_date + 'T00:00:00');
+      updateData.end_date = format(addDays(origEnd, daysDiff), 'yyyy-MM-dd');
+    }
     if (newTime) {
       const originalStart = parseFloat(item.start_time.split(':')[0]) + parseFloat(item.start_time.split(':')[1]) / 60;
       const originalEnd = parseFloat(item.end_time.split(':')[0]) + parseFloat(item.end_time.split(':')[1]) / 60;
