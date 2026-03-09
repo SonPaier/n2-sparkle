@@ -232,11 +232,7 @@ const MonthCalendarView = ({
                                   {employees.map((emp) => (
                                     <span
                                       key={emp.id}
-                                      className="text-[9px] rounded px-1 py-px truncate max-w-[80px] font-medium"
-                                      style={colColor ? {
-                                        backgroundColor: hexToRgba(colColor, 0.25),
-                                        color: colColor,
-                                      } : undefined}
+                                      className="text-[9px] rounded px-1 py-px truncate max-w-[80px] font-medium bg-foreground/10 text-foreground/80"
                                     >
                                       {emp.name.split(' ')[0]}
                                     </span>
