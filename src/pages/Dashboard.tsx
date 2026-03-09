@@ -557,6 +557,7 @@ const Dashboard = () => {
     setInitialProjectId(undefined);
     queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
     queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['projects-orders', instanceId] });
     queryClient.invalidateQueries({ queryKey: ['projects-stages', instanceId] });
     queryClient.invalidateQueries({ queryKey: ['project-orders'] });
   };
