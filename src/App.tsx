@@ -207,6 +207,7 @@ const DevRoutes = () => (
     {/* Root redirect to admin */}
     <Route path="/" element={<Navigate to="/admin" replace />} />
     <Route path="/protocols/:token" element={<PublicProtocolView />} />
+    <Route path="/bulk-import" element={<BulkImportPage />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
