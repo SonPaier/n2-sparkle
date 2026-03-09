@@ -16,6 +16,7 @@ interface ProjectDetailsDrawerProps {
   onEdit: (project: any) => void;
   onOrdersChanged: () => void;
   onAddOrder?: (projectId: string, customerId: string | null, customerAddressId: string | null) => void;
+  onOrderClick?: (orderId: string) => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; badgeClass: string }> = {
