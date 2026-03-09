@@ -155,6 +155,52 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     await saveEntry(editingCell.hours, value);
   };
 
+  const saveStartEndEntry = async (start: string, end: string) => {
+    if (!editingCell || isSaving || start >= end) return;
+    const existing = minutesByDate.get(editingCell.date);
+    setIsSaving(true);
+    try {
+      if (existing && existing.entries.length > 0) {
+        const firstEntry = existing.entries[0];
+        await updateTimeEntry.mutateAsync({ id: firstEntry.id, start_time: start, end_time: end });
+        if (existing.entries.length > 1) {
+          const duplicateIds = existing.entries.slice(1).map(e => e.id);
+          await supabase.from('time_entries').delete().in('id', duplicateIds);
+        }
+      } else {
+        const { data: dbCheck } = await supabase
+          .from('time_entries')
+          .select('id')
+          .eq('instance_id', instanceId)
+          .eq('employee_id', employee.id)
+          .eq('entry_date', editingCell.date)
+          .limit(1);
+        if (dbCheck && dbCheck.length > 0) {
+          await updateTimeEntry.mutateAsync({ id: dbCheck[0].id, start_time: start, end_time: end });
+        } else {
+          await createTimeEntry.mutateAsync({ employee_id: employee.id, entry_date: editingCell.date, start_time: start, end_time: end, entry_type: 'manual' });
+        }
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Błąd podczas zapisywania');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleStartTimeChange = async (value: string) => {
+    if (!editingCell) return;
+    setEditingCell({ ...editingCell, startTime: value });
+    await saveStartEndEntry(value, editingCell.endTime);
+  };
+
+  const handleEndTimeChange = async (value: string) => {
+    if (!editingCell) return;
+    setEditingCell({ ...editingCell, endTime: value });
+    await saveStartEndEntry(editingCell.startTime, value);
+  };
+
   const handleMarkDayOff = async () => {
     if (!editingCell) return;
     try {
