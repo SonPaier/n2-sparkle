@@ -49,6 +49,10 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
   const [settingsDrawerOpen, setSettingsDrawerOpen] = useState(false);
   const [auditEmployee, setAuditEmployee] = useState<Employee | null>(null);
   const [ordersEmployee, setOrdersEmployee] = useState<Employee | null>(null);
+  const [timeEntryDialogOpen, setTimeEntryDialogOpen] = useState(false);
+  const [editingTimeEntry, setEditingTimeEntry] = useState<TimeEntry | null>(null);
+  const [prefilledEmployee, setPrefilledEmployee] = useState<string | undefined>();
+  const [prefilledDate, setPrefilledDate] = useState<string | undefined>();
 
   const { data: workersSettings, isLoading: loadingSettings } = useWorkersSettings(instanceId);
   const isWeeklyMode = workersSettings?.report_frequency === 'weekly';
