@@ -149,7 +149,7 @@ const MonthCalendarView = ({
       </div>
 
       {/* Calendar grid */}
-      <div className="flex-1 grid auto-rows-fr" style={{ gridTemplateRows: `repeat(${weeks.length}, minmax(0, 1fr))` }}>
+      <div>
         {weeks.map((week, weekIdx) => (
           <div key={weekIdx} className="grid grid-cols-7 border-b border-border last:border-b-0">
             {week.map((day) => {
