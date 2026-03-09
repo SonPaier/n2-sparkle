@@ -26,6 +26,8 @@ interface EditingCell {
   date: string;
   hours: string;
   minutes: string;
+  startTime: string;
+  endTime: string;
 }
 
 const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
