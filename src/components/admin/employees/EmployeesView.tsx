@@ -451,7 +451,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         );
                       })}
                       <TableRow key={`week-${wi}`} className="border-b-2">
-                        <TableCell className="sticky left-0 bg-background z-10 font-bold whitespace-nowrap py-1.5 text-foreground border-r">
+                        <TableCell className="sticky left-0 bg-card z-10 font-bold whitespace-nowrap py-1.5 text-foreground border-r">
                           Tydzień {wi + 1}
                         </TableCell>
                         {activeEmployees.map(emp => {
