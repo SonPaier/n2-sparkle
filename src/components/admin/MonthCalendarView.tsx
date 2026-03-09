@@ -151,7 +151,7 @@ const MonthCalendarView = ({
       {/* Calendar grid */}
       <div>
         {weeks.map((week, weekIdx) => (
-          <div key={weekIdx} className="grid grid-cols-7 border-b border-border last:border-b-0">
+          <div key={weekIdx} className="grid grid-cols-7 border-b border-border last:border-b-0 min-h-[80px]">
             {week.map((day) => {
               const dateStr = format(day, 'yyyy-MM-dd');
               const isCurrentMonth = isSameMonth(day, currentDate);
