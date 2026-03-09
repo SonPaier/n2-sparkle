@@ -106,8 +106,7 @@ const SortableOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onC
       </TableCell>
       <TableCell colSpan={2} className="py-1.5">
         <div className="flex items-center gap-2 pl-4">
-          <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusCfg.dotClass}`} />
-          <span className="text-xs text-muted-foreground font-medium">
+          <span className="text-xs font-medium">
             {order.stage_number ? `#${order.stage_number}` : '—'}
           </span>
           <span className="text-sm truncate">{order.title}</span>
@@ -177,8 +176,7 @@ const SortableMobileOrderRow = ({ order, onClick, onMore }: { order: ProjectOrde
       >
         <GripVertical className="w-3 h-3" />
       </button>
-      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${osCfg.dotClass}`} />
-      <span className="text-muted-foreground font-medium">{order.stage_number ? `#${order.stage_number}` : '—'}</span>
+      <span className="font-medium">{order.stage_number ? `#${order.stage_number}` : '—'}</span>
       <span className="truncate flex-1">{order.title}</span>
       <span className="text-muted-foreground shrink-0">
         {order.item_date
@@ -533,17 +531,17 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                   return (
                     <SortableContext key={project.id} items={projectOrders.map(o => o.id)} strategy={verticalListSortingStrategy}>
                       <TableRow className="cursor-pointer border-b-0 font-medium" onClick={() => handleOpenDetails(project.id)}>
-                        <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
+                        <TableCell className="text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
                         <TableCell className="font-medium">{project.title}</TableCell>
-                        <TableCell className="text-muted-foreground">
+                        <TableCell>
                           <div>
                             {project.customer_id ? customerMap[project.customer_id] || '—' : '—'}
                             {project.customer_address_id && addressMap[project.customer_address_id] && (
-                              <p className="text-xs text-muted-foreground/70">{addressMap[project.customer_address_id]}</p>
+                              <p className="text-xs text-muted-foreground">{addressMap[project.customer_address_id]}</p>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
+                        <TableCell className="text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
                         <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
                         
                         <TableCell>
@@ -556,7 +554,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                                 <Eye className="w-4 h-4 mr-2" />Zobacz
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEdit(project); }}>
-                                Edytuj
+                                <Pencil className="w-4 h-4 mr-2" />Edytuj
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDelete(project.id); }} className="text-destructive">
                                 <Trash2 className="w-4 h-4 mr-2" />Usuń
