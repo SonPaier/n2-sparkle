@@ -345,7 +345,7 @@ const CustomerEditDrawer = ({
       setIsEditing(false);
       if (customer) {
         setEditName(customer.name);
-        setEditPhone(customer.phone);
+        setEditPhone(customer.phone || '');
         setEditEmail(customer.email || '');
         setEditNotes(customer.notes || '');
         fetchAddresses(customer.id);
