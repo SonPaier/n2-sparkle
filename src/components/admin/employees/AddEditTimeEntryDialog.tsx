@@ -108,21 +108,9 @@ const AddEditTimeEntryDialog = ({ open, onOpenChange, instanceId, employees, ent
               <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={date} onSelect={setDate} locale={pl} disabled={isEditing} /></PopoverContent>
             </Popover>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-2"><Label htmlFor="startTime">Od *</Label><Input id="startTime" type="time" value={startTime} onChange={(e) => { setStartTime(e.target.value); setDurationPreset(''); }} /></div>
-            <div className="space-y-2"><Label htmlFor="endTime">Do *</Label><Input id="endTime" type="time" value={endTime} onChange={(e) => { setEndTime(e.target.value); setDurationPreset(''); }} /></div>
-            <div className="space-y-2">
-              <Label className="invisible">Czas</Label>
-              <Select value={durationPreset} onValueChange={(val) => handleDurationPreset(val)}>
-                <SelectTrigger><SelectValue placeholder="Czas trwania" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full">Cały dzień</SelectItem>
-                  <SelectItem value="half">Pół dnia</SelectItem>
-                  <SelectItem value="third">1/3 dnia</SelectItem>
-                  <SelectItem value="quarter">1/4 dnia</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2"><Label htmlFor="startTime">Od *</Label><Input id="startTime" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="endTime">Do *</Label><Input id="endTime" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} /></div>
           </div>
         </div>
         <DialogFooter>

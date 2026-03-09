@@ -121,6 +121,25 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
                   </div>
                 </RadioGroup>
               </div>
+              <div className="space-y-3">
+                <Label>Sposób raportowania czasu</Label>
+                <RadioGroup value={timeInputMode} onValueChange={(v) => setTimeInputMode(v as 'total' | 'start_end')}>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="total" id="time-total" />
+                      <Label htmlFor="time-total" className="font-normal cursor-pointer">Pracownik podaje łączny czas pracy</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">Wybiera liczbę godzin i minut</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="start_end" id="time-start-end" />
+                      <Label htmlFor="time-start-end" className="font-normal cursor-pointer">Pracownik podaje czas rozpoczęcia i zakończenia</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground ml-6">Wybiera godzinę Od i Do</p>
+                  </div>
+                </RadioGroup>
+              </div>
             </>
           )}
         </div>
