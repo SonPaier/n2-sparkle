@@ -380,7 +380,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       ) : (
         <>
           <div className="rounded-lg border border-border bg-card overflow-x-auto">
-            <Table>
+            <Table className="[&>div]:overflow-visible">
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b">
                   <TableHead className="sticky left-0 bg-card z-10 min-w-[80px] text-foreground font-medium border-r">Data</TableHead>
