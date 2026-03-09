@@ -133,7 +133,7 @@ const CustomerEditDrawer = ({
       } else if (customer) {
         setIsEditing(false);
         setEditName(customer.name);
-        setEditPhone(customer.phone);
+        setEditPhone(customer.phone || '');
         setEditEmail(customer.email || '');
         setEditNotes(customer.notes || '');
         fetchAddresses(customer.id);
@@ -204,7 +204,7 @@ const CustomerEditDrawer = ({
 
   const handleSaveCustomer = async () => {
     if (!instanceId) return;
-    if (!editName.trim() || !editPhone.trim()) {
+    if (!(editName || '').trim() || !(editPhone || '').trim()) {
       toast.error('Imię i nazwisko oraz telefon są wymagane');
       return;
     }
@@ -345,7 +345,7 @@ const CustomerEditDrawer = ({
       setIsEditing(false);
       if (customer) {
         setEditName(customer.name);
-        setEditPhone(customer.phone);
+        setEditPhone(customer.phone || '');
         setEditEmail(customer.email || '');
         setEditNotes(customer.notes || '');
         fetchAddresses(customer.id);
