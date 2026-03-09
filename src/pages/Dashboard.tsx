@@ -765,6 +765,7 @@ const Dashboard = () => {
             onDeleteBreak={employeeViewMode ? undefined : handleDeleteBreak}
             onItemMove={employeeViewMode ? undefined : handleItemMove}
             onDateChange={handleDateChange}
+            onViewModeChange={(mode) => setCalendarViewMode(mode)}
             selectedItemId={selectedItem?.id}
             onToggleMap={employeeViewMode ? undefined : (() => setMapOpen(prev => !prev))}
             mapOpen={employeeViewMode ? false : mapOpen}
