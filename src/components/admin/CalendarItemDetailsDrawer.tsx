@@ -824,7 +824,7 @@ const CalendarItemDetailsDrawer = ({
   if (!item) {
     return (
       <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-        <SheetContent side="right" hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[400px] sm:max-w-[400px] h-full ${isEmployee ? 'sm:!w-full sm:!max-w-full' : ''}`}>
+        <SheetContent side="right" hideCloseButton hideOverlay className={`flex flex-col p-0 gap-0 z-[1000] w-full sm:w-[550px] sm:max-w-[550px] h-full ${isEmployee ? 'sm:!w-full sm:!max-w-full' : ''}`}>
           <SheetTitle className="sr-only">Szczegóły</SheetTitle>
           <SheetDescription className="sr-only">Brak danych</SheetDescription>
         </SheetContent>
