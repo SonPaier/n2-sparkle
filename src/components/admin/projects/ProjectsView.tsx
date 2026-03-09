@@ -517,7 +517,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                   <TableHead>Klient</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Etapy</TableHead>
+                  
                   <TableHead className="w-[50px]" />
                 </TableRow>
               </TableHeader>
