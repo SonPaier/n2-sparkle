@@ -1,0 +1,1 @@
+ALTER TABLE public.customers ALTER COLUMN phone DROP NOT NULL;
