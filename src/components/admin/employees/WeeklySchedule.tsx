@@ -77,7 +77,10 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     if (!initialLoadDone && editingCell && timeEntries.length > 0) {
       const existing = minutesByDate.get(editingCell.date);
       const totalMinutes = existing?.totalMinutes || 0;
-      setEditingCell(prev => prev ? { ...prev, hours: Math.floor(totalMinutes / 60).toString(), minutes: (totalMinutes % 60).toString() } : null);
+      const firstEntry = existing?.entries[0];
+      const startT = firstEntry?.start_time?.slice(0, 5) || '08:00';
+      const endT = firstEntry?.end_time?.slice(0, 5) || '16:00';
+      setEditingCell(prev => prev ? { ...prev, hours: Math.floor(totalMinutes / 60).toString(), minutes: (totalMinutes % 60).toString(), startTime: startT, endTime: endT } : null);
       setInitialLoadDone(true);
     }
   }, [timeEntries, initialLoadDone]);
