@@ -535,7 +535,14 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                       <TableRow className="cursor-pointer border-b-0 font-medium" onClick={() => handleOpenDetails(project.id)}>
                         <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
                         <TableCell className="font-medium">{project.title}</TableCell>
-                        <TableCell className="text-muted-foreground">{project.customer_id ? customerMap[project.customer_id] || '—' : '—'}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          <div>
+                            {project.customer_id ? customerMap[project.customer_id] || '—' : '—'}
+                            {project.customer_address_id && addressMap[project.customer_address_id] && (
+                              <p className="text-xs text-muted-foreground/70">{addressMap[project.customer_address_id]}</p>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
                         <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
                         <TableCell className="text-center font-medium">{stages.completed}/{stages.total}</TableCell>
