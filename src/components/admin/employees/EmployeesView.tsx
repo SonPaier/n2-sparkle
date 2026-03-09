@@ -326,7 +326,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     {isPerOrder ? 'Wykonano zleceń' : 'Przepracowano'}
                   </TableHead>
                   {!isPerOrder && <TableHead className="text-right" style={{ width: '25%' }}>Wypłata</TableHead>}
-                  {isAdmin && <TableHead style={{ width: isPerOrder ? '10%' : '5%' }} />}
+                  {isAdmin && <TableHead className="w-10" style={{ width: '40px', minWidth: '40px' }} />}
                 </TableRow>
               </TableHeader>
               <TableBody>
