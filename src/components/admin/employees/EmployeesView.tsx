@@ -22,13 +22,6 @@ import WorkersSettingsDrawer from './WorkersSettingsDrawer';
 import TimeEntryAuditDrawer from './TimeEntryAuditDrawer';
 import EmployeeOrdersDrawer from './EmployeeOrdersDrawer';
 import AddEditTimeEntryDialog from './AddEditTimeEntryDialog';
-import { pl } from 'date-fns/locale';
-import AddEditEmployeeDialog from './AddEditEmployeeDialog';
-import WorkerTimeDialog from './WorkerTimeDialog';
-import AddEmployeeDayOffDialog from './AddEmployeeDayOffDialog';
-import WorkersSettingsDrawer from './WorkersSettingsDrawer';
-import TimeEntryAuditDrawer from './TimeEntryAuditDrawer';
-import EmployeeOrdersDrawer from './EmployeeOrdersDrawer';
 
 const WEEKDAY_TO_KEY: Record<number, string> = {
   0: 'sunday', 1: 'monday', 2: 'tuesday', 3: 'wednesday',
