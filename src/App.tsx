@@ -13,7 +13,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RoleBasedRedirect from "./components/RoleBasedRedirect";
 import EmployeeCalendarPage from "./pages/EmployeeCalendarPage";
 import SmsNotificationTemplateEditPage from "./pages/SmsNotificationTemplateEditPage";
-import BulkImportPage from "./pages/BulkImportPage";
 
 // Mutations fail immediately when offline
 onlineManager.setEventListener((setOnline) => {
@@ -207,7 +206,7 @@ const DevRoutes = () => (
     {/* Root redirect to admin */}
     <Route path="/" element={<Navigate to="/admin" replace />} />
     <Route path="/protocols/:token" element={<PublicProtocolView />} />
-    <Route path="/bulk-import" element={<BulkImportPage />} />
+    
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
