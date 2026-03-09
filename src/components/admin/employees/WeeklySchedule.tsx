@@ -91,7 +91,10 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const existing = minutesByDate.get(dateStr);
     const totalMinutes = existing?.totalMinutes || 0;
-    setEditingCell({ date: dateStr, hours: Math.floor(totalMinutes / 60).toString(), minutes: (totalMinutes % 60).toString() });
+    const firstEntry = existing?.entries[0];
+    const startT = firstEntry?.start_time?.slice(0, 5) || '08:00';
+    const endT = firstEntry?.end_time?.slice(0, 5) || '16:00';
+    setEditingCell({ date: dateStr, hours: Math.floor(totalMinutes / 60).toString(), minutes: (totalMinutes % 60).toString(), startTime: startT, endTime: endT });
   };
 
   const saveEntry = async (hoursStr: string, minutesStr: string) => {
