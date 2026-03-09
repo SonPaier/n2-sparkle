@@ -44,6 +44,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
         standard_hours_per_day: parseInt(standardHours) || 8,
         report_frequency: reportFrequency,
         settlement_type: settlementType,
+        time_input_mode: timeInputMode,
       });
       toast.success('Ustawienia zostały zapisane');
       handleClose();
