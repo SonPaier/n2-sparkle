@@ -936,6 +936,7 @@ const AdminCalendar = ({
                         <Button variant={viewMode === 'day' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('day')} className="rounded-none border-0 flex-1 text-xs">Dzień</Button>
                         <Button variant={viewMode === 'two-days' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('two-days')} className="rounded-none border-0 flex-1 text-xs">2 dni</Button>
                         <Button variant={viewMode === 'week' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('week')} className="rounded-none border-0 flex-1 text-xs">Tydzień</Button>
+                        <Button variant={viewMode === 'month' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('month')} className="rounded-none border-0 flex-1 text-xs">Miesiąc</Button>
                       </div>
                     </div>
                   )}
