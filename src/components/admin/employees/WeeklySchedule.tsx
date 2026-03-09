@@ -293,28 +293,28 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
       </div>
 
       {editingCell && (
-        <div className="border rounded-lg p-4 bg-card space-y-3">
+        <div className="border rounded-lg p-4 bg-card space-y-4">
           <div className="text-2xl font-semibold text-center capitalize">{editingDayLabel}</div>
           <div className="flex items-center justify-center gap-2">
             {timeInputMode === 'start_end' ? (
               <>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs text-muted-foreground font-medium">Od</span>
+                  <span className="text-sm font-semibold text-foreground">Od</span>
                   <input
                     type="time"
                     value={editingCell.startTime}
                     onChange={(e) => handleStartTimeChange(e.target.value)}
-                    className="h-14 w-28 text-center text-xl font-medium border rounded-md px-2 bg-background"
+                    className="h-14 w-32 text-center text-xl font-medium border rounded-md px-2 bg-background"
                   />
                 </div>
-                <span className="text-2xl font-bold mt-5">-</span>
+                <span className="text-2xl font-bold mt-6">-</span>
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-xs text-muted-foreground font-medium">Do</span>
+                  <span className="text-sm font-semibold text-foreground">Do</span>
                   <input
                     type="time"
                     value={editingCell.endTime}
                     onChange={(e) => handleEndTimeChange(e.target.value)}
-                    className="h-14 w-28 text-center text-xl font-medium border rounded-md px-2 bg-background"
+                    className="h-14 w-32 text-center text-xl font-medium border rounded-md px-2 bg-background"
                   />
                 </div>
               </>
@@ -331,16 +331,16 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
                 </Select>
               </>
             )}
-            {editingCellIsDayOff ? (
-              <Button onClick={handleRemoveDayOff} size="sm" variant="outline" className="h-14 bg-red-50 border-red-200 text-red-700 hover:bg-red-100 ml-2">
-                <Trash2 className="w-4 h-4 mr-1" />Usuń Wolne
-              </Button>
-            ) : (
-              <Button onClick={handleMarkDayOff} size="sm" variant="outline" className="h-14 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 ml-2">
-                <Palmtree className="w-4 h-4 mr-1" />Wolne
-              </Button>
-            )}
           </div>
+          {editingCellIsDayOff ? (
+            <Button onClick={handleRemoveDayOff} variant="outline" className="w-full h-12 bg-red-50 border-red-200 text-red-700 hover:bg-red-100">
+              <Trash2 className="w-4 h-4 mr-2" />Usuń Wolne
+            </Button>
+          ) : (
+            <Button onClick={handleMarkDayOff} variant="outline" className="w-full h-12 bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100">
+              <Palmtree className="w-4 h-4 mr-2" />Wolne
+            </Button>
+          )}
         </div>
       )}
 
