@@ -1328,7 +1328,7 @@ const AdminCalendar = ({
       {/* MONTH VIEW */}
       {viewMode === 'month' && (
         <MonthCalendarView
-          items={employeeViewActive ? employeeViewItems : items}
+          items={items}
           columns={employeeViewActive ? [] : columns}
           currentDate={currentDate}
           onMonthChange={(date) => setCurrentDate(date)}
