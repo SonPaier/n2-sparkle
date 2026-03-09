@@ -1,4 +1,4 @@
-import { useState, useMemo, DragEvent } from 'react';
+import { useState, useMemo, useCallback, DragEvent } from 'react';
 import {
   format,
   startOfMonth,
@@ -8,6 +8,7 @@ import {
   addDays,
   isSameMonth,
   isSameDay,
+  differenceInCalendarDays,
 } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -34,7 +35,6 @@ const MonthCalendarView = ({
   onItemMove,
 }: MonthCalendarViewProps) => {
   const isMobile = useIsMobile();
-  const MAX_TILES = isMobile ? 2 : 4;
 
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [dragOverDateStr, setDragOverDateStr] = useState<string | null>(null);
@@ -95,37 +95,41 @@ const MonthCalendarView = ({
   }, [days]);
 
   // Drag handlers
-  const handleDragStart = (e: DragEvent, item: CalendarItem) => {
+  const handleDragStart = useCallback((e: DragEvent, item: CalendarItem) => {
     setDraggedItemId(item.id);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', item.id);
-  };
+  }, []);
 
-  const handleDragOver = (e: DragEvent, dateStr: string) => {
+  const handleDragOver = useCallback((e: DragEvent, dateStr: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverDateStr(dateStr);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
+  const handleDragLeave = useCallback((e: DragEvent) => {
+    // Only clear if leaving the cell entirely
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (relatedTarget && (e.currentTarget as HTMLElement).contains(relatedTarget)) return;
     setDragOverDateStr(null);
-  };
+  }, []);
 
-  const handleDrop = (e: DragEvent, dateStr: string) => {
+  const handleDrop = useCallback((e: DragEvent, dateStr: string) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragOverDateStr(null);
-    const itemId = draggedItemId || e.dataTransfer.getData('text/plain');
+    const itemId = e.dataTransfer.getData('text/plain');
     setDraggedItemId(null);
     if (!itemId || !onItemMove) return;
     const item = items.find(i => i.id === itemId);
     if (!item || item.item_date === dateStr) return;
     onItemMove(itemId, item.column_id || '', dateStr);
-  };
+  }, [items, onItemMove]);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setDraggedItemId(null);
     setDragOverDateStr(null);
-  };
+  }, []);
 
   return (
     <div className="flex flex-col h-full">
@@ -147,16 +151,14 @@ const MonthCalendarView = ({
               const isCurrentMonth = isSameMonth(day, currentDate);
               const isToday = isSameDay(day, today);
               const dayItems = itemsByDate.get(dateStr) || [];
-              const visibleItems = dayItems.slice(0, MAX_TILES);
-              const overflowCount = dayItems.length - MAX_TILES;
               const isDragOver = dragOverDateStr === dateStr;
 
               return (
                 <div
                   key={dateStr}
                   className={cn(
-                    'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden transition-colors',
-                    !isCurrentMonth && 'bg-muted/30',
+                    'border-r border-border last:border-r-0 p-1 flex flex-col min-h-0 overflow-hidden overflow-y-auto transition-colors',
+                    !isCurrentMonth && 'bg-muted/20',
                     isDragOver && 'bg-primary/10 ring-1 ring-inset ring-primary/30'
                   )}
                   onDragOver={(e) => handleDragOver(e, dateStr)}
@@ -167,7 +169,7 @@ const MonthCalendarView = ({
                   <button
                     onClick={() => onDayClick(day)}
                     className={cn(
-                      'text-xs font-medium mb-0.5 w-6 h-6 rounded-full flex items-center justify-center hover:bg-primary/10 transition-colors self-start',
+                      'text-xs font-medium mb-0.5 w-6 h-6 rounded-full flex items-center justify-center hover:bg-primary/10 transition-colors self-start shrink-0',
                       isToday && 'bg-primary text-primary-foreground hover:bg-primary/90',
                       !isCurrentMonth && 'text-muted-foreground/50'
                     )}
@@ -175,11 +177,12 @@ const MonthCalendarView = ({
                     {format(day, 'd')}
                   </button>
 
-                  {/* Item tiles */}
-                  <div className="flex flex-col gap-0.5 min-h-0 overflow-hidden flex-1">
-                    {visibleItems.map((item) => {
+                  {/* Item tiles - show ALL */}
+                  <div className="flex flex-col gap-0.5 min-h-0 flex-1">
+                    {dayItems.map((item) => {
                       const colColor = item.column_id ? columnColorMap.get(item.column_id) : undefined;
                       const address = [item.address_city, item.address_street].filter(Boolean).join(', ') || item.address_name || '';
+                      const employees = item.assigned_employees || [];
 
                       return (
                         <button
@@ -189,22 +192,17 @@ const MonthCalendarView = ({
                           onDragEnd={handleDragEnd}
                           onClick={(e) => { e.stopPropagation(); onItemClick(item); }}
                           className={cn(
-                            'text-left rounded px-1 py-0.5 hover:opacity-80 transition-opacity truncate border group cursor-grab active:cursor-grabbing',
-                            draggedItemId === item.id && 'opacity-40'
+                            'text-left rounded px-1.5 py-0.5 hover:opacity-80 transition-opacity truncate border group cursor-grab active:cursor-grabbing shrink-0',
+                            draggedItemId === item.id && 'opacity-40',
+                            !colColor && 'bg-muted border-border/50'
                           )}
-                          style={{
-                            backgroundColor: colColor ? `${colColor}22` : undefined,
-                            borderColor: colColor ? `${colColor}55` : undefined,
-                          }}
+                          style={colColor ? {
+                            backgroundColor: `${colColor}44`,
+                            borderColor: `${colColor}66`,
+                          } : undefined}
                         >
                           <div className="flex items-center gap-1 min-w-0">
-                            {colColor && (
-                              <span
-                                className="w-2 h-2 rounded-full shrink-0"
-                                style={{ backgroundColor: colColor }}
-                              />
-                            )}
-                            <span className="text-[10px] md:text-[11px] font-medium tabular-nums shrink-0 text-muted-foreground">
+                            <span className="text-[10px] md:text-[11px] font-medium tabular-nums shrink-0" style={colColor ? { color: colColor } : undefined}>
                               {item.start_time?.slice(0, 5)}
                             </span>
                             <span className="text-[10px] md:text-[11px] font-semibold truncate text-foreground">
@@ -212,22 +210,25 @@ const MonthCalendarView = ({
                             </span>
                           </div>
                           {address && !isMobile && (
-                            <div className="text-[9px] md:text-[10px] text-muted-foreground truncate pl-3">
+                            <div className="text-[9px] md:text-[10px] text-muted-foreground truncate">
                               {address}
+                            </div>
+                          )}
+                          {employees.length > 0 && !isMobile && (
+                            <div className="flex flex-wrap gap-0.5 mt-0.5">
+                              {employees.map((emp) => (
+                                <span
+                                  key={emp.id}
+                                  className="text-[8px] md:text-[9px] bg-primary/15 text-primary rounded px-1 py-px truncate max-w-[80px]"
+                                >
+                                  {emp.name.split(' ')[0]}
+                                </span>
+                              ))}
                             </div>
                           )}
                         </button>
                       );
                     })}
-
-                    {overflowCount > 0 && (
-                      <button
-                        onClick={() => onDayClick(day)}
-                        className="text-[10px] text-primary font-medium hover:underline text-left px-1"
-                      >
-                        jeszcze {overflowCount}
-                      </button>
-                    )}
                   </div>
                 </div>
               );
