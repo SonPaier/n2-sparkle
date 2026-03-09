@@ -1286,6 +1286,9 @@ const CalendarItemDetailsDrawer = ({
           employees={allEmployees}
           selectedIds={item.assigned_employee_ids || []}
           onConfirm={handleEmployeesConfirmed}
+          instanceId={instanceId}
+          orderDateFrom={item.item_date}
+          orderDateTo={item.end_date}
         />
       )}
 
