@@ -348,13 +348,15 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     <TableRow key={employee.id} className="cursor-pointer" onClick={() => handleTileClick(employee)}>
                       <TableCell className="py-3" style={{ width: isPerOrder ? '60%' : '47%' }}>
                         <div className="flex items-center gap-2 min-w-0">
-                          <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                            <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                              {employee.name.slice(0, 2).toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium truncate">{employee.name}</span>
+                          {!isMobile && (
+                            <Avatar className="h-8 w-8 flex-shrink-0">
+                              <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                                {employee.name.slice(0, 2).toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <span className="font-medium truncate max-w-[120px] sm:max-w-none">{employee.name}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-center py-3" style={{ width: isPerOrder ? '30%' : '23%' }}>
