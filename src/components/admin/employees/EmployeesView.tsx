@@ -379,98 +379,133 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
         </div>
       ) : (
         <>
-          <div className="rounded-lg border border-border bg-card">
-            <Table className="w-full">
+          <div className="rounded-lg border border-border bg-card overflow-x-auto">
+            <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead style={{ width: isPerOrder ? '60%' : '47%' }}>Imię</TableHead>
-                  <TableHead className="text-center" style={{ width: isPerOrder ? '30%' : '23%' }}>
-                    {isPerOrder ? 'Wykonano zleceń' : 'Przepracowano'}
-                  </TableHead>
-                  {!isPerOrder && <TableHead className="text-right" style={{ width: '25%' }}>Wypłata</TableHead>}
-                  {isAdmin && <TableHead className="w-10" style={{ width: '40px', minWidth: '40px' }} />}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {activeEmployees.map((employee) => {
-                  const summary = periodSummary.get(employee.id);
-                  const totalMinutes = summary?.total_minutes || 0;
-                  const preOpeningMinutes = preOpeningByEmployee.get(employee.id) || 0;
-                  const displayMinutes = timeCalculationMode === 'opening_to_stop'
-                    ? Math.max(0, totalMinutes - preOpeningMinutes) : totalMinutes;
-                  const earnings = employee.hourly_rate 
-                    ? ((displayMinutes / 60) * employee.hourly_rate).toFixed(2) : null;
-                  const hours = Math.floor(displayMinutes / 60);
-                  const mins = displayMinutes % 60;
-                  const orderCount = completedOrderCounts.get(employee.id) || 0;
-                  
-                  return (
-                    <TableRow key={employee.id} className="cursor-pointer" onClick={() => handleTileClick(employee)}>
-                      <TableCell className="py-3" style={{ width: isPerOrder ? '60%' : '47%' }}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          {!isMobile && (
-                            <Avatar className="h-8 w-8 flex-shrink-0">
-                              <AvatarImage src={employee.photo_url || undefined} alt={employee.name} />
-                              <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                                {employee.name.slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          <span className="font-medium truncate max-w-[120px] sm:max-w-none">{employee.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center py-3" style={{ width: isPerOrder ? '30%' : '23%' }}>
-                        {isPerOrder ? (
-                          <span className="text-sm font-medium">{orderCount}</span>
-                        ) : (
-                          <div className="text-sm leading-tight">
-                            {hours > 0 && <div>{hours}h</div>}
-                            <div>{mins}min</div>
-                          </div>
-                        )}
-                      </TableCell>
-                      {!isPerOrder && (
-                        <TableCell className="text-right py-3 whitespace-nowrap font-medium" style={{ width: '25%' }}>
-                          {earnings ? `${earnings} zł` : '-'}
-                        </TableCell>
-                      )}
-                      {isAdmin && (
-                        <TableCell className="text-center py-3 w-10" style={{ width: '40px', minWidth: '40px' }}>
+                  <TableHead className="sticky left-0 bg-card z-10 min-w-[80px]">Data</TableHead>
+                  {activeEmployees.map(emp => (
+                    <TableHead key={emp.id} className="text-center min-w-[100px]">
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="truncate block max-w-[100px] text-xs">{emp.name}</span>
+                        {isAdmin && (
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                              <button className="p-1 rounded hover:bg-accent transition-colors">
-                                <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-0.5 rounded hover:bg-accent transition-colors">
+                                <MoreVertical className="w-3 h-3 text-muted-foreground" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setAuditEmployee(employee); }}>
-                                <FileText className="w-4 h-4 mr-2" />
-                                Historia zmian
+                            <DropdownMenuContent align="center">
+                              <DropdownMenuItem onClick={() => { setEditingEmployee(emp); setDialogOpen(true); }}>
+                                <Settings2 className="w-4 h-4 mr-2" />Edytuj
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setOrdersEmployee(employee); }}>
-                                <ClipboardList className="w-4 h-4 mr-2" />
-                                Wykonane zlecenia
+                              <DropdownMenuItem onClick={() => setAuditEmployee(emp)}>
+                                <FileText className="w-4 h-4 mr-2" />Historia zmian
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setOrdersEmployee(emp)}>
+                                <ClipboardList className="w-4 h-4 mr-2" />Wykonane zlecenia
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
-                        </TableCell>
-                      )}
+                        )}
+                      </div>
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {weeks.map((week, wi) => (
+                  <>
+                    {week.days.map(day => {
+                      const dateStr = format(day, 'yyyy-MM-dd');
+                      const weekend = isWeekend(day);
+                      return (
+                        <TableRow key={dateStr} className={cn(weekend && 'bg-muted/30')}>
+                          <TableCell className={cn("sticky left-0 z-10 text-xs font-medium whitespace-nowrap py-1.5", weekend ? 'bg-muted/30' : 'bg-card')}>
+                            <span className={cn(weekend && 'text-muted-foreground')}>
+                              {format(day, 'EEE d', { locale: pl })}
+                            </span>
+                          </TableCell>
+                          {activeEmployees.map(emp => {
+                            const empMap = entriesByEmployeeAndDate.get(emp.id);
+                            const entries = empMap?.get(dateStr);
+                            const hasEntry = entries && entries.length > 0;
+                            const entry = hasEntry ? entries[0] : null;
+                            const totalMin = hasEntry ? entries.reduce((s, e) => s + (e.total_minutes || 0), 0) : 0;
+                            return (
+                              <TableCell
+                                key={emp.id}
+                                className="text-center cursor-pointer hover:bg-primary/5 transition-colors p-1"
+                                onClick={() => handleCellClick(emp.id, day)}
+                              >
+                                {hasEntry ? (
+                                  <div>
+                                    {entry?.start_time && entry?.end_time ? (
+                                      <div className="text-[11px] font-medium">
+                                        {String(entry.start_time).slice(0, 5)}-{String(entry.end_time).slice(0, 5)}
+                                      </div>
+                                    ) : null}
+                                    <div className="text-[10px] text-muted-foreground">{formatMinutesToTime(totalMin)}</div>
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground/30 text-xs">-</span>
+                                )}
+                              </TableCell>
+                            );
+                          })}
+                        </TableRow>
+                      );
+                    })}
+                    {/* Week subtotal */}
+                    <TableRow key={`week-${wi}`} className="bg-muted/50 border-b-2">
+                      <TableCell className="sticky left-0 bg-muted/50 z-10 text-xs font-bold whitespace-nowrap py-1.5">
+                        Tydzień {wi + 1}
+                      </TableCell>
+                      {activeEmployees.map(emp => {
+                        const weekMin = getWeekMinutes(emp.id, week.days);
+                        return (
+                          <TableCell key={emp.id} className="text-center text-xs font-bold py-1.5">
+                            {weekMin > 0 ? formatMinutesToTime(weekMin) : '-'}
+                          </TableCell>
+                        );
+                      })}
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-              {isAdmin && !isPerOrder && totalEarnings > 0 && (
-                <TableFooter className="bg-card">
-                  <TableRow>
-                    <TableCell colSpan={2} className="py-3 text-right text-xs text-muted-foreground">
-                      Suma wypłat {isWeeklyMode ? 'tydzień' : format(currentDate, 'LLLL', { locale: pl })}:
-                    </TableCell>
-                    <TableCell className="text-right py-3 font-bold whitespace-nowrap" style={{ width: '30%' }}>
-                      {totalEarnings.toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} zł
-                    </TableCell>
+                  </>
+                ))}
+                {/* Monthly total */}
+                <TableRow className="border-t-2 border-foreground/20">
+                  <TableCell className="sticky left-0 bg-card z-10 font-bold text-sm py-2">SUMA</TableCell>
+                  {activeEmployees.map(emp => {
+                    const summary = periodSummary.get(emp.id);
+                    return (
+                      <TableCell key={emp.id} className="text-center font-bold text-sm py-2">
+                        {summary ? formatMinutesToTime(summary.total_minutes) : '-'}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+                {/* Wypłata row */}
+                {!isPerOrder && (
+                  <TableRow className="bg-muted/30">
+                    <TableCell className="sticky left-0 bg-muted/30 z-10 font-bold text-sm py-2">WYPŁATA</TableCell>
+                    {activeEmployees.map(emp => {
+                      const summary = periodSummary.get(emp.id);
+                      if (!summary || !emp.hourly_rate) {
+                        return <TableCell key={emp.id} className="text-center text-sm text-muted-foreground py-2">-</TableCell>;
+                      }
+                      const preOpeningMinutes = preOpeningByEmployee.get(emp.id) || 0;
+                      const displayMinutes = timeCalculationMode === 'opening_to_stop'
+                        ? Math.max(0, summary.total_minutes - preOpeningMinutes) : summary.total_minutes;
+                      const earnings = ((displayMinutes / 60) * emp.hourly_rate).toFixed(2);
+                      return (
+                        <TableCell key={emp.id} className="text-center font-bold text-sm py-2">
+                          {earnings} zł
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
-                </TableFooter>
-              )}
+                )}
+              </TableBody>
             </Table>
           </div>
 
