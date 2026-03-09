@@ -223,7 +223,7 @@ const MonthCalendarView = ({
                                 </span>
                               </div>
                               {address && (
-                                <div className="text-[10px] text-muted-foreground truncate pl-0.5">
+                                <div className="text-[10px] text-foreground/70 truncate pl-0.5">
                                   {address}
                                 </div>
                               )}
