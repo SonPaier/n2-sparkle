@@ -36,8 +36,8 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     date: format(new Date(), 'yyyy-MM-dd'),
     hours: '0',
     minutes: '0',
-    startTime: '08:00',
-    endTime: '16:00',
+    startTime: '',
+    endTime: '',
   }));
   const [isSaving, setIsSaving] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
@@ -78,8 +78,8 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
       const existing = minutesByDate.get(editingCell.date);
       const totalMinutes = existing?.totalMinutes || 0;
       const firstEntry = existing?.entries[0];
-      const startT = firstEntry?.start_time?.slice(0, 5) || '08:00';
-      const endT = firstEntry?.end_time?.slice(0, 5) || '16:00';
+      const startT = firstEntry?.start_time?.slice(0, 5) || '';
+      const endT = firstEntry?.end_time?.slice(0, 5) || '';
       setEditingCell(prev => prev ? { ...prev, hours: Math.floor(totalMinutes / 60).toString(), minutes: (totalMinutes % 60).toString(), startTime: startT, endTime: endT } : null);
       setInitialLoadDone(true);
     }
@@ -92,8 +92,8 @@ const WeeklySchedule = ({ employee, instanceId }: WeeklyScheduleProps) => {
     const existing = minutesByDate.get(dateStr);
     const totalMinutes = existing?.totalMinutes || 0;
     const firstEntry = existing?.entries[0];
-    const startT = firstEntry?.start_time?.slice(0, 5) || '08:00';
-    const endT = firstEntry?.end_time?.slice(0, 5) || '16:00';
+    const startT = firstEntry?.start_time?.slice(0, 5) || '';
+    const endT = firstEntry?.end_time?.slice(0, 5) || '';
     setEditingCell({ date: dateStr, hours: Math.floor(totalMinutes / 60).toString(), minutes: (totalMinutes % 60).toString(), startTime: startT, endTime: endT });
   };
 
