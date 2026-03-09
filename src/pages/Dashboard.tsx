@@ -251,7 +251,7 @@ const Dashboard = () => {
     }
     
     setCalendarItems(items as CalendarItem[]);
-  }, [instanceId, currentCalendarDate, mapOpen]);
+  }, [instanceId, currentCalendarDate, mapOpen, calendarViewMode]);
 
   // Fetch breaks
   const fetchBreaks = useCallback(async () => {
