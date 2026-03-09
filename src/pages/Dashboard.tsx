@@ -521,6 +521,8 @@ const Dashboard = () => {
       fetchItems();
     } else {
       toast.success('Status zmieniony');
+      queryClient.invalidateQueries({ queryKey: ['projects-orders', instanceId] });
+      queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
     }
   };
 
@@ -555,6 +557,7 @@ const Dashboard = () => {
     setInitialProjectId(undefined);
     queryClient.invalidateQueries({ queryKey: ['settlements', instanceId] });
     queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
+    queryClient.invalidateQueries({ queryKey: ['projects-orders', instanceId] });
     queryClient.invalidateQueries({ queryKey: ['projects-stages', instanceId] });
     queryClient.invalidateQueries({ queryKey: ['project-orders'] });
   };
@@ -665,6 +668,15 @@ const Dashboard = () => {
                 if (data) {
                   setSelectedItem(data as CalendarItem);
                   setDetailsOpen(true);
+                }
+              }}
+              onEditOrder={async (orderId) => {
+                const { data } = await (supabase.from('calendar_items') as any)
+                  .select('*')
+                  .eq('id', orderId)
+                  .maybeSingle();
+                if (data) {
+                  handleEditItem(data as CalendarItem);
                 }
               }}
             />

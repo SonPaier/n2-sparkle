@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Search, Plus, MoreHorizontal, Trash2, Eye, FolderKanban, GripVertical } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Search, Plus, MoreHorizontal, Trash2, Eye, FolderKanban, GripVertical, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -69,7 +69,7 @@ const ORDER_STATUS_CONFIG: Record<string, { label: string; dotClass: string }> =
 const ITEMS_PER_PAGE = 10;
 
 // Sortable order row component
-const SortableOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: () => void }) => {
+const SortableOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onClick: () => void; onMore?: (action: 'edit' | 'delete') => void }) => {
   const {
     attributes,
     listeners,
@@ -122,13 +122,29 @@ const SortableOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: ()
         <span className="text-xs text-muted-foreground">{statusCfg.label}</span>
       </TableCell>
       <TableCell />
-      <TableCell />
+      <TableCell>
+        {onMore && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="w-3.5 h-3.5" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMore('edit'); }}>
+                <Pencil className="w-4 h-4 mr-2" />Edytuj
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMore('delete'); }} className="text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />Usuń z projektu
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </TableCell>
     </TableRow>
   );
 };
 
 // Mobile sortable order row
-const SortableMobileOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: () => void }) => {
+const SortableMobileOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onClick: () => void; onMore?: (action: 'edit' | 'delete') => void }) => {
   const {
     attributes,
     listeners,
@@ -169,6 +185,21 @@ const SortableMobileOrderRow = ({ order, onClick }: { order: ProjectOrder; onCli
           ? format(new Date(order.item_date + 'T00:00:00'), 'd MMM', { locale: pl })
           : 'Bez daty'}
       </span>
+      {onMore && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <button className="shrink-0 p-0.5 text-muted-foreground hover:text-foreground"><MoreHorizontal className="w-3.5 h-3.5" /></button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMore('edit'); }}>
+              <Pencil className="w-4 h-4 mr-2" />Edytuj
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMore('delete'); }} className="text-destructive">
+              <Trash2 className="w-4 h-4 mr-2" />Usuń z projektu
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 };
@@ -177,9 +208,10 @@ interface ProjectsViewProps {
   instanceId: string;
   onAddOrder?: (projectId: string, customerId: string | null, customerAddressId: string | null) => void;
   onOpenCalendarItem?: (itemId: string) => void;
+  onEditOrder?: (orderId: string) => void;
 }
 
-const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsViewProps) => {
+const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder }: ProjectsViewProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -215,6 +247,22 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
       const { data } = await supabase.from('customers').select('id, name').in('id', customerIds);
       const map: Record<string, string> = {};
       (data || []).forEach(c => { map[c.id] = c.name; });
+      return map;
+    },
+  });
+
+  // Fetch customer addresses for projects
+  const addressIds = useMemo(() => [...new Set(projects.map(p => p.customer_address_id).filter(Boolean))] as string[], [projects]);
+  const { data: addressMap = {} } = useQuery({
+    queryKey: ['projects-addresses', instanceId, addressIds],
+    enabled: addressIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from('customer_addresses').select('id, name, street, city').in('id', addressIds);
+      const map: Record<string, string> = {};
+      (data || []).forEach(a => {
+        const parts = [a.street, a.city].filter(Boolean);
+        map[a.id] = parts.length > 0 ? parts.join(', ') : a.name;
+      });
       return map;
     },
   });
@@ -299,6 +347,40 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
     }
   };
 
+  const handleOrderMore = async (orderId: string, action: 'edit' | 'delete') => {
+    if (action === 'edit') {
+      if (onEditOrder) {
+        onEditOrder(orderId);
+      } else if (onOpenCalendarItem) {
+        onOpenCalendarItem(orderId);
+      }
+    } else if (action === 'delete') {
+      // Remove order from project (unlink, don't delete the order itself)
+      const { error } = await (supabase.from('calendar_items') as any)
+        .update({ project_id: null, stage_number: null })
+        .eq('id', orderId);
+      if (error) { toast.error('Błąd usuwania zlecenia z projektu'); return; }
+      toast.success('Zlecenie usunięte z projektu');
+      invalidate();
+    }
+  };
+
+  // Auto-update project status based on orders
+  useEffect(() => {
+    if (!allOrders.length || !projects.length) return;
+    projects.forEach(async (project) => {
+      const projectOrders = ordersMap[project.id] || [];
+      if (projectOrders.length === 0) return;
+      const hasInProgress = projectOrders.some(o => o.status === 'in_progress');
+      if (hasInProgress && project.status !== 'in_progress') {
+        await (supabase.from('projects' as any) as any)
+          .update({ status: 'in_progress' })
+          .eq('id', project.id);
+        queryClient.invalidateQueries({ queryKey: ['projects', instanceId] });
+      }
+    });
+  }, [allOrders, projects, ordersMap, instanceId, queryClient]);
+
   const handleDragEnd = useCallback(async (event: DragEndEvent, projectId: string) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -380,6 +462,9 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
                       {project.customer_id && customerMap[project.customer_id] && (
                         <p className="text-xs text-muted-foreground">{customerMap[project.customer_id]}</p>
                       )}
+                      {project.customer_address_id && addressMap[project.customer_address_id] && (
+                        <p className="text-xs text-muted-foreground">{addressMap[project.customer_address_id]}</p>
+                      )}
                     </div>
                     <Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge>
                   </div>
@@ -401,6 +486,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
                             key={order.id}
                             order={order}
                             onClick={() => handleOrderClick(order.id)}
+                            onMore={(action) => handleOrderMore(order.id, action)}
                           />
                         ))}
                       </SortableContext>
@@ -449,7 +535,14 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
                       <TableRow className="cursor-pointer border-b-0 font-medium" onClick={() => handleOpenDetails(project.id)}>
                         <TableCell className="text-muted-foreground text-xs">{(currentPage - 1) * ITEMS_PER_PAGE + idx + 1}</TableCell>
                         <TableCell className="font-medium">{project.title}</TableCell>
-                        <TableCell className="text-muted-foreground">{project.customer_id ? customerMap[project.customer_id] || '—' : '—'}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          <div>
+                            {project.customer_id ? customerMap[project.customer_id] || '—' : '—'}
+                            {project.customer_address_id && addressMap[project.customer_address_id] && (
+                              <p className="text-xs text-muted-foreground/70">{addressMap[project.customer_address_id]}</p>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
                         <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
                         <TableCell className="text-center font-medium">{stages.completed}/{stages.total}</TableCell>
@@ -477,6 +570,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem }: ProjectsVi
                           key={order.id}
                           order={order}
                           onClick={() => handleOrderClick(order.id)}
+                          onMore={(action) => handleOrderMore(order.id, action)}
                         />
                       ))}
                     </SortableContext>

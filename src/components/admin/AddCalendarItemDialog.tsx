@@ -190,7 +190,7 @@ const AddCalendarItemDialog = ({
   // Fetch available projects
   useEffect(() => {
     if (!instanceId || !projectsEnabled) { setAvailableProjects([]); return; }
-    supabase.from('projects' as any).select('id, title, customer_id, customer_address_id').eq('instance_id', instanceId).in('status', ['not_started', 'in_progress']).order('created_at', { ascending: false })
+    supabase.from('projects' as any).select('id, title, customer_id, customer_address_id').eq('instance_id', instanceId).in('status', ['not_started', 'in_progress', 'completed']).order('created_at', { ascending: false })
       .then(({ data }: any) => setAvailableProjects(data || []));
   }, [instanceId, projectsEnabled]);
 
@@ -223,19 +223,27 @@ const AddCalendarItemDialog = ({
       setCustomerEmail(editingItem.customer_email || '');
       setCustomerId(editingItem.customer_id || null);
       setCustomerAddressId(editingItem.customer_address_id || null);
-      setColumnId(editingItem.column_id || '');
+      setColumnId(editingItem.column_id || columns[0]?.id || '');
       const fromDate = editingItem.item_date ? parseISO(editingItem.item_date) : new Date();
       const toDate = editingItem.end_date ? parseISO(editingItem.end_date) : fromDate;
       const isMulti = editingItem.end_date && !isSameDay(fromDate, toDate);
       setReservationType(isMulti ? 'multi' : 'single');
-      setDateRange({ from: fromDate, to: toDate });
+      setDateRange(editingItem.item_date ? { from: fromDate, to: toDate } : undefined);
       setStartTime(editingItem.start_time || '08:00');
       setEndTime(editingItem.end_time || '09:00');
       setAdminNotes(editingItem.admin_notes || '');
       setPrice(editingItem.price?.toString() || '');
       setPriority(editingItem.priority ?? DEFAULT_PRIORITY);
       setAssignedEmployeeIds(editingItem.assigned_employee_ids || []);
-      setProjectId(null); // Don't change project in edit mode for now
+      // Load project_id in edit mode
+      const loadProjectId = async () => {
+        const { data } = await (supabase.from('calendar_items') as any)
+          .select('project_id')
+          .eq('id', editingItem.id)
+          .single();
+        setProjectId(data?.project_id || null);
+      };
+      loadProjectId();
 
       // Load saved services from calendar_item_services
       const loadServices = async () => {
@@ -609,7 +617,7 @@ const AddCalendarItemDialog = ({
 
       const data: any = {
         instance_id: instanceId,
-        column_id: hasDate ? columnId : null,
+        column_id: columnId || null,
         title: finalTitle,
         customer_name: customerName.trim() || null,
         customer_phone: customerPhone.trim() || null,
@@ -743,7 +751,7 @@ const AddCalendarItemDialog = ({
           {/* Content */}
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             {/* Project selector */}
-            {projectsEnabled && availableProjects.length > 0 && !isEditMode && (
+            {projectsEnabled && availableProjects.length > 0 && (
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
                   <FolderKanban className="w-3.5 h-3.5" />
@@ -809,6 +817,21 @@ const AddCalendarItemDialog = ({
                 onTotalPriceChange={handleTotalPriceChange}
               />
             </div>
+
+            {/* Column (Typ) selector - always visible */}
+            {columns.length > 0 && (
+              <div className="space-y-2">
+                <Label>Typ</Label>
+                <Select value={columnId} onValueChange={setColumnId}>
+                  <SelectTrigger className="bg-white"><SelectValue placeholder="Wybierz typ" /></SelectTrigger>
+                  <SelectContent className="z-[1200]">
+                    {columns.map(col => (
+                      <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Date - RadioGroup + Calendar (hidden when adding from project) */}
             {!initialProjectId && (
