@@ -1,30 +1,20 @@
 
 
-## Plan: Nadpisanie ceny zlecenia kwotą netto z faktury
+## Updated Plan: Add "Wypłata" row below monthly totals
 
-### Problem
-Po wystawieniu faktury, cena w zleceniu (`calendar_items.price`) nie jest aktualizowana. Powinna zostać nadpisana wartością netto z faktury.
+The existing plan for the TimeEntriesView redesign (monthly grid by weeks) is extended with one addition:
 
-### Rozwiązanie
-Po pomyślnym wystawieniu faktury, w `handleSubmit` w `useInvoiceForm.ts`, zaktualizować `calendar_items.price` wartością `totalNetto` (obliczaną już w hooku). Następnie wywołać `onSuccess` aby odświeżyć listę.
+### Additional row: Wypłata
 
-### Zmiany
+Below the "SUMA MIESIĄCA" row, add a "Wypłata" row that calculates `(total_minutes / 60) * employee.hourly_rate` per employee. Show as e.g. `1 620 zł`. If employee has no `hourly_rate`, show `-`.
 
-**`src/components/invoicing/useInvoiceForm.ts`** — w `handleSubmit`, po pomyślnym utworzeniu faktury (linia ~227), dodać update:
-
-```typescript
-// Po: if (data?.error) throw new Error(data.error);
-// Nadpisz cenę zlecenia kwotą netto
-if (calendarItemId) {
-  await supabase
-    .from('calendar_items')
-    .update({ price: totalNetto })
-    .eq('id', calendarItemId);
-}
+```text
+ SUMA MIESIĄCA    |  180h      |  160h      |  148h      |
+ WYPŁATA          | 1 620 zł   | 1 280 zł   |     -      |
 ```
 
-Wykorzystujemy `totalNetto` już obliczane w hooku (linia 151-166). Callback `onSuccess` (już wywoływany w linii 232) odświeża listę zleceń w komponencie nadrzędnym.
+This row is only visible when `settlement_type` is `'hourly'` (from `useWorkersSettings`). When `'per_order'`, hide it (consistent with existing logic from the settlement feature).
 
-### Pliki do zmiany
-- `src/components/invoicing/useInvoiceForm.ts` — 1 zmiana (dodanie update po create_invoice)
+### Files to change
+- `src/components/admin/employees/TimeEntriesView.tsx` — full rewrite as per the existing plan, plus the Wypłata row at the bottom using `useWorkersSettings` to check settlement type.
 
