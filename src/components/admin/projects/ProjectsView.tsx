@@ -122,7 +122,23 @@ const SortableOrderRow = ({ order, onClick }: { order: ProjectOrder; onClick: ()
         <span className="text-xs text-muted-foreground">{statusCfg.label}</span>
       </TableCell>
       <TableCell />
-      <TableCell />
+      <TableCell>
+        {onMore && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="w-3.5 h-3.5" /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMore('edit'); }}>
+                <Pencil className="w-4 h-4 mr-2" />Edytuj
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMore('delete'); }} className="text-destructive">
+                <Trash2 className="w-4 h-4 mr-2" />Usuń z projektu
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </TableCell>
     </TableRow>
   );
 };
