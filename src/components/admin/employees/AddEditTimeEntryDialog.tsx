@@ -20,9 +20,11 @@ interface AddEditTimeEntryDialogProps {
   instanceId: string | null;
   employees: Employee[];
   entry?: TimeEntry | null;
+  defaultEmployeeId?: string;
+  defaultDate?: string;
 }
 
-const AddEditTimeEntryDialog = ({ open, onOpenChange, instanceId, employees, entry }: AddEditTimeEntryDialogProps) => {
+const AddEditTimeEntryDialog = ({ open, onOpenChange, instanceId, employees, entry, defaultEmployeeId, defaultDate }: AddEditTimeEntryDialogProps) => {
   const [employeeId, setEmployeeId] = useState('');
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [startTime, setStartTime] = useState('08:00');
