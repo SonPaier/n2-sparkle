@@ -23,6 +23,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
   const [standardHours, setStandardHours] = useState('8');
   const [reportFrequency, setReportFrequency] = useState<'monthly' | 'weekly'>('monthly');
   const [settlementType, setSettlementType] = useState<'hourly' | 'per_order'>('hourly');
+  const [timeInputMode, setTimeInputMode] = useState<'total' | 'start_end'>('total');
 
   useEffect(() => {
     if (settings) {
@@ -30,6 +31,7 @@ const WorkersSettingsDrawer = ({ open, onOpenChange, instanceId }: WorkersSettin
       setStandardHours(settings.standard_hours_per_day?.toString() ?? '8');
       setReportFrequency(settings.report_frequency ?? 'monthly');
       setSettlementType(settings.settlement_type ?? 'hourly');
+      setTimeInputMode(settings.time_input_mode ?? 'total');
     }
   }, [settings]);
 
