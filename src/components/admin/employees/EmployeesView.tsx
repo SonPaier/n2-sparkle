@@ -318,7 +318,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
       ) : (
         <>
           <div className="rounded-lg border border-border bg-card overflow-x-auto">
-            <Table className="w-full" style={{ tableLayout: 'fixed' }}>
+            <Table className="w-full">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead style={{ width: isPerOrder ? '60%' : '47%' }}>Imię</TableHead>
@@ -326,7 +326,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                     {isPerOrder ? 'Wykonano zleceń' : 'Przepracowano'}
                   </TableHead>
                   {!isPerOrder && <TableHead className="text-right" style={{ width: '25%' }}>Wypłata</TableHead>}
-                  {isAdmin && <TableHead style={{ width: isPerOrder ? '10%' : '5%' }} />}
+                  {isAdmin && <TableHead className="w-10" style={{ width: '40px', minWidth: '40px' }} />}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -371,7 +371,7 @@ const EmployeesView = ({ instanceId }: EmployeesViewProps) => {
                         </TableCell>
                       )}
                       {isAdmin && (
-                        <TableCell className="text-center py-3" style={{ width: isPerOrder ? '10%' : '5%' }}>
+                        <TableCell className="text-center py-3 w-10" style={{ width: '40px', minWidth: '40px' }}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                               <button className="p-1 rounded hover:bg-accent transition-colors">
