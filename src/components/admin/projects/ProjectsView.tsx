@@ -121,7 +121,7 @@ const SortableOrderRow = ({ order, onClick, onMore }: { order: ProjectOrder; onC
       <TableCell className="py-1.5">
         <span className="text-xs text-muted-foreground">{statusCfg.label}</span>
       </TableCell>
-      <TableCell />
+      
       <TableCell>
         {onMore && (
           <DropdownMenu>
@@ -517,15 +517,15 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                   <TableHead>Klient</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Etapy</TableHead>
+                  
                   <TableHead className="w-[50px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Ładowanie...</TableCell></TableRow>
                 ) : filteredProjects.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Brak projektów</TableCell></TableRow>
                 ) : paginatedProjects.map((project, idx) => {
                   const stages = stageMap[project.id] || { total: 0, completed: 0 };
                   const statusCfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.not_started;
@@ -545,7 +545,7 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">{format(new Date(project.created_at), 'd MMM yyyy', { locale: pl })}</TableCell>
                         <TableCell><Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge></TableCell>
-                        <TableCell className="text-center font-medium">{stages.completed}/{stages.total}</TableCell>
+                        
                         <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>

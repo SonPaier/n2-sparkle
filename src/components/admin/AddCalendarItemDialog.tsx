@@ -951,11 +951,6 @@ const AddCalendarItemDialog = ({
             </>
             )}
 
-            {initialProjectId && (
-              <div className="p-3 rounded-lg bg-muted/50 border border-border text-sm text-muted-foreground">
-                Zlecenie zostanie dodane bez daty — możesz ją ustawić później z poziomu kalendarza.
-              </div>
-            )}
 
             {/* Assigned Employees */}
             {employeesEnabled && (

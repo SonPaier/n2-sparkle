@@ -192,6 +192,7 @@ const AdminCalendar = ({
   const [dragOverDate, setDragOverDate] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<{ hour: number; slotIndex: number } | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [configPopoverOpen, setConfigPopoverOpen] = useState(false);
   const [weekViewColumnId, setWeekViewColumnId] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isCompact, setIsCompact] = useState(() => {
@@ -929,7 +930,7 @@ const AdminCalendar = ({
             )}
 
             {/* Unified view settings popover */}
-            <Popover>
+            <Popover open={configPopoverOpen} onOpenChange={setConfigPopoverOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="icon" className="h-9 w-9" title="Ustawienia widoku">
                   <Settings2 className="w-4 h-4" />
@@ -942,10 +943,10 @@ const AdminCalendar = ({
                     <div className="space-y-2">
                       <h4 className="font-medium text-sm">Pokaż</h4>
                       <div className="flex border border-border rounded-lg overflow-hidden">
-                        <Button variant={viewMode === 'day' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('day')} className="rounded-none border-0 flex-1 text-xs">Dzień</Button>
-                        <Button variant={viewMode === 'two-days' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('two-days')} className="rounded-none border-0 flex-1 text-xs">2 dni</Button>
-                        <Button variant={viewMode === 'week' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('week')} className="rounded-none border-0 flex-1 text-xs">Tydzień</Button>
-                        <Button variant={viewMode === 'month' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('month')} className="rounded-none border-0 flex-1 text-xs">Miesiąc</Button>
+                        <Button variant={viewMode === 'day' ? 'secondary' : 'ghost'} size="sm" onClick={() => { setViewMode('day'); setConfigPopoverOpen(false); }} className="rounded-none border-0 flex-1 text-xs">Dzień</Button>
+                        <Button variant={viewMode === 'two-days' ? 'secondary' : 'ghost'} size="sm" onClick={() => { setViewMode('two-days'); setConfigPopoverOpen(false); }} className="rounded-none border-0 flex-1 text-xs">2 dni</Button>
+                        <Button variant={viewMode === 'week' ? 'secondary' : 'ghost'} size="sm" onClick={() => { setViewMode('week'); setConfigPopoverOpen(false); }} className="rounded-none border-0 flex-1 text-xs">Tydzień</Button>
+                        <Button variant={viewMode === 'month' ? 'secondary' : 'ghost'} size="sm" onClick={() => { setViewMode('month'); setConfigPopoverOpen(false); }} className="rounded-none border-0 flex-1 text-xs">Miesiąc</Button>
                       </div>
                     </div>
                   )}
