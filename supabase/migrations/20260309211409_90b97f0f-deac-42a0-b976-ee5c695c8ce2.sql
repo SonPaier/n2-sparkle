@@ -1,0 +1,1 @@
+DELETE FROM public.time_entries WHERE id = 'd073bbd4-9802-4259-ae79-0855ac64788e';
