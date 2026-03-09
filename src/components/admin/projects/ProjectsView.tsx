@@ -462,6 +462,9 @@ const ProjectsView = ({ instanceId, onAddOrder, onOpenCalendarItem, onEditOrder 
                       {project.customer_id && customerMap[project.customer_id] && (
                         <p className="text-xs text-muted-foreground">{customerMap[project.customer_id]}</p>
                       )}
+                      {project.customer_address_id && addressMap[project.customer_address_id] && (
+                        <p className="text-xs text-muted-foreground">{addressMap[project.customer_address_id]}</p>
+                      )}
                     </div>
                     <Badge variant="outline" className={statusCfg.badgeClass}>{statusCfg.label}</Badge>
                   </div>
