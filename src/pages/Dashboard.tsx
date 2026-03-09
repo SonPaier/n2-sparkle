@@ -280,7 +280,7 @@ const Dashboard = () => {
       fetchBreaks();
       if (employeeCalendarViewEnabled) fetchEmployees();
     }
-    if (currentView === 'dashboard') {
+    if (currentView === 'dashboard' || currentView === 'projekty') {
       fetchColumns();
     }
   }, [currentView, fetchColumns, fetchItems, fetchBreaks, fetchEmployees, employeeCalendarViewEnabled]);
