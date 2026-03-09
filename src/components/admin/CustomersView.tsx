@@ -199,7 +199,8 @@ const CustomersView = ({ instanceId }: CustomersViewProps) => {
         if (addrs) {
           return addrs.some(a =>
             a.name.toLowerCase().includes(query) ||
-            (a.city && a.city.toLowerCase().includes(query))
+            (a.city && a.city.toLowerCase().includes(query)) ||
+            (a.street && a.street.toLowerCase().includes(query))
           );
         }
         return false;
