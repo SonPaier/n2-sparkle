@@ -223,19 +223,27 @@ const AddCalendarItemDialog = ({
       setCustomerEmail(editingItem.customer_email || '');
       setCustomerId(editingItem.customer_id || null);
       setCustomerAddressId(editingItem.customer_address_id || null);
-      setColumnId(editingItem.column_id || '');
+      setColumnId(editingItem.column_id || columns[0]?.id || '');
       const fromDate = editingItem.item_date ? parseISO(editingItem.item_date) : new Date();
       const toDate = editingItem.end_date ? parseISO(editingItem.end_date) : fromDate;
       const isMulti = editingItem.end_date && !isSameDay(fromDate, toDate);
       setReservationType(isMulti ? 'multi' : 'single');
-      setDateRange({ from: fromDate, to: toDate });
+      setDateRange(editingItem.item_date ? { from: fromDate, to: toDate } : undefined);
       setStartTime(editingItem.start_time || '08:00');
       setEndTime(editingItem.end_time || '09:00');
       setAdminNotes(editingItem.admin_notes || '');
       setPrice(editingItem.price?.toString() || '');
       setPriority(editingItem.priority ?? DEFAULT_PRIORITY);
       setAssignedEmployeeIds(editingItem.assigned_employee_ids || []);
-      setProjectId(null); // Don't change project in edit mode for now
+      // Load project_id in edit mode
+      const loadProjectId = async () => {
+        const { data } = await (supabase.from('calendar_items') as any)
+          .select('project_id')
+          .eq('id', editingItem.id)
+          .single();
+        setProjectId(data?.project_id || null);
+      };
+      loadProjectId();
 
       // Load saved services from calendar_item_services
       const loadServices = async () => {
