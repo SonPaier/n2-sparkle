@@ -155,20 +155,15 @@ Deno.serve(async (req) => {
     }
     parts.push("");
 
-    // 5. Unique constraints
-    parts.push("-- Unique Constraints");
-    const uqs = await sql`
-      SELECT tc.table_name, tc.constraint_name,
-        string_agg(kcu.column_name, ', ' ORDER BY kcu.ordinal_position) as columns
-      FROM information_schema.table_constraints tc
-      JOIN information_schema.key_column_usage kcu 
-        ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
-      WHERE tc.constraint_type = 'UNIQUE' AND tc.table_schema = 'public'
-      GROUP BY tc.table_name, tc.constraint_name
-      ORDER BY tc.table_name
+    // 5. Indexes (includes unique constraints and performance indexes, excludes PKs)
+    parts.push("-- Indexes");
+    const indexes = await sql`
+      SELECT indexname, indexdef FROM pg_indexes 
+      WHERE schemaname = 'public' AND indexname NOT LIKE '%_pkey'
+      ORDER BY tablename, indexname
     `;
-    for (const uq of uqs) {
-      parts.push(`ALTER TABLE public.${uq.table_name} ADD CONSTRAINT ${uq.constraint_name} UNIQUE (${uq.columns});`);
+    for (const idx of indexes) {
+      parts.push(idx.indexdef + ';');
     }
     parts.push("");
 
