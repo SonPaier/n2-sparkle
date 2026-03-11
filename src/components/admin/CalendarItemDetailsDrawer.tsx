@@ -374,7 +374,7 @@ const CalendarItemDetailsDrawer = ({
         .single();
       return data as { work_started_at: string | null; work_ended_at: string | null } | null;
     },
-    enabled: !!item?.id && item?.status === 'completed' && open,
+    enabled: !!item?.id && (item?.status === 'completed' || item?.status === 'in_progress') && open,
     staleTime: 0,
   });
 
