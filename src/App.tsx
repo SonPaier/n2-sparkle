@@ -186,6 +186,12 @@ const DevRoutes = () => (
         </ProtectedRoute>
       }
     />
+    {/* Migration page - must be before /admin/:view? */}
+    <Route path="/admin/migracja" element={
+      <ProtectedRoute requiredRole="admin">
+        <MigrationPage />
+      </ProtectedRoute>
+    } />
     {/* Admin dashboard with view param */}
     <Route
       path="/admin/:view?"
@@ -206,11 +212,6 @@ const DevRoutes = () => (
     />
     {/* Root redirect to admin */}
     <Route path="/" element={<Navigate to="/admin" replace />} />
-    <Route path="/migracja" element={
-      <ProtectedRoute requiredRole="super_admin">
-        <MigrationPage />
-      </ProtectedRoute>
-    } />
     <Route path="/protocols/:token" element={<PublicProtocolView />} />
     
     <Route path="*" element={<NotFound />} />
