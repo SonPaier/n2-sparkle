@@ -1105,7 +1105,7 @@ const CalendarItemDetailsDrawer = ({
 
                     return (
                       <div className="flex items-center gap-1.5 text-sm text-foreground flex-wrap">
-                        <Clock className="w-4 h-4 shrink-0" />
+                        <span className="font-medium shrink-0">Czas realizacji:</span>
                         <span>od {startH}{endDateStr ? ` (${dateStr})` : ''} do {endH}</span>
                         {sameDay && <span>, {dateStr}</span>}
                         {endDateStr && <span>, {endDateStr}</span>}
