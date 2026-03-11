@@ -1068,6 +1068,39 @@ const CalendarItemDetailsDrawer = ({
               {/* FV + SMS section */}
               {!hidePrices && (item.status === 'completed' || item.status === 'in_progress') && (
                 <div className="space-y-2 pt-2 border-t border-border">
+                  {/* Work time info for completed items */}
+                  {item.status === 'completed' && item.start_time && item.end_time && (() => {
+                    const startH = item.start_time!.slice(0, 5);
+                    const endH = item.end_time!.slice(0, 5);
+                    const startParts = item.start_time!.split(':').map(Number);
+                    const endParts = item.end_time!.split(':').map(Number);
+                    const diffMin = (endParts[0] * 60 + endParts[1]) - (startParts[0] * 60 + startParts[1]);
+                    const hours = Math.floor(Math.abs(diffMin) / 60);
+                    const mins = Math.abs(diffMin) % 60;
+                    const durationStr = `${hours}h ${mins.toString().padStart(2, '0')} min`;
+
+                    const isMultiDay = item.end_date && item.end_date !== item.item_date;
+                    let dateStr = '';
+                    if (item.item_date) {
+                      try {
+                        const d = new Date(item.item_date + 'T00:00:00');
+                        dateStr = format(d, 'd MMMM yyyy', { locale: pl });
+                        if (isMultiDay && item.end_date) {
+                          const d2 = new Date(item.end_date + 'T00:00:00');
+                          dateStr = `${format(d, 'd MMM', { locale: pl })} — ${format(d2, 'd MMMM yyyy', { locale: pl })}`;
+                        }
+                      } catch {}
+                    }
+
+                    return (
+                      <div className="flex items-center gap-1.5 text-sm text-foreground flex-wrap">
+                        <Clock className="w-4 h-4 shrink-0" />
+                        <span>od {startH} do {endH}</span>
+                        {dateStr && <span>, {dateStr}</span>}
+                        <span className="font-semibold">({durationStr})</span>
+                      </div>
+                    );
+                  })()}
                   {invoicingSettings?.active && itemInvoices.length === 0 && (
                     <Button
                       variant="outline"
