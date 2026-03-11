@@ -363,7 +363,21 @@ const CalendarItemDetailsDrawer = ({
   const { settings: invoicingSettings } = useInvoicingSettings(instanceId || null);
   const { data: itemInvoices = [], refetch: refetchInvoices } = useInvoices(instanceId || null, item?.id);
 
-  // History tab query
+  // Work times query (work_started_at, work_ended_at)
+  const { data: workTimesData } = useQuery({
+    queryKey: ['work-times', item?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('calendar_items')
+        .select('work_started_at, work_ended_at')
+        .eq('id', item!.id)
+        .single();
+      return data as { work_started_at: string | null; work_ended_at: string | null } | null;
+    },
+    enabled: !!item?.id && item?.status === 'completed' && open,
+    staleTime: 0,
+  });
+
   const customerAddressId = item?.customer_address_id;
   const { data: historyItems = [] } = useQuery({
     queryKey: ['address-history', customerAddressId, item?.id],
