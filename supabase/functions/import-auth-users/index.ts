@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: roleData } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", user.id).eq("role", "super_admin").maybeSingle();
+      .from("user_roles").select("role").eq("user_id", user.id).in("role", ["super_admin", "admin"]).maybeSingle();
 
     if (!roleData) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
@@ -83,6 +83,13 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Ensure JSON fields are properly formatted (avoid double-stringify)
+        const ensureJsonString = (val: any): string => {
+          if (val === null || val === undefined) return '{}';
+          if (typeof val === 'string') return val; // already a string from DB
+          return JSON.stringify(val); // object → string
+        };
+
         await sql`
           INSERT INTO auth.users (
             id, instance_id, aud, role, email, encrypted_password,
@@ -104,8 +111,8 @@ Deno.serve(async (req) => {
             ${u.recovery_token || ''}, ${u.recovery_sent_at || null},
             ${u.email_change_token_new || ''}, ${u.email_change || ''},
             ${u.email_change_sent_at || null}, ${u.last_sign_in_at || null},
-            ${JSON.stringify(u.raw_app_meta_data || {})}::jsonb,
-            ${JSON.stringify(u.raw_user_meta_data || {})}::jsonb,
+            ${ensureJsonString(u.raw_app_meta_data)}::jsonb,
+            ${ensureJsonString(u.raw_user_meta_data)}::jsonb,
             ${u.is_super_admin || false},
             ${u.created_at || new Date().toISOString()},
             ${u.updated_at || new Date().toISOString()},
