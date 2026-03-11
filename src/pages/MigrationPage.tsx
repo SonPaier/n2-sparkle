@@ -151,7 +151,22 @@ const MigrationPage = () => {
           </div>
         </div>
 
-        {/* Target config */}
+        {/* Schema export - FIRST STEP */}
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileCode className="w-5 h-5" /> 1. Eksport schematu bazy
+            </CardTitle>
+            <CardDescription>Pobierz pełny SQL schematu (tabele, RLS, funkcje, triggery, storage) i wklej go w SQL Editor nowego projektu PRZED migracją danych</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Button disabled={migrationRunning} variant="outline" className="gap-2" onClick={exportSchema}>
+              {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCode className="w-4 h-4" />}
+              📋 Pobierz schemat SQL
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Konfiguracja docelowego projektu</CardTitle>
