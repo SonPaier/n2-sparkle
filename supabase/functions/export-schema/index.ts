@@ -55,11 +55,11 @@ Deno.serve(async (req) => {
     parts.push("-- Generated: " + new Date().toISOString());
     parts.push("-- =============================================\n");
 
-    // 1. Enable extensions
+    // 1. Enable extensions (skip Supabase-managed ones)
     parts.push("-- Extensions");
     const extensions = await sql`
       SELECT extname FROM pg_extension 
-      WHERE extname NOT IN ('plpgsql') 
+      WHERE extname NOT IN ('plpgsql', 'pgsodium', 'supabase_vault', 'pg_graphql', 'pg_stat_statements', 'pgcrypto', 'pgjwt', 'uuid-ossp') 
       ORDER BY extname
     `;
     for (const ext of extensions) {
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
     parts.push("");
 
-    // 2. Enums
+    // 2. Enums (use DO block for idempotency)
     parts.push("-- Enums");
     const enums = await sql`
       SELECT t.typname, 
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     `;
     for (const en of enums) {
       const labels = en.labels.map((l: string) => `'${l}'`).join(', ');
-      parts.push(`CREATE TYPE public.${en.typname} AS ENUM (${labels});`);
+      parts.push(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '${en.typname}') THEN CREATE TYPE public.${en.typname} AS ENUM (${labels}); END IF; END $$;`);
     }
     parts.push("");
 
