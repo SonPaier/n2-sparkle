@@ -184,6 +184,8 @@ export type Database = {
           status: string
           title: string
           updated_at: string
+          work_ended_at: string | null
+          work_started_at: string | null
         }
         Insert: {
           admin_notes?: string | null
@@ -213,6 +215,8 @@ export type Database = {
           status?: string
           title: string
           updated_at?: string
+          work_ended_at?: string | null
+          work_started_at?: string | null
         }
         Update: {
           admin_notes?: string | null
@@ -242,6 +246,8 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
+          work_ended_at?: string | null
+          work_started_at?: string | null
         }
         Relationships: [
           {

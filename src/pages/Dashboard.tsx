@@ -531,7 +531,10 @@ const Dashboard = () => {
     setSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
     setDashboardSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
 
-    const { error } = await supabase.from('calendar_items').update({ status: newStatus }).eq('id', itemId);
+    const updatePayload: Record<string, any> = { status: newStatus };
+    if (newStatus === 'in_progress') updatePayload.work_started_at = new Date().toISOString();
+    if (newStatus === 'completed') updatePayload.work_ended_at = new Date().toISOString();
+    const { error } = await supabase.from('calendar_items').update(updatePayload as any).eq('id', itemId);
     if (error) {
       toast.error('Błąd zmiany statusu');
       fetchItems();

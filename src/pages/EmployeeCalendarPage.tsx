@@ -349,7 +349,10 @@ const EmployeeCalendarPage = () => {
   const handleStatusChange = async (itemId: string, newStatus: string) => {
     setCalendarItems(prev => prev.map(i => i.id === itemId ? { ...i, status: newStatus } : i));
     setSelectedItem(prev => prev && prev.id === itemId ? { ...prev, status: newStatus } : prev);
-    const { error } = await supabase.from('calendar_items').update({ status: newStatus }).eq('id', itemId);
+    const updatePayload: Record<string, any> = { status: newStatus };
+    if (newStatus === 'in_progress') updatePayload.work_started_at = new Date().toISOString();
+    if (newStatus === 'completed') updatePayload.work_ended_at = new Date().toISOString();
+    const { error } = await supabase.from('calendar_items').update(updatePayload as any).eq('id', itemId);
     if (error) { toast.error('Błąd zmiany statusu'); fetchItems(); return; }
     setDashboardRefreshKey(k => k + 1);
 
