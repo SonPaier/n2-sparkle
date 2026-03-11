@@ -64,9 +64,24 @@ Deno.serve(async (req) => {
 
     log.push(`Rozpoczynam import ${users.length} użytkowników via SQL...`);
     log.push(`Tryb: ${dry_run ? 'DRY RUN' : 'LIVE'}`);
+    log.push(`Target DB URL: ${target_db_url.substring(0, 30)}...`);
 
-    const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.5/mod.js");
-    const sql = postgres(target_db_url, { max: 1 });
+    let sql: any;
+    try {
+      const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.5/mod.js");
+      log.push("✅ postgres.js loaded");
+      sql = postgres(target_db_url, { max: 1, idle_timeout: 20, connect_timeout: 30 });
+      // Test connection
+      const testResult = await sql`SELECT 1 as test`;
+      log.push(`✅ Connected to target DB (test query: ${JSON.stringify(testResult)})`);
+    } catch (connErr: unknown) {
+      const msg = connErr instanceof Error ? connErr.message : String(connErr);
+      log.push(`❌ Failed to connect to target DB: ${msg}`);
+      errors.push(`Connection error: ${msg}`);
+      return new Response(JSON.stringify({ log, errors, created: 0, skipped: 0, total: users.length }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     for (const u of users) {
       try {
@@ -83,11 +98,11 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Ensure JSON fields are properly formatted (avoid double-stringify)
+        // Ensure JSON fields are properly formatted
         const ensureJsonString = (val: any): string => {
           if (val === null || val === undefined) return '{}';
-          if (typeof val === 'string') return val; // already a string from DB
-          return JSON.stringify(val); // object → string
+          if (typeof val === 'string') return val;
+          return JSON.stringify(val);
         };
 
         await sql`
@@ -129,11 +144,33 @@ Deno.serve(async (req) => {
           )
         `;
 
-        log.push(`✅ ${u.email} (${u.id}) - utworzony z oryginalnym hasłem`);
+        // Also create identity record so login works
+        try {
+          await sql`
+            INSERT INTO auth.identities (
+              id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at
+            ) VALUES (
+              ${u.id}::uuid,
+              ${u.id}::uuid,
+              ${JSON.stringify({ sub: u.id, email: u.email, email_verified: true })}::jsonb,
+              'email',
+              ${u.id},
+              ${u.last_sign_in_at || u.created_at || new Date().toISOString()},
+              ${u.created_at || new Date().toISOString()},
+              ${u.updated_at || new Date().toISOString()}
+            )
+          `;
+          log.push(`✅ ${u.email} (${u.id}) - utworzony z hasłem + identity`);
+        } catch (identityErr: unknown) {
+          const msg = identityErr instanceof Error ? identityErr.message : String(identityErr);
+          log.push(`✅ ${u.email} (${u.id}) - utworzony z hasłem (identity warning: ${msg})`);
+        }
+        
         created++;
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         errors.push(`❌ ${u.email || u.id}: ${msg}`);
+        log.push(`❌ ${u.email || u.id}: ${msg}`);
       }
     }
 
