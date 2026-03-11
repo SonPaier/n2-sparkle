@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Database, Users, ArrowLeft, Download, Upload, HardDrive } from 'lucide-react';
+import { Loader2, Database, Users, ArrowLeft, Download, Upload, HardDrive, FileCode } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -114,6 +114,30 @@ const MigrationPage = () => {
     }
   };
 
+  const exportSchema = async () => {
+    setMigrationRunning(true);
+    setMigrationLog([]);
+    setMigrationErrors([]);
+    try {
+      const { data, error } = await supabase.functions.invoke('export-schema');
+      if (error) throw error;
+      const blob = new Blob([data.schema], { type: 'text/sql' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `schema-export-${new Date().toISOString().slice(0, 10)}.sql`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Pobrano schemat: ${data.tables_count} tabel, ${data.policies_count} polityk, ${data.functions_count} funkcji`);
+      setMigrationLog([`Schemat wyeksportowany: ${data.tables_count} tabel, ${data.policies_count} polityk RLS, ${data.functions_count} funkcji`]);
+    } catch (e: any) {
+      toast.error('Błąd: ' + (e.message || String(e)));
+      setMigrationErrors([String(e)]);
+    } finally {
+      setMigrationRunning(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
@@ -127,7 +151,22 @@ const MigrationPage = () => {
           </div>
         </div>
 
-        {/* Target config */}
+        {/* Schema export - FIRST STEP */}
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileCode className="w-5 h-5" /> 1. Eksport schematu bazy
+            </CardTitle>
+            <CardDescription>Pobierz pełny SQL schematu (tabele, RLS, funkcje, triggery, storage) i wklej go w SQL Editor nowego projektu PRZED migracją danych</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Button disabled={migrationRunning} variant="outline" className="gap-2" onClick={exportSchema}>
+              {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileCode className="w-4 h-4" />}
+              📋 Pobierz schemat SQL
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Konfiguracja docelowego projektu</CardTitle>
