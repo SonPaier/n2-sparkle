@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
           .from("user_roles")
           .select("role")
           .eq("user_id", user.id);
-        isAuthorized = roles?.some((r: any) => r.role === "super_admin") || false;
+        isAuthorized = roles?.some((r: any) => r.role === "super_admin" || r.role === "admin") || false;
       }
     }
 
