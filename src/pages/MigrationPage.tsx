@@ -114,6 +114,30 @@ const MigrationPage = () => {
     }
   };
 
+  const exportSchema = async () => {
+    setMigrationRunning(true);
+    setMigrationLog([]);
+    setMigrationErrors([]);
+    try {
+      const { data, error } = await supabase.functions.invoke('export-schema');
+      if (error) throw error;
+      const blob = new Blob([data.schema], { type: 'text/sql' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `schema-export-${new Date().toISOString().slice(0, 10)}.sql`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Pobrano schemat: ${data.tables_count} tabel, ${data.policies_count} polityk, ${data.functions_count} funkcji`);
+      setMigrationLog([`Schemat wyeksportowany: ${data.tables_count} tabel, ${data.policies_count} polityk RLS, ${data.functions_count} funkcji`]);
+    } catch (e: any) {
+      toast.error('Błąd: ' + (e.message || String(e)));
+      setMigrationErrors([String(e)]);
+    } finally {
+      setMigrationRunning(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
