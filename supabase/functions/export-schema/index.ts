@@ -217,20 +217,18 @@ Deno.serve(async (req) => {
     }
     parts.push("");
 
-    // 8. Triggers
+    // 8. Triggers (use pg_trigger since information_schema.triggers is empty in Supabase)
     parts.push("-- Triggers");
     const triggers = await sql`
-      SELECT trigger_name, event_manipulation, event_object_table, action_statement, action_timing, action_orientation
-      FROM information_schema.triggers
-      WHERE trigger_schema = 'public'
-      ORDER BY event_object_table, trigger_name
+      SELECT tgname, relname, pg_get_triggerdef(t.oid) as triggerdef
+      FROM pg_trigger t
+      JOIN pg_class c ON t.tgrelid = c.oid
+      JOIN pg_namespace n ON c.relnamespace = n.oid
+      WHERE NOT t.tgisinternal AND n.nspname = 'public'
+      ORDER BY relname, tgname
     `;
-    const seenTriggers = new Set<string>();
     for (const tr of triggers) {
-      const key = `${tr.trigger_name}_${tr.event_object_table}`;
-      if (seenTriggers.has(key)) continue;
-      seenTriggers.add(key);
-      parts.push(`CREATE TRIGGER ${tr.trigger_name} ${tr.action_timing} ${tr.event_manipulation} ON public.${tr.event_object_table} FOR EACH ${tr.action_orientation} ${tr.action_statement};`);
+      parts.push(tr.triggerdef + ';');
     }
     // Auth trigger
     parts.push(`CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();`);
