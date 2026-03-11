@@ -6,6 +6,51 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+type ProfileRow = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  instance_id: string | null;
+  is_blocked: boolean;
+  phone: string | null;
+  username: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+const ensureJsonString = (val: unknown): string => {
+  if (val === null || val === undefined) return "{}";
+  if (typeof val === "string") return val;
+  return JSON.stringify(val);
+};
+
+const restoreProfile = async (sql: any, profile: ProfileRow) => {
+  await sql`
+    INSERT INTO public.profiles (
+      id, email, full_name, instance_id, is_blocked, phone, username, created_at, updated_at
+    ) VALUES (
+      ${profile.id}::uuid,
+      ${profile.email},
+      ${profile.full_name},
+      ${profile.instance_id ? `${profile.instance_id}` : null}::uuid,
+      ${profile.is_blocked},
+      ${profile.phone},
+      ${profile.username},
+      ${profile.created_at},
+      ${profile.updated_at}
+    )
+    ON CONFLICT (id) DO UPDATE SET
+      email = EXCLUDED.email,
+      full_name = EXCLUDED.full_name,
+      instance_id = EXCLUDED.instance_id,
+      is_blocked = EXCLUDED.is_blocked,
+      phone = EXCLUDED.phone,
+      username = EXCLUDED.username,
+      created_at = EXCLUDED.created_at,
+      updated_at = EXCLUDED.updated_at
+  `;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -15,30 +60,41 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { autoRefreshToken: false, persistSession: false } }
+      { auth: { autoRefreshToken: false, persistSession: false } },
     );
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
+
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const { data: roleData } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", user.id).in("role", ["super_admin", "admin"]).maybeSingle();
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .in("role", ["super_admin", "admin"])
+      .maybeSingle();
 
     if (!roleData) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -47,13 +103,15 @@ Deno.serve(async (req) => {
 
     if (!users || !Array.isArray(users)) {
       return new Response(JSON.stringify({ error: "Missing 'users' array in body" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (!target_db_url) {
       return new Response(JSON.stringify({ error: "Missing 'target_db_url'" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -63,30 +121,18 @@ Deno.serve(async (req) => {
     let skipped = 0;
 
     log.push(`Rozpoczynam import ${users.length} użytkowników via SQL...`);
-    log.push(`Tryb: ${dry_run ? 'DRY RUN' : 'LIVE'}`);
-    log.push(`Target DB URL: ${target_db_url.substring(0, 30)}...`);
+    log.push(`Tryb: ${dry_run ? "DRY RUN" : "LIVE"}`);
 
-    let sql: any;
-    try {
-      const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.5/mod.js");
-      log.push("✅ postgres.js loaded");
-      sql = postgres(target_db_url, { max: 1, idle_timeout: 20, connect_timeout: 30 });
-      // Test connection
-      const testResult = await sql`SELECT 1 as test`;
-      log.push(`✅ Connected to target DB (test query: ${JSON.stringify(testResult)})`);
-    } catch (connErr: unknown) {
-      const msg = connErr instanceof Error ? connErr.message : String(connErr);
-      log.push(`❌ Failed to connect to target DB: ${msg}`);
-      errors.push(`Connection error: ${msg}`);
-      return new Response(JSON.stringify({ log, errors, created: 0, skipped: 0, total: users.length }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { default: postgres } = await import("https://deno.land/x/postgresjs@v3.4.5/mod.js");
+    const sql = postgres(target_db_url, { max: 1 });
 
     for (const u of users) {
+      let existingProfile: ProfileRow | null = null;
+      let profileDeleted = false;
+
       try {
-        const existing = await sql`SELECT id FROM auth.users WHERE id = ${u.id}::uuid`;
-        if (existing.length > 0) {
+        const existingUser = await sql`SELECT id FROM auth.users WHERE id = ${u.id}::uuid`;
+        if (existingUser.length > 0) {
           log.push(`⏭️ SKIP ${u.email} (${u.id}) - już istnieje`);
           skipped++;
           continue;
@@ -98,12 +144,18 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Ensure JSON fields are properly formatted
-        const ensureJsonString = (val: any): string => {
-          if (val === null || val === undefined) return '{}';
-          if (typeof val === 'string') return val;
-          return JSON.stringify(val);
-        };
+        const profileRows = await sql<ProfileRow[]>`
+          SELECT id, email, full_name, instance_id, is_blocked, phone, username, created_at, updated_at
+          FROM public.profiles
+          WHERE id = ${u.id}::uuid
+        `;
+
+        if (profileRows.length > 0) {
+          existingProfile = profileRows[0];
+          await sql`DELETE FROM public.profiles WHERE id = ${u.id}::uuid`;
+          profileDeleted = true;
+          log.push(`ℹ️ ${u.email}: tymczasowo usunięto istniejący profil, aby wstawić auth.users`);
+        }
 
         await sql`
           INSERT INTO auth.users (
@@ -118,33 +170,42 @@ Deno.serve(async (req) => {
             is_sso_user, deleted_at, is_anonymous
           ) VALUES (
             ${u.id}::uuid,
-            ${u.instance_id || '00000000-0000-0000-0000-000000000000'}::uuid,
-            ${u.aud || 'authenticated'}, ${u.role || 'authenticated'},
-            ${u.email}, ${u.encrypted_password || ''},
-            ${u.email_confirmed_at || null}, ${u.invited_at || null},
-            ${u.confirmation_token || ''}, ${u.confirmation_sent_at || null},
-            ${u.recovery_token || ''}, ${u.recovery_sent_at || null},
-            ${u.email_change_token_new || ''}, ${u.email_change || ''},
-            ${u.email_change_sent_at || null}, ${u.last_sign_in_at || null},
+            ${u.instance_id || "00000000-0000-0000-0000-000000000000"}::uuid,
+            ${u.aud || "authenticated"},
+            ${u.role || "authenticated"},
+            ${u.email},
+            ${u.encrypted_password || ""},
+            ${u.email_confirmed_at || null},
+            ${u.invited_at || null},
+            ${u.confirmation_token || ""},
+            ${u.confirmation_sent_at || null},
+            ${u.recovery_token || ""},
+            ${u.recovery_sent_at || null},
+            ${u.email_change_token_new || ""},
+            ${u.email_change || ""},
+            ${u.email_change_sent_at || null},
+            ${u.last_sign_in_at || null},
             ${ensureJsonString(u.raw_app_meta_data)}::jsonb,
             ${ensureJsonString(u.raw_user_meta_data)}::jsonb,
             ${u.is_super_admin || false},
             ${u.created_at || new Date().toISOString()},
             ${u.updated_at || new Date().toISOString()},
-            ${u.phone || null}, ${u.phone_confirmed_at || null},
-            ${u.phone_change || ''}, ${u.phone_change_token || ''},
+            ${u.phone || null},
+            ${u.phone_confirmed_at || null},
+            ${u.phone_change || ""},
+            ${u.phone_change_token || ""},
             ${u.phone_change_sent_at || null},
-            ${u.email_change_token_current || ''},
+            ${u.email_change_token_current || ""},
             ${u.email_change_confirm_status || 0},
             ${u.banned_until || null},
-            ${u.reauthentication_token || ''},
+            ${u.reauthentication_token || ""},
             ${u.reauthentication_sent_at || null},
-            ${u.is_sso_user || false}, ${u.deleted_at || null},
+            ${u.is_sso_user || false},
+            ${u.deleted_at || null},
             ${u.is_anonymous || false}
           )
         `;
 
-        // Also create identity record so login works
         try {
           await sql`
             INSERT INTO auth.identities (
@@ -159,18 +220,33 @@ Deno.serve(async (req) => {
               ${u.created_at || new Date().toISOString()},
               ${u.updated_at || new Date().toISOString()}
             )
+            ON CONFLICT (provider, id) DO NOTHING
           `;
-          log.push(`✅ ${u.email} (${u.id}) - utworzony z hasłem + identity`);
-        } catch (identityErr: unknown) {
-          const msg = identityErr instanceof Error ? identityErr.message : String(identityErr);
-          log.push(`✅ ${u.email} (${u.id}) - utworzony z hasłem (identity warning: ${msg})`);
+        } catch {
+          // identity may already exist in some setups, ignore
         }
-        
+
+        if (existingProfile) {
+          await restoreProfile(sql, existingProfile);
+          profileDeleted = false;
+          log.push(`ℹ️ ${u.email}: przywrócono oryginalny profil po imporcie auth.users`);
+        }
+
+        log.push(`✅ ${u.email} (${u.id}) - utworzony`);
         created++;
       } catch (e: unknown) {
+        if (profileDeleted && existingProfile) {
+          try {
+            await restoreProfile(sql, existingProfile);
+            log.push(`↩️ ${u.email}: profil przywrócony po błędzie importu`);
+          } catch (restoreErr: unknown) {
+            const restoreMsg = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
+            errors.push(`⚠️ ${u.email || u.id}: nie udało się przywrócić profilu: ${restoreMsg}`);
+          }
+        }
+
         const msg = e instanceof Error ? e.message : String(e);
         errors.push(`❌ ${u.email || u.id}: ${msg}`);
-        log.push(`❌ ${u.email || u.id}: ${msg}`);
       }
     }
 
@@ -179,13 +255,15 @@ Deno.serve(async (req) => {
     log.push(`\n📊 Podsumowanie: utworzono=${created}, pominięto=${skipped}, błędów=${errors.length}`);
 
     return new Response(JSON.stringify({ log, errors, created, skipped, total: users.length }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
     console.error("Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(JSON.stringify({ error: message }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
