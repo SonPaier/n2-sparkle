@@ -126,8 +126,9 @@ Deno.serve(async (req) => {
         let def = `  ${col.column_name} ${typStr}`;
         if (col.is_nullable === 'NO') def += ' NOT NULL';
         if (col.column_default !== null) {
-          // Clean up default values
           let defaultVal = col.column_default;
+          // Ensure gen_random_bytes uses extensions schema
+          defaultVal = defaultVal.replace(/(?<!extensions\.)gen_random_bytes/g, 'extensions.gen_random_bytes');
           def += ` DEFAULT ${defaultVal}`;
         }
         colDefs.push(def);
