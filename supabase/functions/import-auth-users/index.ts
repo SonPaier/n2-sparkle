@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: roleData } = await supabaseAdmin
-      .from("user_roles").select("role").eq("user_id", user.id).eq("role", "super_admin").maybeSingle();
+      .from("user_roles").select("role").eq("user_id", user.id).in("role", ["super_admin", "admin"]).maybeSingle();
 
     if (!roleData) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
