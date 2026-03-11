@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { createIDBPersister } from "@/lib/idbPersister";
 import Login from "./pages/Login";
+import MigrationPage from "./pages/MigrationPage";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import PublicProtocolView from "./pages/PublicProtocolView";
@@ -205,6 +206,11 @@ const DevRoutes = () => (
     />
     {/* Root redirect to admin */}
     <Route path="/" element={<Navigate to="/admin" replace />} />
+    <Route path="/migracja" element={
+      <ProtectedRoute requiredRole="super_admin">
+        <MigrationPage />
+      </ProtectedRoute>
+    } />
     <Route path="/protocols/:token" element={<PublicProtocolView />} />
     
     <Route path="*" element={<NotFound />} />
