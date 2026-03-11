@@ -206,6 +206,11 @@ const DevRoutes = () => (
     />
     {/* Root redirect to admin */}
     <Route path="/" element={<Navigate to="/admin" replace />} />
+    <Route path="/migracja" element={
+      <ProtectedRoute requiredRole="super_admin">
+        <MigrationPage />
+      </ProtectedRoute>
+    } />
     <Route path="/protocols/:token" element={<PublicProtocolView />} />
     
     <Route path="*" element={<NotFound />} />
