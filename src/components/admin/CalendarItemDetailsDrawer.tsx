@@ -374,7 +374,7 @@ const CalendarItemDetailsDrawer = ({
         .single();
       return data as { work_started_at: string | null; work_ended_at: string | null } | null;
     },
-    enabled: !!item?.id && item?.status === 'completed' && open,
+    enabled: !!item?.id && (item?.status === 'completed' || item?.status === 'in_progress') && open,
     staleTime: 0,
   });
 
@@ -1082,13 +1082,13 @@ const CalendarItemDetailsDrawer = ({
               {/* FV + SMS section */}
               {!hidePrices && (item.status === 'completed' || item.status === 'in_progress') && (
                 <div className="space-y-2 pt-2 border-t border-border">
-                  {/* Work time info for completed items */}
-                  {item.status === 'completed' && workTimesData && (() => {
+                  {/* Work time info */}
+                  {(item.status === 'completed' || item.status === 'in_progress') && workTimesData && (() => {
                     const startDt = workTimesData.work_started_at ? new Date(workTimesData.work_started_at) : null;
                     const endDt = workTimesData.work_ended_at ? new Date(workTimesData.work_ended_at) : null;
-                    if (!startDt && !endDt) return null;
+                    if (!startDt) return null;
 
-                    const startH = startDt ? format(startDt, 'HH:mm') : '—';
+                    const startH = format(startDt, 'HH:mm');
                     const endH = endDt ? format(endDt, 'HH:mm') : '—';
 
                     let durationStr = '';
@@ -1099,16 +1099,17 @@ const CalendarItemDetailsDrawer = ({
                       durationStr = `${hours}h ${mins.toString().padStart(2, '0')} min`;
                     }
 
-                    const sameDay = startDt && endDt && format(startDt, 'yyyy-MM-dd') === format(endDt, 'yyyy-MM-dd');
-                    const dateStr = startDt ? format(startDt, 'd MMMM yyyy', { locale: pl }) : '';
+                    const dateStr = format(startDt, 'd MMMM yyyy', { locale: pl });
+                    const sameDay = endDt && format(startDt, 'yyyy-MM-dd') === format(endDt, 'yyyy-MM-dd');
                     const endDateStr = endDt && !sameDay ? format(endDt, 'd MMMM yyyy', { locale: pl }) : '';
 
                     return (
                       <div className="flex items-center gap-1.5 text-sm text-foreground flex-wrap">
                         <Clock className="w-4 h-4 shrink-0" />
                         <span>od {startH}{endDateStr ? ` (${dateStr})` : ''} do {endH}</span>
-                        {sameDay && dateStr && <span>, {dateStr}</span>}
+                        {sameDay && <span>, {dateStr}</span>}
                         {endDateStr && <span>, {endDateStr}</span>}
+                        {!endDt && <span>, {dateStr}</span>}
                         {durationStr && <span className="font-semibold">({durationStr})</span>}
                       </div>
                     );
