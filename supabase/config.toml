@@ -23,3 +23,15 @@ verify_jwt = false
 
 [functions.geocode-addresses]
 verify_jwt = false
+
+[functions.migrate-data-to-target]
+verify_jwt = false
+
+[functions.dump-auth-users]
+verify_jwt = false
+
+[functions.import-auth-users]
+verify_jwt = false
+
+[functions.migrate-storage]
+verify_jwt = false
