@@ -19,10 +19,48 @@ const MigrationPage = () => {
   const [migrationRunning, setMigrationRunning] = useState(false);
   const [authUsersDump, setAuthUsersDump] = useState<any[] | null>(null);
 
-  const hasTargetConfig = targetUrl.trim() && targetServiceRoleKey.trim();
+  const hasTargetConfig = Boolean(targetUrl.trim() && targetServiceRoleKey.trim());
+
+  const getRefFromUrl = (url: string) => {
+    try {
+      return new URL(url).hostname.split('.')[0] ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getRefFromServiceKey = (jwt: string) => {
+    try {
+      const payloadPart = jwt.split('.')[1];
+      if (!payloadPart) return null;
+      const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+      const payload = JSON.parse(atob(padded));
+      return payload?.ref ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  const validateTargetCredentials = () => {
+    if (!hasTargetConfig) {
+      toast.error('Podaj URL i Service Role Key docelowego projektu');
+      return false;
+    }
+
+    const urlRef = getRefFromUrl(targetUrl.trim());
+    const keyRef = getRefFromServiceKey(targetServiceRoleKey.trim());
+
+    if (urlRef && keyRef && urlRef !== keyRef) {
+      toast.error('Service Role Key nie pasuje do podanego URL projektu docelowego.');
+      return false;
+    }
+
+    return true;
+  };
 
   const runMigration = async (dryRun: boolean) => {
-    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key docelowego projektu'); return; }
+    if (!validateTargetCredentials()) return;
     if (!dryRun && !confirm('Czy na pewno chcesz uruchomić migrację WSZYSTKICH danych?')) return;
     setMigrationRunning(true);
     setMigrationLog([]);
@@ -93,7 +131,7 @@ const MigrationPage = () => {
   };
 
   const migrateStorage = async (dryRun: boolean) => {
-    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key docelowego projektu'); return; }
+    if (!validateTargetCredentials()) return;
     if (!dryRun && !confirm('Migracja plików Storage. Kontynuować?')) return;
     setMigrationRunning(true);
     setMigrationLog([]);
@@ -230,7 +268,7 @@ const MigrationPage = () => {
                   size="sm"
                   className="gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
                   onClick={async () => {
-                    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key'); return; }
+                    if (!validateTargetCredentials()) return;
                     setMigrationRunning(true);
                     setMigrationLog([]);
                     setMigrationErrors([]);
@@ -259,7 +297,7 @@ const MigrationPage = () => {
                   size="sm"
                   className="gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
                   onClick={async () => {
-                    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key'); return; }
+                    if (!validateTargetCredentials()) return;
                     setMigrationRunning(true);
                     setMigrationLog([]);
                     setMigrationErrors([]);
@@ -288,7 +326,7 @@ const MigrationPage = () => {
                   size="sm"
                   className="gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
                   onClick={async () => {
-                    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key'); return; }
+                    if (!validateTargetCredentials()) return;
                     setMigrationRunning(true);
                     setMigrationLog([]);
                     setMigrationErrors([]);
