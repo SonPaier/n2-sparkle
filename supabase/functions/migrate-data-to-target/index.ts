@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const migrateAll = body.all === true;
     const dryRun = body.dry_run || false;
+    const onlyTables: string[] | null = body.only_tables || null; // e.g. ["unified_categories", "unified_services"]
+    const dryRun = body.dry_run || false;
     const targetUrl = body.target_url;
     const targetKey = body.target_service_role_key;
 
