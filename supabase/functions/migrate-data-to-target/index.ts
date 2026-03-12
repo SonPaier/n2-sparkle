@@ -60,12 +60,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Validate that target key is a service_role key, not anon
+    // Validate target key
     try {
       const payload = JSON.parse(atob(targetKey.split(".")[1]));
       if (payload.role === "anon") {
-        return new Response(JSON.stringify({ 
-          error: "Podano anon key zamiast service_role key. Użyj Service Role Key z ustawień projektu docelowego." 
+        return new Response(JSON.stringify({
+          error: "Podano anon key zamiast service_role key. Użyj Service Role Key z ustawień projektu docelowego."
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const targetRefFromUrl = new URL(targetUrl).hostname.split(".")[0];
+      if (payload.ref && payload.ref !== targetRefFromUrl) {
+        return new Response(JSON.stringify({
+          error: "Service Role Key nie pasuje do podanego target_url (inny projekt)."
         }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
