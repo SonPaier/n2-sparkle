@@ -210,15 +210,80 @@ const MigrationPage = () => {
             </CardTitle>
             <CardDescription>Przeniesienie instancji, klientów, kalendarza, usług i całej reszty</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Button disabled={migrationRunning || !hasTargetConfig} variant="outline" className="gap-2" onClick={() => runMigration(true)}>
-              {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-              Dry Run (wszystkie instancje)
-            </Button>
-            <Button disabled={migrationRunning || !hasTargetConfig} className="gap-2" onClick={() => runMigration(false)}>
-              {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
-              🚀 Uruchom migrację
-            </Button>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-3">
+              <Button disabled={migrationRunning || !hasTargetConfig} variant="outline" className="gap-2" onClick={() => runMigration(true)}>
+                {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                Dry Run (wszystkie instancje)
+              </Button>
+              <Button disabled={migrationRunning || !hasTargetConfig} className="gap-2" onClick={() => runMigration(false)}>
+                {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                🚀 Uruchom migrację
+              </Button>
+            </div>
+            <div className="border-t pt-3">
+              <p className="text-sm text-muted-foreground mb-2">Domigruj wybrane tabele (np. brakujące usługi):</p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={migrationRunning || !hasTargetConfig}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
+                  onClick={async () => {
+                    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key'); return; }
+                    setMigrationRunning(true);
+                    setMigrationLog([]);
+                    setMigrationErrors([]);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('migrate-data-to-target', {
+                        body: { all: true, dry_run: false, only_tables: ["unified_categories", "unified_services"], target_url: targetUrl, target_service_role_key: targetServiceRoleKey },
+                      });
+                      if (error) throw error;
+                      setMigrationLog(data.log || []);
+                      setMigrationErrors(data.errors || []);
+                      toast.success(`Domigrowano usługi: ${data.instances_count} instancji`);
+                    } catch (e: any) {
+                      toast.error('Błąd: ' + (e.message || String(e)));
+                      setMigrationErrors([String(e)]);
+                    } finally {
+                      setMigrationRunning(false);
+                    }
+                  }}
+                >
+                  {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                  🔧 Domigruj usługi (kategorie + usługi)
+                </Button>
+                <Button
+                  disabled={migrationRunning || !hasTargetConfig}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
+                  onClick={async () => {
+                    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key'); return; }
+                    setMigrationRunning(true);
+                    setMigrationLog([]);
+                    setMigrationErrors([]);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('migrate-data-to-target', {
+                        body: { all: true, dry_run: false, only_tables: ["calendar_items", "calendar_item_services"], target_url: targetUrl, target_service_role_key: targetServiceRoleKey },
+                      });
+                      if (error) throw error;
+                      setMigrationLog(data.log || []);
+                      setMigrationErrors(data.errors || []);
+                      toast.success(`Domigrowano zlecenia: ${data.instances_count} instancji`);
+                    } catch (e: any) {
+                      toast.error('Błąd: ' + (e.message || String(e)));
+                      setMigrationErrors([String(e)]);
+                    } finally {
+                      setMigrationRunning(false);
+                    }
+                  }}
+                >
+                  {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                  🔧 Domigruj zlecenia
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
