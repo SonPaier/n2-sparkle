@@ -282,6 +282,35 @@ const MigrationPage = () => {
                   {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
                   🔧 Domigruj zlecenia
                 </Button>
+                <Button
+                  disabled={migrationRunning || !hasTargetConfig}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
+                  onClick={async () => {
+                    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key'); return; }
+                    setMigrationRunning(true);
+                    setMigrationLog([]);
+                    setMigrationErrors([]);
+                    try {
+                      const { data, error } = await supabase.functions.invoke('migrate-data-to-target', {
+                        body: { all: true, dry_run: false, only_tables: ["projects"], target_url: targetUrl, target_service_role_key: targetServiceRoleKey },
+                      });
+                      if (error) throw error;
+                      setMigrationLog(data.log || []);
+                      setMigrationErrors(data.errors || []);
+                      toast.success(`Domigrowano projekty: ${data.instances_count} instancji`);
+                    } catch (e: any) {
+                      toast.error('Błąd: ' + (e.message || String(e)));
+                      setMigrationErrors([String(e)]);
+                    } finally {
+                      setMigrationRunning(false);
+                    }
+                  }}
+                >
+                  {migrationRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+                  🔧 Domigruj projekty
+                </Button>
               </div>
             </div>
           </CardContent>
