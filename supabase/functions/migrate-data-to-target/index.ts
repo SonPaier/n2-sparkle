@@ -172,6 +172,19 @@ Deno.serve(async (req) => {
       const instanceId = instance.id;
       log.push(`--- Instance: ${instance.slug} (${instanceId}) ---`);
 
+      // Selective mode: migrate only explicit tables (used for quick backfills)
+      if (onlyTables && onlyTables.length > 0) {
+        log.push(`Selective migration: ${onlyTables.join(", ")}`);
+        for (const tableName of onlyTables) {
+          if (tableName === "instances") {
+            await writeToTarget("instances", [instance]);
+          } else {
+            await migrateByInstance(tableName, instanceId);
+          }
+        }
+        continue;
+      }
+
       // 1. Instance itself
       if (shouldMigrate("instances")) await writeToTarget("instances", [instance]);
 
