@@ -326,7 +326,7 @@ const MigrationPage = () => {
                   size="sm"
                   className="gap-2 border-orange-500/50 text-orange-600 hover:bg-orange-500/10"
                   onClick={async () => {
-                    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key'); return; }
+                    if (!validateTargetCredentials()) return;
                     setMigrationRunning(true);
                     setMigrationLog([]);
                     setMigrationErrors([]);
