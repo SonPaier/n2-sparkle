@@ -131,7 +131,7 @@ const MigrationPage = () => {
   };
 
   const migrateStorage = async (dryRun: boolean) => {
-    if (!hasTargetConfig) { toast.error('Podaj URL i Service Role Key docelowego projektu'); return; }
+    if (!validateTargetCredentials()) return;
     if (!dryRun && !confirm('Migracja plików Storage. Kontynuować?')) return;
     setMigrationRunning(true);
     setMigrationLog([]);
