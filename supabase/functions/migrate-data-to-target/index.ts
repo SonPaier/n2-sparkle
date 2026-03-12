@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
       // 3. Level-1 tables (direct instance_id dependency only)
       const l1Tables = [
         "calendar_columns", "employees", "customers", "customer_categories",
-        "reminder_types", "unified_services", "projects",
+        "reminder_types", "unified_categories", "unified_services", "projects",
         "sms_notification_templates", "sms_payment_templates",
         "instance_features", "workers_settings", "invoicing_settings",
         "employee_calendar_configs", "dashboard_user_settings",
