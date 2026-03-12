@@ -48,6 +48,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const migrateAll = body.all === true;
     const dryRun = body.dry_run || false;
+    const onlyTables: string[] | null = body.only_tables || null; // e.g. ["unified_categories", "unified_services"]
+    const dryRun = body.dry_run || false;
     const targetUrl = body.target_url;
     const targetKey = body.target_service_role_key;
 
@@ -164,27 +166,31 @@ Deno.serve(async (req) => {
     }
 
     // Migrate each instance
+    const shouldMigrate = (tableName: string) => !onlyTables || onlyTables.includes(tableName);
+
     for (const instance of instances) {
       const instanceId = instance.id;
       log.push(`--- Instance: ${instance.slug} (${instanceId}) ---`);
 
       // 1. Instance itself
-      await writeToTarget("instances", [instance]);
+      if (shouldMigrate("instances")) await writeToTarget("instances", [instance]);
 
       // 2. Profiles & user_roles
-      await migrateByInstance("profiles", instanceId);
-      await migrateByInstance("user_roles", instanceId);
+      if (shouldMigrate("profiles")) await migrateByInstance("profiles", instanceId);
+      if (shouldMigrate("user_roles")) await migrateByInstance("user_roles", instanceId);
 
       // 3. Level-1 tables (direct instance_id dependency only)
       const l1Tables = [
         "calendar_columns", "employees", "customers", "customer_categories",
-        "reminder_types", "unified_services", "projects",
+        "reminder_types", "unified_categories", "unified_services", "projects",
         "sms_notification_templates", "sms_payment_templates",
         "instance_features", "workers_settings", "invoicing_settings",
         "employee_calendar_configs", "dashboard_user_settings",
         "employee_permissions",
       ];
-      for (const t of l1Tables) await migrateByInstance(t, instanceId);
+      for (const t of l1Tables) {
+        if (shouldMigrate(t)) await migrateByInstance(t, instanceId);
+      }
 
       // Collect valid IDs for orphan FK filtering
       const customerRows = await readAll("customers", { col: "instance_id", val: instanceId });
